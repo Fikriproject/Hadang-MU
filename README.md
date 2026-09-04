@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HadangMU — Grobak Sodor Scoring System
 
-## Getting Started
+Platform sistem penilaian (scoring) digital terintegrasi dan realtime untuk olahraga tradisional **Hadang (Gobak Sodor)**. Dibangun menggunakan **Next.js 16 (App Router)**, **React 19**, **Supabase (Auth, Postgres, Realtime)**, dan **Vanilla CSS**.
 
-First, run the development server:
+---
 
+## 🌟 Fitur Utama
+
+1. **Dashboard & Ruang Kontrol Admin (`/admin`, `/admin/matches/[id]`)**:
+   - **Manajemen Pertandingan**: Buat pertandingan, tentukan tim penyerang (Attack) & tim bertahan (Defense), serta penugasan Juri 1 & Juri 2.
+   - **Kontrol Status Live**: Mulai (`LIVE`), Jeda (`PAUSED`), Lanjutkan, dan Selesai (`FINISHED`).
+   - **Tukar Posisi (Swap Sides)**: Pergantian babak otomatis menukar tim penyerang & bertahan seketika.
+   - **Injeksi Poin Darurat**: Tombol manual penambahan poin oleh admin.
+   - **Audit Log & Anulir Skor**: Riwayat lengkap kejadian skor dengan tombol pembatalan skor (Admin Override).
+   - **Kelola Tim (`/admin/teams`)**: Tambah dan hapus tim peserta turnamen.
+
+2. **Meja Juri Mobile-First (`/jury`, `/jury/matches/[id]`)**:
+   - Khusus juri pertandingan dengan proteksi otentikasi.
+   - **Tombol Sentuh Raksasa "+1 POIN HADANG"**: Memasukkan skor untuk Tim Attack dengan haptic feedback getar (`navigator.vibrate`) dan animasi sentuh.
+   - **Tombol "BATALKAN POIN TERAKHIR" (Undo)**: Pembatalan poin jika juri tidak sengaja menekan tombol.
+   - **Kunci Otomatis**: Tombol dinonaktifkan otomatis saat pertandingan dijeda (`PAUSED`) atau selesai.
+   - **Sinkronisasi Otomatis**: Menyesuaikan tim penyerang secara otomatis saat admin menukar posisi babak.
+
+3. **TV & Projector Live Scoreboard (`/tv/[id]`)**:
+   - Tampilan papan skor layar penuh beresolusi tinggi dengan tipografi raksasa (`tv-score`).
+   - Pembaruan skor tanpa jeda dan tanpa reload menggunakan Supabase Realtime.
+   - Efek visual glow saat tim mencetak poin.
+   - Tombol toggle mode Fullscreen untuk proyektor atau siaran langsung (OBS/streaming).
+
+4. **Portal Publik (`/`)**:
+   - Pemantauan pertandingan yang sedang berlangsung secara langsung.
+   - Rekap hasil pertandingan dan jadwal pertandingan mendatang.
+   - Panduan aturan main Gobak Sodor.
+
+---
+
+## 🚀 Panduan Instalasi & Menjalankan
+
+### 1. Salin Environment Variables
+Salin file `.env.local.example` menjadi `.env.local`:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.local.example .env.local
+```
+Isi konfigurasi dari dashboard Supabase proyek Anda (**Project Settings > API**):
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Jalankan Database Migration
+Buka **SQL Editor** pada dashboard Supabase Anda, lalu jalankan seluruh skrip SQL yang ada pada file:
+👉 [`schema.sql`](file:///c:/Users/ACER/Downloads/Project-HadangMU/schema.sql)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Skrip ini akan membuat tabel `profiles`, `teams`, `matches`, `score_events`, mengaktifkan Row Level Security (RLS), triggers, serta publikasi Supabase Realtime.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Membuat Akun Admin & Juri
+1. Daftarkan akun baru melalui halaman login atau Supabase Auth Dashboard.
+2. Secara bawaan, akun baru akan memiliki role `JURY`.
+3. Untuk mengubah akun menjadi `ADMIN`, jalankan perintah SQL berikut di Supabase SQL Editor:
+```sql
+UPDATE public.profiles 
+SET role = 'ADMIN' 
+WHERE id = 'UUID_USER_ANDA';
+```
 
-## Learn More
+### 4. Menjalankan Server Pengembangan
+```bash
+npm run dev
+```
+Buka browser pada [http://localhost:3000](http://localhost:3000).
 
-To learn more about Next.js, take a look at the following resources:
+### 5. Build Produksi
+```bash
+npm run build
+npm start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📁 Struktur Direktori
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+src/
+├── app/
+│   ├── admin/               # Panel Admin (Dashboard, Ruang Kontrol, Tim)
+│   │   ├── matches/
+│   │   │   ├── [id]/        # Control Room (Live Score, Swap, Void Score)
+│   │   │   └── create/      # Form Pembuatan Pertandingan
+│   │   └── teams/           # Kelola Data Tim
+│   ├── jury/                # Antarmuka Juri (Mobile scoring controller)
+│   │   └── matches/[id]/    # Meja Juri (+1 Poin, Undo)
+│   ├── tv/[id]/             # Papan Skor TV Layar Penuh Realtime
+│   ├── login/               # Halaman Login Petugas
+│   ├── globals.css          # Desain sistem dan token tipografi Hadang
+│   └── page.tsx             # Portal Publik Turnamen Hadang
+└── lib/
+    └── supabase/            # Client, Server, & Middleware Supabase Helpers
+```
