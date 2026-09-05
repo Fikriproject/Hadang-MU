@@ -1,9 +1,9 @@
-const CACHE_NAME = 'hadangmu-pwa-v2';
+const CACHE_NAME = 'hadangmu-pwa-v3';
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
+  '/icons/maskable-icon-512x512.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -19,7 +19,11 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
       );
     }).then(() => self.clients.claim())
   );
@@ -28,7 +32,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Never cache Supabase, non-GET requests, extension schemes, or streaming endpoints
+  // Never intercept Supabase, non-GET, extension schemes, or streaming endpoints
   if (
     event.request.method !== 'GET' ||
     !url.protocol.startsWith('http') ||
@@ -39,7 +43,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first strategy with guaranteed Response fallback
+  // For HTML page navigation: Always get fresh HTML from network so Next.js chunk hashes are never stale!
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request).catch(async () => {
+        return new Response('Aplikasi sedang offline. Sambungkan kembali ke internet.', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        });
+      })
+    );
+    return;
+  }
+
+  // Network-first strategy with safe cache fallback for static assets
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -56,17 +73,12 @@ self.addEventListener('fetch', (event) => {
         if (cached) {
           return cached;
         }
-        // Fallback for navigation requests
-        if (event.request.mode === 'navigate') {
-          const cachedHome = await caches.match('/');
-          if (cachedHome) return cachedHome;
-        }
-        return new Response('Network error or offline', {
-          status: 503,
-          statusText: 'Service Unavailable',
-          headers: { 'Content-Type': 'text/plain' },
+        return new Response('', {
+          status: 408,
+          statusText: 'Request timeout',
         });
       })
   );
 });
+
 
