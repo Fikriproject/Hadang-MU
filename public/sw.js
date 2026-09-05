@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hadangmu-pwa-v1';
+const CACHE_NAME = 'hadangmu-pwa-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -28,9 +28,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Never cache Supabase, non-GET requests, or dynamic API endpoints
+  // Never cache Supabase, non-GET requests, extension schemes, or streaming endpoints
   if (
     event.request.method !== 'GET' ||
+    !url.protocol.startsWith('http') ||
     url.hostname.includes('supabase.co') ||
     url.pathname.startsWith('/api/') ||
     event.request.headers.get('accept')?.includes('text/event-stream')
@@ -38,7 +39,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first strategy to ensure score updates and schedules are always current
+  // Network-first strategy with guaranteed Response fallback
   event.respondWith(
     fetch(event.request)
       .then((response) => {
@@ -50,6 +51,22 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(async () => {
+        const cached = await caches.match(event.request);
+        if (cached) {
+          return cached;
+        }
+        // Fallback for navigation requests
+        if (event.request.mode === 'navigate') {
+          const cachedHome = await caches.match('/');
+          if (cachedHome) return cachedHome;
+        }
+        return new Response('Network error or offline', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: { 'Content-Type': 'text/plain' },
+        });
+      })
   );
 });
+
