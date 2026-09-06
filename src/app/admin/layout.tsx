@@ -20,19 +20,17 @@ export default async function AdminLayout({
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'ADMIN' && profile?.role !== 'JURY') {
-    redirect('/login')
+  if (profile?.role !== 'ADMIN') {
+    redirect('/jury')
   }
-
-  const isAdmin = profile?.role === 'ADMIN'
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--background)' }}>
       {/* Synchronized Hamburger Navigation Header */}
       <AppNavHeader
-        userName={profile?.name || (isAdmin ? 'Admin' : 'Scoring')}
-        userRole={profile?.role}
-        titleBadge={isAdmin ? 'ADMIN PANEL' : 'RUANG KONTROL'}
+        userName={profile?.name || 'Admin'}
+        userRole="ADMIN"
+        titleBadge="ADMIN PANEL"
       />
 
       {/* Main Admin Content Container */}

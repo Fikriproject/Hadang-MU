@@ -95,11 +95,7 @@ export async function toggleAttackingTeam(matchId: string, targetAttackingTeamId
     return { error: error.message }
   }
 
-  revalidatePath('/admin')
-  revalidatePath(`/admin/matches/${matchId}`)
-  revalidatePath('/jury')
-  revalidatePath(`/jury/matches/${matchId}`)
-  revalidatePath(`/tv/${matchId}`)
+  // Supabase Realtime automatically broadcasts matches UPDATE to TV, Admin, and Jury
   return { success: true, newAttackId }
 }
 

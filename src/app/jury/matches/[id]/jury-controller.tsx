@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useEffect, useTransition, useMemo } from 'react'
+import React, { useState, useEffect, useTransition, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { addJuryScore, cancelRecentScore } from './actions'
+import { updateMatchStatus, toggleAttackingTeam } from '@/app/admin/matches/[id]/actions'
 import { promptUndoScoreReason } from '@/lib/sweetalert'
 
 interface Team {
@@ -62,6 +63,11 @@ export default function JuryController({
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const [isButtonActive, setIsButtonActive] = useState(false)
 
+  // Resilient synchronization refs to prevent UI flicker ("ejlek") & double counting
+  const pendingOptimisticIds = useRef<Set<string>>(new Set())
+  const lastAttackerToggleTimeRef = useRef<number>(0)
+  const targetAttackerIdRef = useRef<string | null>(null)
+
   // Deterministic Left & Right teams: positions NEVER swap on screen
   const { teamLeft, teamRight } = useMemo(() => {
     const tA = initialMatch.team_attack || { id: initialMatch.team_attack_id, name: 'Tim 1' }
@@ -79,7 +85,7 @@ export default function JuryController({
     initialMatch.round,
   ])
 
-  // Realtime Supabase Subscription
+  // Realtime Supabase Subscription & Resilient Sync
   useEffect(() => {
     const supabase = createClient()
     const matchId = initialMatch.id
@@ -96,6 +102,28 @@ export default function JuryController({
         },
         (payload: any) => {
           const updated = payload.new as any
+
+          // Protect against stale attacker updates if user recently toggled attacker locally
+          if (
+            lastAttackerToggleTimeRef.current > 0 &&
+            Date.now() - lastAttackerToggleTimeRef.current < 3500 &&
+            targetAttackerIdRef.current
+          ) {
+            if (updated.team_attack_id !== targetAttackerIdRef.current) {
+              setMatch((prev) => ({
+                ...prev,
+                ...updated,
+                team_attack_id: targetAttackerIdRef.current!,
+                team_defense_id:
+                  targetAttackerIdRef.current === teamLeft.id ? teamRight.id : teamLeft.id,
+              }))
+              return
+            }
+            // Confirmed by server: clear the toggle lock
+            lastAttackerToggleTimeRef.current = 0
+            targetAttackerIdRef.current = null
+          }
+
           setMatch((prev) => ({
             ...prev,
             ...updated,
@@ -114,7 +142,23 @@ export default function JuryController({
           if (payload.eventType === 'INSERT') {
             const newEvent = payload.new as ScoreEvent
             setScoreEvents((prev) => {
+              // Deduplication check: if real ID already present, do nothing
               if (prev.some((e) => e.id === newEvent.id)) return prev
+
+              // If this score event was made by current jury, reconcile with pending optimistic item
+              if (newEvent.jury_id === currentUserId) {
+                const optIndex = prev.findIndex(
+                  (e) => e.id.startsWith('opt-') && e.team_id === newEvent.team_id
+                )
+                if (optIndex !== -1) {
+                  const next = [...prev]
+                  const optId = next[optIndex].id
+                  pendingOptimisticIds.current.delete(optId)
+                  next[optIndex] = newEvent
+                  return next
+                }
+              }
+
               return [newEvent, ...prev]
             })
           } else if (payload.eventType === 'UPDATE') {
@@ -142,14 +186,32 @@ export default function JuryController({
 
         if (latestEvents && latestEvents.length > 0) {
           setScoreEvents((prev) => {
-            if (
-              prev.length !== latestEvents.length ||
-              prev[0]?.id !== latestEvents[0]?.id ||
-              prev[0]?.status !== latestEvents[0]?.status
-            ) {
-              return latestEvents as any
+            // Keep pending optimistic events so polling never drops them
+            const pendingLocals = prev.filter((e) => e.id.startsWith('opt-'))
+            if (pendingLocals.length > 0) {
+              const remoteUpdated = latestEvents as ScoreEvent[]
+              return [
+                ...pendingLocals,
+                ...remoteUpdated.filter(
+                  (r) =>
+                    !pendingLocals.some(
+                      (p) =>
+                        p.team_id === r.team_id &&
+                        p.jury_id === r.jury_id &&
+                        Math.abs(new Date(p.created_at).getTime() - new Date(r.created_at).getTime()) < 4000
+                    )
+                ),
+              ]
             }
-            return prev
+
+            if (
+              prev.length === latestEvents.length &&
+              prev[0]?.id === latestEvents[0]?.id &&
+              prev[0]?.status === latestEvents[0]?.status
+            ) {
+              return prev
+            }
+            return latestEvents as any
           })
         }
 
@@ -160,12 +222,25 @@ export default function JuryController({
           .single()
 
         if (latestMatch) {
+          let attackId = latestMatch.team_attack_id
+          let defenseId = latestMatch.team_defense_id
+
+          // Protect local attacker toggle if still within 3.5s grace period
+          if (
+            lastAttackerToggleTimeRef.current > 0 &&
+            Date.now() - lastAttackerToggleTimeRef.current < 3500 &&
+            targetAttackerIdRef.current
+          ) {
+            attackId = targetAttackerIdRef.current
+            defenseId = attackId === teamLeft.id ? teamRight.id : teamLeft.id
+          }
+
           setMatch((prev) => ({
             ...prev,
             status: latestMatch.status,
             round: latestMatch.round,
-            team_attack_id: latestMatch.team_attack_id,
-            team_defense_id: latestMatch.team_defense_id,
+            team_attack_id: attackId,
+            team_defense_id: defenseId,
             started_at: latestMatch.started_at,
             finished_at: latestMatch.finished_at,
             updated_at: latestMatch.updated_at,
@@ -174,13 +249,13 @@ export default function JuryController({
       } catch (err) {
         // Silent error
       }
-    }, 2500)
+    }, 3000)
 
     return () => {
       supabase.removeChannel(channel)
       clearInterval(pollInterval)
     }
-  }, [initialMatch.id])
+  }, [initialMatch.id, currentUserId, teamLeft.id, teamRight.id])
 
   // Real-time Match Stopwatch
   const [elapsed, setElapsed] = useState<string>('00:00')
@@ -238,8 +313,8 @@ export default function JuryController({
   const isRightAttacking = match.team_attack_id === teamRight.id
   const attackingTeamName = isLeftAttacking ? teamLeft.name : teamRight.name
 
-  // Memoized scores & undo availability for static teams
-  const { scoreLeft, scoreRight, myActiveEvents, canUndo } = useMemo(() => {
+  // Memoized scores, jury point counts & undo availability for static teams
+  const { scoreLeft, scoreRight, pointsJury1, pointsJury2, myActiveEvents, canUndo } = useMemo(() => {
     const active = scoreEvents.filter((e) => e.status === 'ACTIVE')
     const sLeft = active
       .filter((e) => e.team_id === teamLeft.id)
@@ -247,32 +322,44 @@ export default function JuryController({
     const sRight = active
       .filter((e) => e.team_id === teamRight.id)
       .reduce((sum, e) => sum + e.points, 0)
+    const pJ1 = active
+      .filter((e) => e.jury_id === match.jury_1_id)
+      .reduce((sum, e) => sum + e.points, 0)
+    const pJ2 = active
+      .filter((e) => e.jury_id === match.jury_2_id)
+      .reduce((sum, e) => sum + e.points, 0)
     const myActive = active.filter((e) => e.jury_id === currentUserId)
     return {
       scoreLeft: sLeft,
       scoreRight: sRight,
+      pointsJury1: pJ1,
+      pointsJury2: pJ2,
       myActiveEvents: myActive,
       canUndo: myActive.length > 0,
     }
-  }, [scoreEvents, teamLeft.id, teamRight.id, currentUserId])
+  }, [scoreEvents, teamLeft.id, teamRight.id, match.jury_1_id, match.jury_2_id, currentUserId])
 
   const isLive = match.status === 'LIVE'
+  const isFinished = match.status === 'FINISHED'
 
-  // Action: Add +1 Score
+  // Action: Add +1 Score (Instant Optimistic & Zero-Latency)
   const handleScoreClick = () => {
-    if (!isLive || isPending) return
+    if (!isLive || isFinished) return
 
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
       try {
-        navigator.vibrate(60)
+        navigator.vibrate(50)
       } catch (e) {}
     }
 
     setIsButtonActive(true)
-    setTimeout(() => setIsButtonActive(false), 150)
+    setTimeout(() => setIsButtonActive(false), 120)
 
-    const tempId = `optimistic-${Date.now()}`
+    const tempId = `opt-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
     const attackingId = match.team_attack_id
+
+    pendingOptimisticIds.current.add(tempId)
+
     const optimisticEvent: ScoreEvent = {
       id: tempId,
       match_id: match.id,
@@ -284,25 +371,33 @@ export default function JuryController({
       created_at: new Date().toISOString(),
     }
 
+    // Immediately reflect +1 point on screen
     setScoreEvents((prev) => [optimisticEvent, ...prev])
     setToastMessage({ text: `+1 Poin untuk ${attackingTeamName}!`, type: 'success' })
 
-    startTransition(async () => {
-      const res = await addJuryScore(match.id)
+    // Send explicitly selected attacking team to server to eliminate any race condition
+    addJuryScore(match.id, attackingId).then((res) => {
       if (res?.error) {
+        pendingOptimisticIds.current.delete(tempId)
         setScoreEvents((prev) => prev.filter((e) => e.id !== tempId))
         setToastMessage({ text: res.error, type: 'error' })
       } else if (res?.eventId) {
-        setScoreEvents((prev) =>
-          prev.map((e) => (e.id === tempId ? { ...e, id: res.eventId } : e))
-        )
+        pendingOptimisticIds.current.delete(tempId)
+        setScoreEvents((prev) => {
+          // If the real event already arrived via Realtime WebSocket:
+          if (prev.some((e) => e.id === res.eventId)) {
+            return prev.filter((e) => e.id !== tempId)
+          }
+          // Otherwise, seamlessly promote temp ID to server event ID
+          return prev.map((e) => (e.id === tempId ? { ...e, id: res.eventId } : e))
+        })
       }
     })
   }
 
-  // Action: Undo recent score
+  // Action: Undo recent score (Instant Optimistic Rollback)
   const handleUndoClick = async () => {
-    if (!canUndo || isPending) return
+    if (isFinished || !canUndo) return
 
     const reason = await promptUndoScoreReason()
     if (!reason) return
@@ -315,16 +410,180 @@ export default function JuryController({
     )
     setToastMessage({ text: `Poin berhasil dibatalkan (${reason})`, type: 'success' })
 
-    startTransition(async () => {
-      const res = await cancelRecentScore(match.id, reason)
+    const res = await cancelRecentScore(match.id, reason)
+    if (res?.error) {
+      setScoreEvents((prev) =>
+        prev.map((e) => (e.id === targetEvent.id ? { ...e, status: 'ACTIVE' } : e))
+      )
+      setToastMessage({ text: res.error, type: 'error' })
+    }
+  }
+
+  // Action: Toggle Attacking Team (Foul / Tukar Posisi with Grace-Period Lock)
+  const handleToggleAttacker = () => {
+    if (isFinished) return
+    const nextAttackId = isLeftAttacking ? teamRight.id : teamLeft.id
+    const nextDefenseId = nextAttackId === teamLeft.id ? teamRight.id : teamLeft.id
+    const nextAttackName = nextAttackId === teamLeft.id ? teamLeft.name : teamRight.name
+
+    targetAttackerIdRef.current = nextAttackId
+    lastAttackerToggleTimeRef.current = Date.now()
+
+    setMatch((prev) => ({
+      ...prev,
+      team_attack_id: nextAttackId,
+      team_defense_id: nextDefenseId,
+    }))
+    setToastMessage({ text: `Posisi ditukar! Giliran serang: ${nextAttackName}`, type: 'success' })
+
+    toggleAttackingTeam(match.id, nextAttackId).then((res) => {
       if (res?.error) {
-        setScoreEvents((prev) =>
-          prev.map((e) => (e.id === targetEvent.id ? { ...e, status: 'ACTIVE' } : e))
-        )
+        lastAttackerToggleTimeRef.current = 0
+        targetAttackerIdRef.current = null
         setToastMessage({ text: res.error, type: 'error' })
       }
     })
   }
+
+  // Action: Change Match Status (Mulai / Jeda / Lanjutkan / Selesai)
+  const handleStatusChange = (newStatus: string) => {
+    if (isFinished || isPending) return
+    startTransition(async () => {
+      const res = await updateMatchStatus(match.id, newStatus)
+      if (res?.error) {
+        setToastMessage({ text: res.error, type: 'error' })
+      } else {
+        setMatch((prev) => ({ ...prev, status: newStatus as any }))
+        setToastMessage({
+          text:
+            newStatus === 'LIVE'
+              ? 'Pertandingan dimulai (LIVE)!'
+              : newStatus === 'PAUSED'
+              ? 'Pertandingan dijeda (PAUSED).'
+              : 'Pertandingan telah diselesaikan.',
+          type: 'success',
+        })
+      }
+    })
+  }
+
+  // Count Card Component for Jury Points (1 row, 2 columns)
+  const renderJuryCountCards = (isAtTop = false) => (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '0.45rem',
+        width: '100%',
+        flexShrink: 0,
+        marginTop: isAtTop ? '0.35rem' : '0',
+      }}
+    >
+      {/* Card Juri 1 */}
+      <div
+        style={{
+          backgroundColor: 'var(--surface-color)',
+          border: isJury1 ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+          borderRadius: '10px',
+          padding: isAtTop ? '0.65rem 0.75rem' : '0.45rem 0.65rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: isJury1 ? '0 0 12px rgba(37, 99, 235, 0.2)' : 'var(--card-shadow)',
+        }}
+      >
+        <div style={{ minWidth: 0, overflow: 'hidden' }}>
+          <div
+            style={{
+              fontSize: '0.625rem',
+              fontWeight: 800,
+              color: isJury1 ? 'var(--primary)' : 'var(--text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {isJury1 ? '★ Poin Juri 1 (Anda)' : 'Poin Juri 1'}
+          </div>
+          <div
+            style={{
+              fontSize: '0.825rem',
+              fontWeight: 800,
+              color: 'var(--text-primary)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {match.jury_1?.name || 'Scoring 1'}
+          </div>
+        </div>
+        <div
+          style={{
+            fontSize: isAtTop ? '1.65rem' : '1.4rem',
+            fontWeight: 900,
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            color: isJury1 ? 'var(--primary)' : 'var(--text-primary)',
+            marginLeft: '0.4rem',
+            lineHeight: 1,
+          }}
+        >
+          {pointsJury1}
+        </div>
+      </div>
+
+      {/* Card Juri 2 */}
+      <div
+        style={{
+          backgroundColor: 'var(--surface-color)',
+          border: isJury2 ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+          borderRadius: '10px',
+          padding: isAtTop ? '0.65rem 0.75rem' : '0.45rem 0.65rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: isJury2 ? '0 0 12px rgba(37, 99, 235, 0.2)' : 'var(--card-shadow)',
+        }}
+      >
+        <div style={{ minWidth: 0, overflow: 'hidden' }}>
+          <div
+            style={{
+              fontSize: '0.625rem',
+              fontWeight: 800,
+              color: isJury2 ? 'var(--primary)' : 'var(--text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {isJury2 ? '★ Poin Juri 2 (Anda)' : 'Poin Juri 2'}
+          </div>
+          <div
+            style={{
+              fontSize: '0.825rem',
+              fontWeight: 800,
+              color: 'var(--text-primary)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {match.jury_2?.name || 'Scoring 2'}
+          </div>
+        </div>
+        <div
+          style={{
+            fontSize: isAtTop ? '1.65rem' : '1.4rem',
+            fontWeight: 900,
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            color: isJury2 ? 'var(--primary)' : 'var(--text-primary)',
+            marginLeft: '0.4rem',
+            lineHeight: 1,
+          }}
+        >
+          {pointsJury2}
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div
@@ -332,16 +591,14 @@ export default function JuryController({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        height: 'calc(100dvh - 48px)',
-        maxHeight: 'calc(100dvh - 48px)',
-        padding: '0.65rem 0.85rem',
+        minHeight: 'calc(100dvh - 48px)',
+        padding: '0.45rem 0.65rem',
         maxWidth: '500px',
         margin: '0 auto',
         width: '100%',
         boxSizing: 'border-box',
-        gap: '0.65rem',
+        gap: '0.4rem',
         justifyContent: 'space-between',
-        overflow: 'hidden',
       }}
     >
       {/* Match Header Bar - Ultra Compact for HP */}
@@ -403,18 +660,18 @@ export default function JuryController({
             style={{
               backgroundColor: isLive ? 'var(--success-subtle)' : match.status === 'PAUSED' ? 'var(--warning-subtle)' : 'var(--surface-subtle)',
               border: isLive ? '1.5px solid var(--success)' : match.status === 'PAUSED' ? '1.5px solid var(--warning)' : '1px solid var(--border-color)',
-              padding: '0.25rem 0.5rem',
+              padding: '0.2rem 0.45rem',
               borderRadius: '6px',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.3rem',
+              gap: '0.25rem',
             }}
           >
             <span style={{ fontSize: '0.75rem' }}>⏱</span>
             <span
               style={{
                 fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                fontSize: '0.875rem',
+                fontSize: '0.85rem',
                 fontWeight: 900,
                 color: isLive ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-primary)',
               }}
@@ -423,27 +680,43 @@ export default function JuryController({
             </span>
           </div>
 
-          {/* Quick link to Ruang Kontrol */}
-          <Link
-            href={`/admin/matches/${match.id}`}
-            className="touch-manipulation"
+          {/* Status Badge */}
+          <span
             style={{
-              backgroundColor: 'var(--surface-subtle)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border-color)',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '6px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
+              backgroundColor: isLive
+                ? 'var(--success-subtle)'
+                : match.status === 'PAUSED'
+                ? 'var(--warning-subtle)'
+                : 'var(--badge-neutral-bg)',
+              color: isLive ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--badge-neutral-text)',
+              border: isLive
+                ? '1px solid var(--success)'
+                : match.status === 'PAUSED'
+                ? '1px solid var(--warning)'
+                : '1px solid var(--border-color)',
+              fontSize: '0.65rem',
+              fontWeight: 800,
+              padding: '0.2rem 0.5rem',
+              borderRadius: '9999px',
+              letterSpacing: '0.04em',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.2rem',
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
+              gap: '0.25rem',
             }}
           >
-            ⚙️ Kontrol
-          </Link>
+            {isLive && (
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: 'var(--success)',
+                  display: 'inline-block',
+                }}
+              />
+            )}
+            {isLive ? 'LIVE' : match.status}
+          </span>
         </div>
       </div>
 
@@ -662,55 +935,61 @@ export default function JuryController({
         </div>
       </div>
 
-      {/* Dominant Primary Action: MASSIVE TOUCH TARGET +1 POIN HADANG */}
+      {/* When FINISHED: Move Jury Count Cards to the TOP */}
+      {isFinished && renderJuryCountCards(true)}
+
+      {/* Primary Action: +1 POIN HADANG (Disabled when FINISHED) */}
       <div
         style={{
           display: 'flex',
           flexDirection: 'column',
           flex: 1,
           justifyContent: 'center',
-          minHeight: '140px',
+          minHeight: '120px',
         }}
       >
         <button
           type="button"
           onClick={handleScoreClick}
-          disabled={!isLive || isPending}
+          disabled={!isLive || isFinished}
           className="touch-manipulation"
           style={{
             height: '100%',
             width: '100%',
-            backgroundColor: !isLive
+            backgroundColor: isFinished
+              ? 'var(--surface-subtle)'
+              : !isLive
               ? 'var(--surface-hover)'
               : isButtonActive
               ? '#15803D'
               : 'var(--success)',
-            color: !isLive ? 'var(--text-muted)' : 'white',
+            color: isFinished ? 'var(--text-muted)' : !isLive ? 'var(--text-muted)' : 'white',
             borderRadius: '16px',
-            border: !isLive ? '2px solid var(--border-color)' : '3px solid #16A34A',
+            border: isFinished ? '2px dashed var(--border-color)' : !isLive ? '2px solid var(--border-color)' : '3px solid #16A34A',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.35rem',
-            cursor: !isLive ? 'not-allowed' : 'pointer',
-            boxShadow: isLive ? '0 8px 24px rgba(22, 163, 74, 0.45)' : 'none',
-            transform: isButtonActive ? 'scale(0.95)' : 'scale(1)',
+            cursor: !isLive || isFinished ? 'not-allowed' : 'pointer',
+            boxShadow: isLive && !isFinished ? '0 8px 24px rgba(22, 163, 74, 0.45)' : 'none',
+            transform: isButtonActive && isLive && !isFinished ? 'scale(0.95)' : 'scale(1)',
             transition: 'transform 0.08s ease, background-color 0.12s ease',
             padding: '1rem',
+            opacity: isFinished ? 0.6 : 1,
           }}
         >
-          <span style={{ fontSize: 'clamp(2.6rem, 10vw, 3.5rem)', fontWeight: 900, lineHeight: 1 }}>
-            +1 POIN
+          <span style={{ fontSize: isFinished ? '1.8rem' : 'clamp(2.6rem, 10vw, 3.5rem)', fontWeight: 900, lineHeight: 1 }}>
+            {isFinished ? '🏁 SELESAI' : '+1 POIN'}
           </span>
-          <span style={{ fontSize: '1.05rem', fontWeight: 800, letterSpacing: '0.06em', opacity: 0.95 }}>
-            HADANG
+          <span style={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '0.06em', opacity: 0.95 }}>
+            {isFinished ? 'PERTANDINGAN BERAKHIR' : 'HADANG'}
           </span>
           <div
             style={{
-              fontSize: '0.85rem',
-              fontWeight: 800,
-              backgroundColor: 'rgba(0,0,0,0.25)',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              backgroundColor: isFinished ? 'var(--border-color)' : 'rgba(0,0,0,0.25)',
               padding: '0.25rem 0.85rem',
               borderRadius: '9999px',
               marginTop: '0.25rem',
@@ -720,30 +999,60 @@ export default function JuryController({
               whiteSpace: 'nowrap',
             }}
           >
-            Masuk ke: {attackingTeamName}
+            {isFinished ? 'Input skor ditutup' : `Masuk ke: ${attackingTeamName}`}
           </div>
         </button>
       </div>
 
-      {/* Secondary Action: BATALKAN POIN TERAKHIR (UNDO) */}
-      <div style={{ flexShrink: 0 }}>
+      {/* Actions Section: Tukar Posisi, Undo, and Match Controls */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', flexShrink: 0 }}>
+        {/* 1. BUTTON TUKAR POSISI (FOUL) - DI ATAS BATALKAN POIN */}
         <button
           type="button"
-          onClick={handleUndoClick}
-          disabled={!canUndo || isPending}
+          onClick={handleToggleAttacker}
+          disabled={isFinished}
           className="touch-manipulation"
           style={{
             width: '100%',
-            height: '46px',
+            height: '44px',
             borderRadius: '10px',
-            border: canUndo ? '2px solid var(--danger)' : '1px solid var(--border-color)',
-            backgroundColor: canUndo ? 'var(--danger-subtle)' : 'var(--surface-subtle)',
-            color: canUndo ? 'var(--danger)' : 'var(--text-muted)',
+            border: isFinished ? '1px solid var(--border-color)' : '2px solid var(--primary)',
+            backgroundColor: isFinished ? 'var(--surface-subtle)' : 'var(--primary-subtle)',
+            color: isFinished ? 'var(--text-muted)' : 'var(--primary)',
             fontWeight: 800,
             fontSize: '0.875rem',
-            cursor: !canUndo || isPending ? 'not-allowed' : 'pointer',
-            opacity: canUndo ? 1 : 0.45,
-            boxShadow: canUndo ? '0 2px 8px rgba(220, 38, 38, 0.2)' : 'none',
+            cursor: isFinished ? 'not-allowed' : 'pointer',
+            opacity: isFinished ? 0.4 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.45rem',
+            boxShadow: isFinished ? 'none' : '0 2px 6px rgba(37, 99, 235, 0.15)',
+            transition: 'all 0.12s ease',
+          }}
+        >
+          <span style={{ fontSize: '1.1rem' }}>⇄</span>
+          <span>TUKAR POSISI (FOUL)</span>
+        </button>
+
+        {/* 2. BUTTON BATALKAN POIN TERAKHIR (UNDO) */}
+        <button
+          type="button"
+          onClick={handleUndoClick}
+          disabled={isFinished || !canUndo}
+          className="touch-manipulation"
+          style={{
+            width: '100%',
+            height: '44px',
+            borderRadius: '10px',
+            border: !isFinished && canUndo ? '2px solid var(--danger)' : '1px solid var(--border-color)',
+            backgroundColor: !isFinished && canUndo ? 'var(--danger-subtle)' : 'var(--surface-subtle)',
+            color: !isFinished && canUndo ? 'var(--danger)' : 'var(--text-muted)',
+            fontWeight: 800,
+            fontSize: '0.875rem',
+            cursor: isFinished || !canUndo ? 'not-allowed' : 'pointer',
+            opacity: !isFinished && canUndo ? 1 : 0.4,
+            boxShadow: !isFinished && canUndo ? '0 2px 8px rgba(220, 38, 38, 0.2)' : 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -754,7 +1063,199 @@ export default function JuryController({
           <span>↩</span>
           <span>BATALKAN POIN TERAKHIR (UNDO)</span>
         </button>
+
+        {/* 3. ROW: 2 BUTTONS DALAM 1 BARIS (MULAI/SELESAI & JEDA/LANJUTKAN) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem', width: '100%' }}>
+          {/* Button Mulai / Selesai */}
+          {isFinished ? (
+            <button
+              type="button"
+              disabled
+              className="touch-manipulation"
+              style={{
+                height: '44px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--surface-subtle)',
+                color: 'var(--text-muted)',
+                fontWeight: 800,
+                fontSize: '0.875rem',
+                cursor: 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                opacity: 0.4,
+              }}
+            >
+              <span>🏁</span>
+              <span>SELESAI</span>
+            </button>
+          ) : match.status !== 'LIVE' && match.status !== 'PAUSED' ? (
+            <button
+              type="button"
+              onClick={() => handleStatusChange('LIVE')}
+              disabled={isPending}
+              className="touch-manipulation"
+              style={{
+                height: '44px',
+                borderRadius: '10px',
+                border: '2px solid #15803D',
+                backgroundColor: '#16A34A',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.875rem',
+                cursor: isPending ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 2px 8px rgba(22, 163, 74, 0.3)',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              <span>▶</span>
+              <span>MULAI</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Apakah Anda yakin ingin menyelesaikan pertandingan ini?')) {
+                  handleStatusChange('FINISHED')
+                }
+              }}
+              disabled={isPending}
+              className="touch-manipulation"
+              style={{
+                height: '44px',
+                borderRadius: '10px',
+                border: '2px solid #B91C1C',
+                backgroundColor: '#DC2626',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.875rem',
+                cursor: isPending ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              <span>⏹</span>
+              <span>SELESAI</span>
+            </button>
+          )}
+
+          {/* Button Jeda / Lanjutkan */}
+          {isFinished ? (
+            <button
+              type="button"
+              disabled
+              className="touch-manipulation"
+              style={{
+                height: '44px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--surface-subtle)',
+                color: 'var(--text-muted)',
+                fontWeight: 800,
+                fontSize: '0.875rem',
+                cursor: 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                opacity: 0.4,
+              }}
+            >
+              <span>⏸</span>
+              <span>JEDA</span>
+            </button>
+          ) : match.status === 'LIVE' ? (
+            <button
+              type="button"
+              onClick={() => handleStatusChange('PAUSED')}
+              disabled={isPending}
+              className="touch-manipulation"
+              style={{
+                height: '44px',
+                borderRadius: '10px',
+                border: '2px solid #CA8A04',
+                backgroundColor: '#EAB308',
+                color: '#000',
+                fontWeight: 800,
+                fontSize: '0.875rem',
+                cursor: isPending ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 2px 8px rgba(234, 179, 8, 0.3)',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              <span>⏸</span>
+              <span>JEDA</span>
+            </button>
+          ) : match.status === 'PAUSED' ? (
+            <button
+              type="button"
+              onClick={() => handleStatusChange('LIVE')}
+              disabled={isPending}
+              className="touch-manipulation"
+              style={{
+                height: '44px',
+                borderRadius: '10px',
+                border: '2px solid #15803D',
+                backgroundColor: '#16A34A',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.875rem',
+                cursor: isPending ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                boxShadow: '0 2px 8px rgba(22, 163, 74, 0.3)',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              <span>▶</span>
+              <span>LANJUTKAN</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="touch-manipulation"
+              style={{
+                height: '44px',
+                borderRadius: '10px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--surface-subtle)',
+                color: 'var(--text-muted)',
+                fontWeight: 800,
+                fontSize: '0.875rem',
+                cursor: 'not-allowed',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                opacity: 0.5,
+              }}
+            >
+              <span>⏸</span>
+              <span>JEDA</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* When NOT finished: Keep Count Cards at the BOTTOM */}
+      {!isFinished && renderJuryCountCards(false)}
 
       {/* Micro Status Bar for Realtime */}
       <div
