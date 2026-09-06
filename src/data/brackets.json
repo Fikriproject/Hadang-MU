@@ -292,25 +292,69 @@
       }
     ],
     "champion": null,
-    "updatedAt": "2026-09-06T13:41:45.591Z",
+    "updatedAt": "2026-09-06T14:20:18.692Z",
     "layoutMode": "CENTER_SPLIT",
-    "includeThirdPlace": false,
-    "thirdPlaceMatch": null,
+    "includeThirdPlace": true,
+    "thirdPlaceMatch": {
+      "id": "M-BRONZE",
+      "roundIndex": 3,
+      "matchIndex": 1,
+      "title": "Perebutan Juara 3 (Bronze Match)",
+      "team1": {
+        "name": "Kalah Semifinal 1",
+        "isPlaceholder": true
+      },
+      "team2": {
+        "name": "Kalah Semifinal 2",
+        "isPlaceholder": true
+      },
+      "score1": null,
+      "score2": null,
+      "matchId": null,
+      "status": "WAITING",
+      "winnerTeamId": null,
+      "loserTeamId": null,
+      "nextMatchId": null
+    },
     "thirdPlaceWinner": null
   },
   "PUTRI": {
     "category": "PUTRI",
-    "teamCount": 8,
+    "teamCount": 4,
+    "layoutMode": "CENTER_SPLIT",
+    "includeThirdPlace": true,
     "isLocked": false,
     "rounds": [
       {
-        "name": "Perempat Final",
+        "name": "Semifinal",
         "matches": [
           {
             "id": "M1",
             "roundIndex": 0,
             "matchIndex": 0,
-            "title": "Perempat Final 1",
+            "title": "Semifinal 1",
+            "team1": {
+              "id": "d18e93c7-206f-461d-adb2-60053cb4ddfb",
+              "name": "TIM UMC PUTRI"
+            },
+            "team2": {
+              "id": "acfbebbf-2198-48aa-a848-e33ad2a154bc",
+              "name": "TIM SRIKANDI (Putri)"
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "READY",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M3",
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M2",
+            "roundIndex": 0,
+            "matchIndex": 1,
+            "title": "Semifinal 2",
             "team1": {
               "id": "5a246336-dad8-43ef-af37-0c5a8b89115d",
               "name": "TIM MEDUSA (Putri)"
@@ -324,70 +368,20 @@
             "matchId": null,
             "status": "READY",
             "winnerTeamId": null,
-            "nextMatchId": "M5",
-            "nextSlot": "team1"
-          },
-          {
-            "id": "M2",
-            "roundIndex": 0,
-            "matchIndex": 1,
-            "title": "Perempat Final 2",
-            "team1": {
-              "id": "acfbebbf-2198-48aa-a848-e33ad2a154bc",
-              "name": "TIM SRIKANDI (Putri)"
-            },
-            "team2": {
-              "id": "d18e93c7-206f-461d-adb2-60053cb4ddfb",
-              "name": "TIM UMC PUTRI"
-            },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "READY",
-            "winnerTeamId": null,
-            "nextMatchId": "M5",
-            "nextSlot": "team2"
-          },
-          {
-            "id": "M3",
-            "roundIndex": 0,
-            "matchIndex": 2,
-            "title": "Perempat Final 3",
-            "team1": null,
-            "team2": null,
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "nextMatchId": "M6",
-            "nextSlot": "team1"
-          },
-          {
-            "id": "M4",
-            "roundIndex": 0,
-            "matchIndex": 3,
-            "title": "Perempat Final 4",
-            "team1": null,
-            "team2": null,
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "nextMatchId": "M6",
+            "loserTeamId": null,
+            "nextMatchId": "M3",
             "nextSlot": "team2"
           }
         ]
       },
       {
-        "name": "Semifinal",
+        "name": "Final",
         "matches": [
           {
-            "id": "M5",
+            "id": "M3",
             "roundIndex": 1,
             "matchIndex": 0,
-            "title": "Semifinal 1",
+            "title": "Final",
             "team1": {
               "name": "Pemenang M1",
               "isPlaceholder": true
@@ -401,59 +395,36 @@
             "matchId": null,
             "status": "WAITING",
             "winnerTeamId": null,
-            "nextMatchId": "M7",
-            "nextSlot": "team1"
-          },
-          {
-            "id": "M6",
-            "roundIndex": 1,
-            "matchIndex": 1,
-            "title": "Semifinal 2",
-            "team1": {
-              "name": "Pemenang M3",
-              "isPlaceholder": true
-            },
-            "team2": {
-              "name": "Pemenang M4",
-              "isPlaceholder": true
-            },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "nextMatchId": "M7",
-            "nextSlot": "team2"
-          }
-        ]
-      },
-      {
-        "name": "Final",
-        "matches": [
-          {
-            "id": "M7",
-            "roundIndex": 2,
-            "matchIndex": 0,
-            "title": "Final",
-            "team1": {
-              "name": "Pemenang M5",
-              "isPlaceholder": true
-            },
-            "team2": {
-              "name": "Pemenang M6",
-              "isPlaceholder": true
-            },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
+            "loserTeamId": null,
             "nextMatchId": null
           }
         ]
       }
     ],
+    "thirdPlaceMatch": {
+      "id": "M-BRONZE",
+      "roundIndex": 1,
+      "matchIndex": 1,
+      "title": "Perebutan Juara 3 (Bronze Match)",
+      "team1": {
+        "name": "Kalah Semifinal 1",
+        "isPlaceholder": true
+      },
+      "team2": {
+        "name": "Kalah Semifinal 2",
+        "isPlaceholder": true
+      },
+      "score1": null,
+      "score2": null,
+      "matchId": null,
+      "status": "WAITING",
+      "winnerTeamId": null,
+      "loserTeamId": null,
+      "nextMatchId": null
+    },
     "champion": null,
-    "updatedAt": "2026-09-06T13:16:57.710Z"
+    "runnerUp": null,
+    "thirdPlaceWinner": null,
+    "updatedAt": "2026-09-06T14:20:51.493Z"
   }
 }

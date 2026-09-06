@@ -44,7 +44,18 @@ export async function updateSession(request: NextRequest) {
     )
 
     // Refresh session if expired - required for Server Components
-    await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    const pathname = request.nextUrl.pathname
+    const isProtected = pathname.startsWith('/admin') || pathname.startsWith('/jury')
+
+    if (!user && isProtected) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('redirect', pathname + request.nextUrl.search)
+      return NextResponse.redirect(loginUrl)
+    }
   } catch (error) {
     // Prevent unhandled errors from crashing Vercel middleware
     console.error('Middleware updateSession error:', error)

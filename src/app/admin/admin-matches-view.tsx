@@ -356,7 +356,26 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0, flexWrap: 'wrap' }}>
+                    <Link
+                      href={`/jury/matches/${m.id}`}
+                      style={{
+                        backgroundColor: 'var(--surface-color)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-color)',
+                        padding: '0.45rem 0.65rem',
+                        borderRadius: '6px',
+                        fontWeight: 700,
+                        fontSize: '0.8125rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        textDecoration: 'none',
+                      }}
+                      title="Buka panel pencatatan Meja Scoring"
+                    >
+                      📱 Scoring
+                    </Link>
                     <Link
                       href={`/admin/matches/${m.id}`}
                       style={{
@@ -367,6 +386,7 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                         fontWeight: 700,
                         fontSize: '0.8125rem',
                         boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
+                        textDecoration: 'none',
                       }}
                     >
                       Ruang Kontrol
@@ -386,6 +406,7 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '0.3rem',
+                        textDecoration: 'none',
                       }}
                     >
                       📺 TV Score

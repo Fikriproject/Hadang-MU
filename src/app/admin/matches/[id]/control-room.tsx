@@ -307,24 +307,44 @@ export default function ControlRoom({
       {/* Top Header & Breadcrumbs */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
             <Link
               href={currentUserRole === 'JURY' ? '/jury' : '/admin'}
               style={{
                 color: 'var(--text-secondary)',
                 textDecoration: 'none',
-                fontSize: '0.875rem',
+                fontSize: '0.85rem',
                 fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.35rem',
-                padding: '0.2rem 0.5rem',
+                padding: '0.25rem 0.6rem',
                 borderRadius: '6px',
                 backgroundColor: 'var(--surface-subtle)',
                 border: '1px solid var(--border-color)',
               }}
             >
-              ← {currentUserRole === 'JURY' ? 'Kembali ke Meja Scoring' : 'Kembali ke Dashboard Admin'}
+              ← {currentUserRole === 'JURY' ? 'Ke Meja Scoring' : 'Dashboard Admin'}
+            </Link>
+
+            <Link
+              href="/admin/bracket"
+              style={{
+                color: '#CA8A04',
+                textDecoration: 'none',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.25rem 0.6rem',
+                borderRadius: '6px',
+                backgroundColor: 'rgba(234, 179, 8, 0.12)',
+                border: '1px solid rgba(234, 179, 8, 0.3)',
+              }}
+            >
+              <span>🏆</span>
+              <span>Bagan Turnamen</span>
             </Link>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>

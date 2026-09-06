@@ -8,9 +8,13 @@ import ThemeToggle from '@/components/theme-toggle'
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; redirect?: string }>
 }) {
   const supabase = await createClient()
+  const resolvedParams = await searchParams
+  const redirectTarget = resolvedParams?.redirect && resolvedParams.redirect.startsWith('/') ? resolvedParams.redirect : null
+  const errorMessage = resolvedParams?.error
+
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
@@ -20,15 +24,21 @@ export default async function LoginPage({
       .eq('id', user.id)
       .single()
 
-    if (profile?.role === 'ADMIN') {
-      redirect('/admin')
+    const isAdmin = profile?.role === 'ADMIN'
+    if (redirectTarget) {
+      if (redirectTarget.startsWith('/admin') && !isAdmin) {
+        redirect('/jury')
+      } else {
+        redirect(redirectTarget)
+      }
     } else {
-      redirect('/jury')
+      if (isAdmin) {
+        redirect('/admin')
+      } else {
+        redirect('/jury')
+      }
     }
   }
-
-  const resolvedParams = await searchParams
-  const errorMessage = resolvedParams?.error
 
   return (
     <main className={styles.container} style={{ position: 'relative' }}>
@@ -90,6 +100,10 @@ export default async function LoginPage({
         </div>
 
         <form className={styles.form} action={login}>
+          {redirectTarget && (
+            <input type="hidden" name="redirect" value={redirectTarget} />
+          )}
+
           {errorMessage && (
             <div className={styles.errorBox}>{errorMessage}</div>
           )}
@@ -105,7 +119,7 @@ export default async function LoginPage({
               type="email"
               required
               autoComplete="email"
-              placeholder="admin@grobbak.local"
+              placeholder="petugas@hadangmu.id"
             />
           </div>
 

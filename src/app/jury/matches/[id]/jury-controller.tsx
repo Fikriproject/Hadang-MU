@@ -308,6 +308,17 @@ export default function JuryController({
     ? 'Scoring 2 (Area Belakang)'
     : 'Petugas Meja Scoring'
 
+  const handleBackClick = (e: React.MouseEvent) => {
+    if (match.status === 'LIVE') {
+      const confirmed = window.confirm(
+        '⚠️ PERINGATAN: Pertandingan masih berlangsung (LIVE)!\n\nApakah Anda yakin ingin keluar dari Meja Scoring? Waktu dan pencatatan skor akan terus berjalan.'
+      )
+      if (!confirmed) {
+        e.preventDefault()
+      }
+    }
+  }
+
   // Active attacking team
   const isLeftAttacking = match.team_attack_id === teamLeft.id
   const isRightAttacking = match.team_attack_id === teamRight.id
@@ -618,21 +629,26 @@ export default function JuryController({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
           <Link
             href="/jury"
+            onClick={handleBackClick}
             className="touch-manipulation"
             style={{
               color: 'var(--primary)',
-              fontSize: '0.8rem',
-              fontWeight: 700,
+              fontSize: '0.825rem',
+              fontWeight: 800,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.2rem',
-              padding: '0.25rem 0.35rem',
-              borderRadius: '4px',
+              gap: '0.3rem',
+              padding: '0.45rem 0.65rem',
+              borderRadius: '6px',
               backgroundColor: 'var(--primary-subtle)',
+              border: '1px solid rgba(37, 99, 235, 0.25)',
               flexShrink: 0,
+              textDecoration: 'none',
+              minHeight: '38px',
             }}
           >
-            ← List
+            <span>←</span>
+            <span>Meja Skor</span>
           </Link>
           <div style={{ minWidth: 0, overflow: 'hidden' }}>
             <h2
@@ -934,6 +950,56 @@ export default function JuryController({
           </div>
         </div>
       </div>
+
+      {/* When FINISHED: Prominent Final Match Result Banner & Return Button */}
+      {isFinished && (
+        <div
+          style={{
+            backgroundColor: 'rgba(34, 197, 94, 0.12)',
+            border: '2px solid var(--success)',
+            borderRadius: '12px',
+            padding: '1rem',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.6rem',
+            boxShadow: '0 4px 16px rgba(34, 197, 94, 0.2)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--success)', fontWeight: 900, fontSize: '0.95rem' }}>
+            <span>🏁</span>
+            <span>PERTANDINGAN TELAH SELESAI</span>
+          </div>
+          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)' }}>
+            Skor Akhir: {teamLeft.name} {scoreLeft} - {scoreRight} {teamRight.name}
+          </div>
+          <p className="metadata-text" style={{ margin: 0, fontSize: '0.78rem' }}>
+            Seluruh poin telah direkam dan status pertandingan terkunci permanen.
+          </p>
+          <Link
+            href="/jury"
+            className="touch-manipulation"
+            style={{
+              backgroundColor: 'var(--primary)',
+              color: 'white',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              fontWeight: 800,
+              fontSize: '0.925rem',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+              marginTop: '0.25rem',
+            }}
+          >
+            <span>←</span>
+            <span>Kembali ke Daftar Pertandingan</span>
+          </Link>
+        </div>
+      )}
 
       {/* When FINISHED: Move Jury Count Cards to the TOP */}
       {isFinished && renderJuryCountCards(true)}

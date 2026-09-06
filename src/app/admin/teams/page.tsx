@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import TeamManager, { TeamItem } from './team-manager'
 
@@ -9,21 +8,7 @@ export const metadata = {
 
 export default async function TeamsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect('/login')
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'ADMIN') {
-    redirect('/jury')
-  }
 
   const { data: teams } = await supabase
     .from('teams')

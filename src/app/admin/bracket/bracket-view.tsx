@@ -30,12 +30,14 @@ interface BracketViewProps {
   initialCategory: BracketCategory
   initialBracket: BracketData | null
   initialCategoryTeams: TeamOption[]
+  isPublic?: boolean
 }
 
 export default function BracketView({
   initialCategory,
   initialBracket,
   initialCategoryTeams,
+  isPublic = false,
 }: BracketViewProps) {
   const [category, setCategory] = useState<BracketCategory>(initialCategory)
   const [bracket, setBracket] = useState<BracketData | null>(initialBracket)
@@ -247,7 +249,7 @@ export default function BracketView({
     const isMatchLive = bm.status === 'LIVE'
     const isMatchFinished = bm.status === 'FINISHED'
     const isReadyToPlay = Boolean(bm.team1?.id && bm.team2?.id)
-    const canEdit = !isLocked && roundIndex === 0
+    const canEdit = !isPublic && !isLocked && roundIndex === 0
 
     return (
       <div
@@ -490,7 +492,7 @@ export default function BracketView({
         </div>
 
         {/* Action Button: Create / Link Match, or View Control Room */}
-        {!bm.matchId && isReadyToPlay ? (
+        {!isPublic && !bm.matchId && isReadyToPlay ? (
           <button
             type="button"
             onClick={() => handleGenerateMatch(bm)}
@@ -516,39 +518,66 @@ export default function BracketView({
             <span>Mulai / Buka Match</span>
           </button>
         ) : bm.matchId ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', marginTop: '0.2rem' }}>
-            <Link
-              href={`/admin/matches/${bm.matchId}`}
-              style={{
-                padding: '0.35rem 0.45rem',
-                borderRadius: '6px',
-                backgroundColor: 'var(--primary)',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '0.7rem',
-                textAlign: 'center',
-              }}
-            >
-              Kontrol
-            </Link>
+          isPublic ? (
             <Link
               href={`/tv/${bm.matchId}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                padding: '0.35rem 0.45rem',
+                width: '100%',
+                padding: '0.38rem',
                 borderRadius: '6px',
-                backgroundColor: 'var(--surface-color)',
-                border: '1px solid var(--border-color)',
-                color: 'var(--text-primary)',
-                fontWeight: 700,
-                fontSize: '0.7rem',
+                backgroundColor: isMatchLive ? 'var(--success)' : 'var(--primary)',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.72rem',
                 textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.3rem',
+                textDecoration: 'none',
+                marginTop: '0.2rem',
+                boxShadow: isMatchLive ? '0 2px 8px rgba(34, 197, 94, 0.35)' : 'none',
               }}
             >
-              📺 TV
+              <span>{isMatchLive ? '● Live TV' : '📺 TV Score'}</span>
             </Link>
-          </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', marginTop: '0.2rem' }}>
+              <Link
+                href={`/admin/matches/${bm.matchId}`}
+                style={{
+                  padding: '0.35rem 0.45rem',
+                  borderRadius: '6px',
+                  backgroundColor: 'var(--primary)',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: '0.7rem',
+                  textAlign: 'center',
+                }}
+              >
+                Kontrol
+              </Link>
+              <Link
+                href={`/tv/${bm.matchId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  padding: '0.35rem 0.45rem',
+                  borderRadius: '6px',
+                  backgroundColor: 'var(--surface-color)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 700,
+                  fontSize: '0.7rem',
+                  textAlign: 'center',
+                }}
+              >
+                📺 TV
+              </Link>
+            </div>
+          )
         ) : null}
       </div>
     )
@@ -1025,8 +1054,52 @@ export default function BracketView({
           boxShadow: 'var(--card-shadow)',
         }}
       >
-        {/* KIRI: TOGGLE KATEGORI PUTRA & PUTRI (1 BARIS) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {/* KIRI: BACK BUTTON + TOGGLE KATEGORI PUTRA & PUTRI */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          {isPublic ? (
+            <Link
+              href="/"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.45rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--surface-subtle)',
+                color: 'var(--text-secondary)',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                textDecoration: 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>←</span>
+              <span>Beranda</span>
+            </Link>
+          ) : (
+            <Link
+              href="/admin"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.45rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--surface-subtle)',
+                color: 'var(--text-secondary)',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                textDecoration: 'none',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>←</span>
+              <span>Dashboard Admin</span>
+            </Link>
+          )}
+
           <div
             style={{
               display: 'flex',
@@ -1102,8 +1175,8 @@ export default function BracketView({
 
         {/* KANAN: TOMBOL KONTROL & AKSI */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {/* Lock / Edit Mode Toggle Button */}
-          {bracket && (
+          {/* Lock / Edit Mode Toggle Button (Admin Only) */}
+          {!isPublic && bracket && (
             <button
               type="button"
               onClick={handleToggleLock}
@@ -1176,34 +1249,36 @@ export default function BracketView({
             <span className="bracket-btn-text">{isFullScreen ? 'Tutup' : 'Layar Penuh'}</span>
           </button>
 
-          {/* Buat / Acak Bagan Baru */}
-          <button
-            type="button"
-            onClick={() => {
-              setModalLayoutMode(bracket?.layoutMode || 'CENTER_SPLIT')
-              setModalIncludeThirdPlace(bracket?.includeThirdPlace ?? true)
-              setIsCreateModalOpen(true)
-            }}
-            disabled={isPending}
-            style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '8px',
-              border: 'none',
-              backgroundColor: primaryColor,
-              color: 'white',
-              fontWeight: 800,
-              fontSize: '0.8125rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              boxShadow: `0 4px 12px ${primaryColor}40`,
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>🎲</span>
-            <span>{bracket ? 'Acak / Buat Ulang' : 'Buat Bagan Baru'}</span>
-          </button>
+          {/* Buat / Acak Bagan Baru (Admin Only) */}
+          {!isPublic && (
+            <button
+              type="button"
+              onClick={() => {
+                setModalLayoutMode(bracket?.layoutMode || 'CENTER_SPLIT')
+                setModalIncludeThirdPlace(bracket?.includeThirdPlace ?? true)
+                setIsCreateModalOpen(true)
+              }}
+              disabled={isPending}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: primaryColor,
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.8125rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                boxShadow: `0 4px 12px ${primaryColor}40`,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>🎲</span>
+              <span>{bracket ? 'Acak / Buat Ulang' : 'Buat Bagan Baru'}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -1289,70 +1364,72 @@ export default function BracketView({
               </div>
             </div>
 
-            {/* Opsi 2: Pilihan Juara 1-2 Saja atau Sampai 3 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
-                Format Juara:
-              </span>
-              <div
-                style={{
-                  display: 'flex',
-                  backgroundColor: 'var(--surface-subtle)',
-                  padding: '0.2rem',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  gap: '0.2rem',
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => handleSwitchThirdPlace(false)}
-                  disabled={isPending}
+            {/* Opsi 2: Pilihan Juara 1-2 Saja atau Sampai 3 (Admin Only) */}
+            {!isPublic && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                  Format Juara:
+                </span>
+                <div
                   style={{
-                    padding: '0.35rem 0.65rem',
-                    borderRadius: '6px',
-                    border: 'none',
-                    backgroundColor: !includeThirdPlace ? 'var(--primary)' : 'transparent',
-                    color: !includeThirdPlace ? 'white' : 'var(--text-primary)',
-                    fontWeight: !includeThirdPlace ? 800 : 600,
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    transition: 'all 0.15s ease',
+                    backgroundColor: 'var(--surface-subtle)',
+                    padding: '0.2rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    gap: '0.2rem',
                   }}
-                  title="Hanya Juara 1 & 2 (Tanpa perebutan juara 3)"
                 >
-                  <span>🥇🥈</span>
-                  <span>Juara 1 & 2 Saja</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchThirdPlace(false)}
+                    disabled={isPending}
+                    style={{
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: !includeThirdPlace ? 'var(--primary)' : 'transparent',
+                      color: !includeThirdPlace ? 'white' : 'var(--text-primary)',
+                      fontWeight: !includeThirdPlace ? 800 : 600,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      transition: 'all 0.15s ease',
+                    }}
+                    title="Hanya Juara 1 & 2 (Tanpa perebutan juara 3)"
+                  >
+                    <span>🥇🥈</span>
+                    <span>Juara 1 & 2 Saja</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleSwitchThirdPlace(true)}
-                  disabled={isPending}
-                  style={{
-                    padding: '0.35rem 0.65rem',
-                    borderRadius: '6px',
-                    border: 'none',
-                    backgroundColor: includeThirdPlace ? 'var(--primary)' : 'transparent',
-                    color: includeThirdPlace ? 'white' : 'var(--text-primary)',
-                    fontWeight: includeThirdPlace ? 800 : 600,
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    transition: 'all 0.15s ease',
-                  }}
-                  title="Sampai Juara 3 (Ada pertandingan perebutan juara 3)"
-                >
-                  <span>🥇🥈🥉</span>
-                  <span>Sampai Juara 3</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchThirdPlace(true)}
+                    disabled={isPending}
+                    style={{
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: includeThirdPlace ? 'var(--primary)' : 'transparent',
+                      color: includeThirdPlace ? 'white' : 'var(--text-primary)',
+                      fontWeight: includeThirdPlace ? 800 : 600,
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      transition: 'all 0.15s ease',
+                    }}
+                    title="Sampai Juara 3 (Ada pertandingan perebutan juara 3)"
+                  >
+                    <span>🥇🥈🥉</span>
+                    <span>Sampai Juara 3</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* KANAN: ZOOM CONTROLS */}
@@ -1435,30 +1512,51 @@ export default function BracketView({
               Belum Ada Bagan Pertandingan {isPutra ? 'Putra' : 'Putri'}
             </h3>
             <p className="metadata-text" style={{ maxWidth: '480px', margin: '0 auto', fontSize: '0.9rem' }}>
-              Sistem dapat mengocok (roll acak) otomatis tim-tim yang sudah terdaftar menjadi bagan turnamen sistem gugur siap pakai, atau Anda dapat menyusunnya secara manual.
+              {isPublic
+                ? 'Bagan pertandingan resmi kategori ini belum dirilis oleh panitia. Silakan pantau kembali secara berkala saat turnamen dimulai.'
+                : 'Sistem dapat mengocok (roll acak) otomatis tim-tim yang sudah terdaftar menjadi bagan turnamen sistem gugur siap pakai, atau Anda dapat menyusunnya secara manual.'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            style={{
-              backgroundColor: primaryColor,
-              color: 'white',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '10px',
-              fontWeight: 800,
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              border: 'none',
-              boxShadow: `0 4px 14px ${primaryColor}50`,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-            }}
-          >
-            <span>🎲</span>
-            <span>Mulai Buat / Roll Bagan {isPutra ? 'Putra' : 'Putri'}</span>
-          </button>
+          {isPublic ? (
+            <Link
+              href="/"
+              style={{
+                backgroundColor: 'var(--surface-subtle)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '10px',
+                fontWeight: 800,
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+                marginTop: '0.5rem',
+              }}
+            >
+              ← Kembali ke Beranda
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              style={{
+                backgroundColor: primaryColor,
+                color: 'white',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '10px',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                cursor: 'pointer',
+                border: 'none',
+                boxShadow: `0 4px 14px ${primaryColor}50`,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+              }}
+            >
+              <span>🎲</span>
+              <span>Mulai Buat / Roll Bagan {isPutra ? 'Putra' : 'Putri'}</span>
+            </button>
+          )}
         </div>
       ) : (
         /* Active Bracket Tree with selected layout mode */

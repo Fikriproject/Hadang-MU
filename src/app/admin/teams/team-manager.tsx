@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useTransition, useRef } from 'react'
+import Link from 'next/link'
 import { addTeam, deleteTeam } from './actions'
 import { promptConfirmDeleteTeam } from '@/lib/sweetalert'
 
@@ -99,7 +100,31 @@ export default function TeamManager({ initialTeams }: TeamManagerProps) {
   const activeGlow = isPutra ? 'rgba(37, 99, 235, 0.25)' : 'rgba(225, 29, 72, 0.25)'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Top Breadcrumb Back Navigation */}
+      <div>
+        <Link
+          href="/admin"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.4rem 0.75rem',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+            backgroundColor: 'var(--surface-color)',
+            color: 'var(--text-secondary)',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            textDecoration: 'none',
+            boxShadow: 'var(--card-shadow)',
+          }}
+        >
+          <span>←</span>
+          <span>Kembali ke Dashboard Admin</span>
+        </Link>
+      </div>
+
       {/* Top Banner Stats */}
       <div
         style={{

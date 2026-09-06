@@ -1,26 +1,10 @@
 import Link from 'next/link'
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { detectMatchCategory, detectTeamCategory } from '@/lib/categories'
 import AdminMatchesView, { type MatchWithRelations } from './admin-matches-view'
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'ADMIN') {
-    redirect('/jury')
-  }
 
   // Fetch matches with relations & score events
   const { data: rawMatches } = await supabase

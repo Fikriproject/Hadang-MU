@@ -389,27 +389,52 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
         </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={isPending || activeTeams.length < 2}
-        style={{
-          backgroundColor: activeTeams.length < 2 ? 'var(--surface-subtle)' : activeColor,
-          color: activeTeams.length < 2 ? 'var(--text-muted)' : 'white',
-          padding: '0.875rem',
-          borderRadius: '8px',
-          fontWeight: 800,
-          fontSize: '1rem',
-          cursor: isPending || activeTeams.length < 2 ? 'not-allowed' : 'pointer',
-          opacity: isPending ? 0.7 : 1,
-          marginTop: '0.5rem',
-          boxShadow: activeTeams.length < 2 ? 'none' : `0 4px 14px ${activeColor}40`,
-          transition: 'all 0.15s ease',
-        }}
-      >
-        {isPending
-          ? 'Membuat Pertandingan...'
-          : `Buat Pertandingan ${isPutra ? 'Putra' : 'Putri'}`}
-      </button>
+      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+        <Link
+          href="/admin"
+          style={{
+            flex: 1,
+            padding: '0.875rem',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+            backgroundColor: 'var(--surface-subtle)',
+            color: 'var(--text-secondary)',
+            fontWeight: 700,
+            fontSize: '1rem',
+            textAlign: 'center',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          Batal
+        </Link>
+
+        <button
+          type="submit"
+          disabled={isPending || activeTeams.length < 2}
+          style={{
+            flex: 2,
+            backgroundColor: activeTeams.length < 2 ? 'var(--surface-subtle)' : activeColor,
+            color: activeTeams.length < 2 ? 'var(--text-muted)' : 'white',
+            padding: '0.875rem',
+            borderRadius: '8px',
+            fontWeight: 800,
+            fontSize: '1rem',
+            border: 'none',
+            cursor: isPending || activeTeams.length < 2 ? 'not-allowed' : 'pointer',
+            opacity: isPending ? 0.7 : 1,
+            boxShadow: activeTeams.length < 2 ? 'none' : `0 4px 14px ${activeColor}40`,
+            transition: 'all 0.15s ease',
+          }}
+        >
+          {isPending
+            ? 'Membuat Pertandingan...'
+            : `Buat Pertandingan ${isPutra ? 'Putra' : 'Putri'}`}
+        </button>
+      </div>
     </form>
   )
 }

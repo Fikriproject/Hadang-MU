@@ -1,24 +1,9 @@
-import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import MatchForm from './match-form'
 
 export default async function CreateMatchPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  if (profile?.role !== 'ADMIN') {
-    redirect('/jury')
-  }
 
   // Fetch teams
   const { data: teams } = await supabase
@@ -34,10 +19,39 @@ export default async function CreateMatchPage() {
     .order('name')
 
   return (
-    <div style={{ maxWidth: '640px' }}>
-      <h1 className="heading" style={{ marginBottom: '2rem' }}>
-        Buat Pertandingan
-      </h1>
+    <div style={{ maxWidth: '640px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Top Breadcrumb Back Navigation */}
+      <div>
+        <Link
+          href="/admin"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.4rem 0.75rem',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+            backgroundColor: 'var(--surface-color)',
+            color: 'var(--text-secondary)',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            textDecoration: 'none',
+            boxShadow: 'var(--card-shadow)',
+          }}
+        >
+          <span>←</span>
+          <span>Kembali ke Dashboard Admin</span>
+        </Link>
+      </div>
+
+      <div>
+        <h1 className="heading" style={{ fontSize: '1.75rem', margin: '0 0 0.25rem' }}>
+          Buat Pertandingan
+        </h1>
+        <p className="metadata-text" style={{ margin: 0 }}>
+          Jadwalkan pertandingan baru kategori Putra atau Putri dengan penugasan meja scoring.
+        </p>
+      </div>
 
       <div
         style={{
