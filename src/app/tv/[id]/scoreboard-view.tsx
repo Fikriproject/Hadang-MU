@@ -33,6 +33,7 @@ interface MatchData {
   status: 'DRAFT' | 'READY' | 'LIVE' | 'PAUSED' | 'FINISHED'
   started_at: string | null
   finished_at: string | null
+  updated_at?: string | null
   team_attack_id: string
   team_defense_id: string
   jury_1_id: string
@@ -142,7 +143,7 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
         const [resMatch, resEvents] = await Promise.all([
           supabase
             .from('matches')
-            .select('id, status, started_at, finished_at, team_attack_id, team_defense_id, round')
+            .select('id, status, started_at, finished_at, updated_at, team_attack_id, team_defense_id, round')
             .eq('id', matchId)
             .single(),
           supabase
@@ -229,10 +230,18 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
 
     const calculateTime = () => {
       const start = new Date(match.started_at!).getTime()
-      const end = match.finished_at ? new Date(match.finished_at).getTime() : new Date().getTime()
+      const end = match.finished_at
+        ? new Date(match.finished_at).getTime()
+        : match.status === 'PAUSED' && match.updated_at
+        ? new Date(match.updated_at).getTime()
+        : Date.now()
       const diffSecs = Math.max(0, Math.floor((end - start) / 1000))
-      const mins = Math.floor(diffSecs / 60)
+      const hours = Math.floor(diffSecs / 3600)
+      const mins = Math.floor((diffSecs % 3600) / 60)
       const secs = diffSecs % 60
+      if (hours > 0) {
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      }
       return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
     }
 
@@ -242,7 +251,7 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
       const timer = setInterval(() => setMatchDuration(calculateTime()), 1000)
       return () => clearInterval(timer)
     }
-  }, [match.started_at, match.finished_at, match.status])
+  }, [match.started_at, match.finished_at, match.updated_at, match.status])
 
   return (
     <div

@@ -1,8 +1,24 @@
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import MatchForm from './match-form'
 
 export default async function CreateMatchPage() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'ADMIN') {
+    redirect('/jury')
+  }
 
   // Fetch teams
   const { data: teams } = await supabase

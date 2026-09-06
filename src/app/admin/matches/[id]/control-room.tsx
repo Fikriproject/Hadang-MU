@@ -41,6 +41,7 @@ interface MatchData {
   status: 'DRAFT' | 'READY' | 'LIVE' | 'PAUSED' | 'FINISHED'
   started_at: string | null
   finished_at: string | null
+  updated_at?: string | null
   team_attack_id: string
   team_defense_id: string
   jury_1_id: string
@@ -54,9 +55,14 @@ interface MatchData {
 interface ControlRoomProps {
   initialMatch: MatchData
   initialScoreEvents: ScoreEvent[]
+  currentUserRole?: 'ADMIN' | 'JURY' | string
 }
 
-export default function ControlRoom({ initialMatch, initialScoreEvents }: ControlRoomProps) {
+export default function ControlRoom({
+  initialMatch,
+  initialScoreEvents,
+  currentUserRole = 'ADMIN',
+}: ControlRoomProps) {
   const [match, setMatch] = useState<MatchData>(initialMatch)
   const [scoreEvents, setScoreEvents] = useState<ScoreEvent[]>(initialScoreEvents)
   const [isPending, startTransition] = useTransition()
@@ -140,7 +146,7 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
       const [resMatch, resEvents] = await Promise.all([
         supabase
           .from('matches')
-          .select('id, status, started_at, finished_at, team_attack_id, team_defense_id, round')
+          .select('id, status, started_at, finished_at, updated_at, team_attack_id, team_defense_id, round')
           .eq('id', matchId)
           .single(),
         supabase
@@ -157,6 +163,7 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
           status: resMatch.data.status,
           started_at: resMatch.data.started_at,
           finished_at: resMatch.data.finished_at,
+          updated_at: resMatch.data.updated_at,
           team_attack_id: resMatch.data.team_attack_id,
           team_defense_id: resMatch.data.team_defense_id,
         }))
@@ -262,7 +269,7 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
     })
   }
 
-  // Timer calculation
+  // Real-time Stopwatch calculation
   const [elapsed, setElapsed] = useState<string>('00:00')
   useEffect(() => {
     if (!match.started_at) {
@@ -272,10 +279,18 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
 
     const calcElapsed = () => {
       const start = new Date(match.started_at!).getTime()
-      const end = match.finished_at ? new Date(match.finished_at).getTime() : new Date().getTime()
+      const end = match.finished_at
+        ? new Date(match.finished_at).getTime()
+        : match.status === 'PAUSED' && match.updated_at
+        ? new Date(match.updated_at).getTime()
+        : Date.now()
       const diffSecs = Math.max(0, Math.floor((end - start) / 1000))
-      const mins = Math.floor(diffSecs / 60)
+      const hours = Math.floor(diffSecs / 3600)
+      const mins = Math.floor((diffSecs % 3600) / 60)
       const secs = diffSecs % 60
+      if (hours > 0) {
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      }
       return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
     }
 
@@ -285,20 +300,35 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
       const timer = setInterval(() => setElapsed(calcElapsed()), 1000)
       return () => clearInterval(timer)
     }
-  }, [match.started_at, match.finished_at, match.status])
+  }, [match.started_at, match.finished_at, match.updated_at, match.status])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Top Header & Breadcrumbs */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <Link href="/admin" style={{ color: 'var(--text-secondary)', textDecoration: 'underline', fontSize: '0.875rem' }}>
-              ← Kembali ke Dashboard
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
+            <Link
+              href={currentUserRole === 'JURY' ? '/jury' : '/admin'}
+              style={{
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.2rem 0.5rem',
+                borderRadius: '6px',
+                backgroundColor: 'var(--surface-subtle)',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              ← {currentUserRole === 'JURY' ? 'Kembali ke Meja Scoring' : 'Kembali ke Dashboard Admin'}
             </Link>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <h1 className="heading" style={{ fontSize: '1.875rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <h1 className="heading" style={{ fontSize: '1.75rem', margin: 0 }}>
               {match.name}
             </h1>
             <span
@@ -317,23 +347,115 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
                     : 'var(--badge-neutral-text)',
                 border:
                   match.status === 'LIVE'
-                    ? '1px solid var(--success)'
+                    ? '1.5px solid var(--success)'
                     : match.status === 'PAUSED'
-                    ? '1px solid var(--warning)'
+                    ? '1.5px solid var(--warning)'
                     : '1px solid var(--border-color)',
                 fontWeight: 800,
                 fontSize: '0.8125rem',
-                padding: '0.2rem 0.6rem',
+                padding: '0.25rem 0.65rem',
                 borderRadius: '9999px',
                 letterSpacing: '0.05em',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
               }}
             >
-              {match.status === 'LIVE' ? '● LIVE' : match.status}
+              {match.status === 'LIVE' && (
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--success)',
+                  }}
+                />
+              )}
+              {match.status === 'PAUSED' && (
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--warning)',
+                  }}
+                />
+              )}
+              {match.status === 'LIVE' ? 'LIVE' : match.status}
             </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        {/* Dedicated Live Stopwatch & TV / Scoring Shortcuts */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Running Stopwatch Card */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              backgroundColor: 'var(--surface-color)',
+              border: match.status === 'LIVE' ? '2px solid var(--success)' : match.status === 'PAUSED' ? '1.5px solid var(--warning)' : '1px solid var(--border-color)',
+              padding: '0.5rem 1rem',
+              borderRadius: '10px',
+              boxShadow: match.status === 'LIVE' ? '0 0 16px rgba(34, 197, 94, 0.25)' : 'var(--card-shadow)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <span style={{ fontSize: '1.4rem' }}>⏱</span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: match.status === 'LIVE' ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-secondary)',
+                }}
+              >
+                {match.status === 'LIVE'
+                  ? '● STOPWATCH JALAN'
+                  : match.status === 'PAUSED'
+                  ? '⏸ JEDA'
+                  : match.status === 'FINISHED'
+                  ? '⏹ WAKTU SELESAI'
+                  : 'STOPWATCH'}
+              </span>
+              <span
+                style={{
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  fontSize: '1.45rem',
+                  fontWeight: 900,
+                  color: match.status === 'LIVE' ? 'var(--success)' : 'var(--text-primary)',
+                  letterSpacing: '0.05em',
+                  lineHeight: 1.1,
+                }}
+              >
+                {elapsed}
+              </span>
+            </div>
+          </div>
+
+          <Link
+            href={`/jury/matches/${match.id}`}
+            style={{
+              backgroundColor: 'var(--surface-color)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              padding: '0.65rem 1rem',
+              borderRadius: '8px',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              textDecoration: 'none',
+              boxShadow: 'var(--card-shadow)',
+            }}
+          >
+            📱 Meja Scoring
+          </Link>
+
           <Link
             href={`/tv/${match.id}`}
             target="_blank"
@@ -341,17 +463,18 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
             style={{
               backgroundColor: 'var(--primary)',
               color: 'white',
-              padding: '0.75rem 1.25rem',
-              borderRadius: '6px',
+              padding: '0.65rem 1.15rem',
+              borderRadius: '8px',
               fontWeight: 700,
-              fontSize: '0.9375rem',
+              fontSize: '0.875rem',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem',
+              gap: '0.4rem',
               boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
+              textDecoration: 'none',
             }}
           >
-            📺 Buka TV Scoreboard
+            📺 TV Scoreboard
           </Link>
         </div>
       </div>
@@ -668,14 +791,65 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
         style={{
           backgroundColor: 'var(--surface-color)',
           border: '1px solid var(--border-color)',
-          borderRadius: '8px',
+          borderRadius: '12px',
           padding: '1.5rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '1rem',
+          gap: '1.25rem',
+          boxShadow: 'var(--card-shadow)',
         }}
       >
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>Kontrol Status Pertandingan</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+              Kontrol Status & Waktu Pertandingan
+            </h3>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+              Mulai, jeda, atau selesaikan pertandingan. Stopwatch berjalan otomatis saat status LIVE.
+            </p>
+          </div>
+
+          {/* Realtime Stopwatch badge in control panel */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              backgroundColor:
+                match.status === 'LIVE'
+                  ? 'var(--success-subtle)'
+                  : match.status === 'PAUSED'
+                  ? 'var(--warning-subtle)'
+                  : 'var(--surface-subtle)',
+              border:
+                match.status === 'LIVE'
+                  ? '1.5px solid var(--success)'
+                  : match.status === 'PAUSED'
+                  ? '1.5px solid var(--warning)'
+                  : '1px solid var(--border-color)',
+              padding: '0.4rem 0.85rem',
+              borderRadius: '8px',
+            }}
+          >
+            <span style={{ fontSize: '1.1rem' }}>⏱</span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                Lama Pertandingan
+              </span>
+              <span
+                style={{
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  fontSize: '1.25rem',
+                  fontWeight: 900,
+                  lineHeight: 1.1,
+                  color: match.status === 'LIVE' ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-primary)',
+                }}
+              >
+                {elapsed}
+              </span>
+            </div>
+          </div>
+        </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
           {match.status !== 'LIVE' && (

@@ -41,6 +41,7 @@ export default async function TVScoreboardPage({
       status,
       started_at,
       finished_at,
+      updated_at,
       team_attack_id,
       team_defense_id,
       jury_1_id,

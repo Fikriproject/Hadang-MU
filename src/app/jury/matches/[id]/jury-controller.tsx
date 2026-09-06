@@ -32,6 +32,9 @@ interface MatchData {
   name: string
   round: string | null
   status: 'DRAFT' | 'READY' | 'LIVE' | 'PAUSED' | 'FINISHED'
+  started_at?: string | null
+  finished_at?: string | null
+  updated_at?: string | null
   team_attack_id: string
   team_defense_id: string
   jury_1_id: string
@@ -152,7 +155,7 @@ export default function JuryController({
 
         const { data: latestMatch } = await supabase
           .from('matches')
-          .select('status, round, team_attack_id, team_defense_id')
+          .select('status, round, team_attack_id, team_defense_id, started_at, finished_at, updated_at')
           .eq('id', matchId)
           .single()
 
@@ -163,6 +166,9 @@ export default function JuryController({
             round: latestMatch.round,
             team_attack_id: latestMatch.team_attack_id,
             team_defense_id: latestMatch.team_defense_id,
+            started_at: latestMatch.started_at,
+            finished_at: latestMatch.finished_at,
+            updated_at: latestMatch.updated_at,
           }))
         }
       } catch (err) {
@@ -175,6 +181,39 @@ export default function JuryController({
       clearInterval(pollInterval)
     }
   }, [initialMatch.id])
+
+  // Real-time Match Stopwatch
+  const [elapsed, setElapsed] = useState<string>('00:00')
+  useEffect(() => {
+    if (!match.started_at) {
+      setElapsed('00:00')
+      return
+    }
+
+    const calcElapsed = () => {
+      const start = new Date(match.started_at!).getTime()
+      const end = match.finished_at
+        ? new Date(match.finished_at).getTime()
+        : match.status === 'PAUSED' && match.updated_at
+        ? new Date(match.updated_at).getTime()
+        : Date.now()
+      const diffSecs = Math.max(0, Math.floor((end - start) / 1000))
+      const hours = Math.floor(diffSecs / 3600)
+      const mins = Math.floor((diffSecs % 3600) / 60)
+      const secs = diffSecs % 60
+      if (hours > 0) {
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      }
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+
+    setElapsed(calcElapsed())
+
+    if (match.status === 'LIVE') {
+      const timer = setInterval(() => setElapsed(calcElapsed()), 1000)
+      return () => clearInterval(timer)
+    }
+  }, [match.started_at, match.finished_at, match.updated_at, match.status])
 
   // Clear toast timer
   useEffect(() => {
@@ -358,43 +397,53 @@ export default function JuryController({
           </div>
         </div>
 
-        <div style={{ flexShrink: 0, marginLeft: '0.5rem' }}>
-          <span
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0, marginLeft: '0.35rem' }}>
+          {/* Running Stopwatch Badge */}
+          <div
             style={{
-              backgroundColor: isLive
-                ? 'var(--success-subtle)'
-                : match.status === 'PAUSED'
-                ? 'var(--warning-subtle)'
-                : 'var(--badge-neutral-bg)',
-              color: isLive ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--badge-neutral-text)',
-              border: isLive
-                ? '1px solid var(--success)'
-                : match.status === 'PAUSED'
-                ? '1px solid var(--warning)'
-                : '1px solid var(--border-color)',
-              fontSize: '0.7rem',
-              fontWeight: 800,
-              padding: '0.25rem 0.6rem',
-              borderRadius: '9999px',
-              letterSpacing: '0.04em',
-              display: 'inline-flex',
+              backgroundColor: isLive ? 'var(--success-subtle)' : match.status === 'PAUSED' ? 'var(--warning-subtle)' : 'var(--surface-subtle)',
+              border: isLive ? '1.5px solid var(--success)' : match.status === 'PAUSED' ? '1.5px solid var(--warning)' : '1px solid var(--border-color)',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '6px',
+              display: 'flex',
               alignItems: 'center',
               gap: '0.3rem',
             }}
           >
-            {isLive && (
-              <span
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--success)',
-                  display: 'inline-block',
-                }}
-              />
-            )}
-            {isLive ? 'LIVE' : match.status}
-          </span>
+            <span style={{ fontSize: '0.75rem' }}>⏱</span>
+            <span
+              style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                fontSize: '0.875rem',
+                fontWeight: 900,
+                color: isLive ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-primary)',
+              }}
+            >
+              {elapsed}
+            </span>
+          </div>
+
+          {/* Quick link to Ruang Kontrol */}
+          <Link
+            href={`/admin/matches/${match.id}`}
+            className="touch-manipulation"
+            style={{
+              backgroundColor: 'var(--surface-subtle)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              padding: '0.25rem 0.5rem',
+              borderRadius: '6px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.2rem',
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ⚙️ Kontrol
+          </Link>
         </div>
       </div>
 

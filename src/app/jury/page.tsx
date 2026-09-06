@@ -181,33 +181,56 @@ export default async function JuryDashboardPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                   <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                     Tugas Anda: <strong style={{ color: 'var(--text-primary)' }}>{juryPosText}</strong>
                   </div>
 
-                  <Link
-                    href={`/jury/matches/${m.id}`}
-                    className="touch-manipulation"
-                    style={{
-                      backgroundColor: isLive ? 'var(--success)' : 'var(--primary)',
-                      color: 'white',
-                      padding: '0.875rem 1.25rem',
-                      borderRadius: '8px',
-                      fontWeight: 800,
-                      fontSize: '0.95rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      textDecoration: 'none',
-                      boxShadow: isLive ? '0 4px 14px rgba(22, 163, 74, 0.4)' : '0 4px 14px rgba(37, 99, 235, 0.35)',
-                      transition: 'transform 0.1s ease',
-                      textAlign: 'center',
-                    }}
-                  >
-                    Buka Panel Skor Hadang →
-                  </Link>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <Link
+                      href={`/jury/matches/${m.id}`}
+                      className="touch-manipulation"
+                      style={{
+                        backgroundColor: isLive ? 'var(--success)' : 'var(--primary)',
+                        color: 'white',
+                        padding: '0.75rem 0.85rem',
+                        borderRadius: '8px',
+                        fontWeight: 800,
+                        fontSize: '0.875rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem',
+                        textDecoration: 'none',
+                        boxShadow: isLive ? '0 4px 14px rgba(22, 163, 74, 0.35)' : '0 4px 14px rgba(37, 99, 235, 0.3)',
+                        textAlign: 'center',
+                      }}
+                    >
+                      📱 Panel Skor
+                    </Link>
+
+                    <Link
+                      href={`/admin/matches/${m.id}`}
+                      className="touch-manipulation"
+                      style={{
+                        backgroundColor: 'var(--surface-subtle)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-color)',
+                        padding: '0.75rem 0.85rem',
+                        borderRadius: '8px',
+                        fontWeight: 700,
+                        fontSize: '0.875rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem',
+                        textDecoration: 'none',
+                        textAlign: 'center',
+                      }}
+                    >
+                      ⚙️ Ruang Kontrol
+                    </Link>
+                  </div>
                 </div>
               </div>
             )
