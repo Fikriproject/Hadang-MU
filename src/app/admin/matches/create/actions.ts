@@ -34,6 +34,20 @@ export async function createMatch(
     return { error: 'Scoring 1 dan Scoring 2 tidak boleh sama.' }
   }
 
+  // Validate that both teams belong to the same category (Putra vs Putri separation)
+  const { data: selectedTeams } = await supabase
+    .from('teams')
+    .select('id, name')
+    .in('id', [team_1_id, team_2_id])
+
+  if (selectedTeams && selectedTeams.length === 2) {
+    const isPutri1 = selectedTeams[0].name.toLowerCase().includes('putri')
+    const isPutri2 = selectedTeams[1].name.toLowerCase().includes('putri')
+    if (isPutri1 !== isPutri2) {
+      return { error: 'Tidak dapat membuat pertandingan silang antara Tim Putra dan Tim Putri. Pilih tim dalam kategori yang sama.' }
+    }
+  }
+
   const team_attack_id = first_attacker === 'team_2' ? team_2_id : team_1_id
   const team_defense_id = first_attacker === 'team_2' ? team_1_id : team_2_id
   
