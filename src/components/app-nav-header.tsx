@@ -52,6 +52,7 @@ export default function AppNavHeader({
   const navItems = isAdmin
     ? [
         { href: '/admin', label: 'Dashboard Admin', icon: '📊' },
+        { href: '/admin/bracket', label: 'Bagan Pertandingan', icon: '🏆' },
         { href: '/admin/matches/create', label: 'Buat Pertandingan', icon: '➕' },
         { href: '/admin/teams', label: 'Kelola Tim Hadang', icon: '👥' },
         { href: '/jury', label: 'Meja Scoring Lapangan', icon: '📱' },

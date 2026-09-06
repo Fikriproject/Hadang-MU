@@ -75,6 +75,24 @@ export default async function AdminDashboardPage() {
         </div>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <Link
+            href="/admin/bracket"
+            prefetch={false}
+            style={{
+              backgroundColor: '#EAB308',
+              color: '#000',
+              padding: '0.75rem 1.25rem',
+              borderRadius: '8px',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              boxShadow: '0 4px 14px rgba(234, 179, 8, 0.35)',
+              transition: 'all 0.2s',
+            }}
+          >
+            🏆 Bagan Turnamen
+          </Link>
+          <Link
             href="/admin/matches/create"
             prefetch={false}
             style={{
