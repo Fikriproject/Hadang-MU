@@ -59,14 +59,19 @@ export default async function JuryDashboardPage() {
   const matches = (rawMatches || []) as unknown as MatchItem[]
 
   return (
-    <div style={{ padding: '1.25rem', maxWidth: '680px', margin: '0 auto', width: '100%' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 className="heading" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>
-          Meja Scoring Hadang
-        </h1>
-        <p className="metadata-text">
-          Pilih pertandingan yang sedang ditugaskan kepada Anda untuk mulai mencatat skor.
-        </p>
+    <div className="jury-matches-container">
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <h1 className="heading" style={{ fontSize: '1.65rem', marginBottom: '0.25rem' }}>
+            Meja Scoring Hadang
+          </h1>
+          <p className="metadata-text">
+            Pilih pertandingan yang sedang ditugaskan kepada Anda untuk mulai mencatat skor.
+          </p>
+        </div>
+        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+          Total: <span style={{ color: 'var(--primary)', fontWeight: 800 }}>{matches.length} Pertandingan</span>
+        </div>
       </div>
 
       {matches.length === 0 ? (
@@ -74,13 +79,13 @@ export default async function JuryDashboardPage() {
           style={{
             backgroundColor: 'var(--surface-color)',
             border: '1px solid var(--border-color)',
-            borderRadius: '8px',
-            padding: '2.5rem 1.5rem',
+            borderRadius: '12px',
+            padding: '3rem 1.5rem',
             textAlign: 'center',
           }}
         >
-          <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📋</div>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📋</div>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '0.5rem' }}>
             Belum Ada Penugasan
           </h3>
           <p className="metadata-text">
@@ -88,7 +93,7 @@ export default async function JuryDashboardPage() {
           </p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="jury-matches-grid">
           {matches.map((m) => {
             const isJury1 = m.jury_1_id === user.id
             const isJury2 = m.jury_2_id === user.id
@@ -104,10 +109,11 @@ export default async function JuryDashboardPage() {
             return (
               <div
                 key={m.id}
+                className="jury-match-card"
                 style={{
                   backgroundColor: 'var(--surface-color)',
                   border: isLive ? '2px solid var(--success)' : '1px solid var(--border-color)',
-                  borderRadius: '10px',
+                  borderRadius: '12px',
                   padding: '1.25rem',
                   display: 'flex',
                   flexDirection: 'column',

@@ -65,23 +65,9 @@ export default function AppNavHeader({
   return (
     <>
       {/* Universal Top Header with Hamburger for ALL screens */}
-      <header
-        className="safe-area-top"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '0.65rem 1.25rem',
-          backgroundColor: 'var(--surface-color)',
-          borderBottom: '1px solid var(--border-color)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 50,
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-        }}
-      >
+      <header className="app-nav-header safe-area-top">
         {/* Left: Hamburger Button + Brand Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
@@ -89,7 +75,7 @@ export default function AppNavHeader({
             aria-expanded={isOpen}
             className="touch-manipulation"
             style={{
-              padding: '0.45rem',
+              padding: '0.4rem',
               borderRadius: '8px',
               border: '1px solid var(--border-color)',
               backgroundColor: 'var(--surface-subtle)',
@@ -98,8 +84,9 @@ export default function AppNavHeader({
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              width: '40px',
-              height: '40px',
+              width: '38px',
+              height: '38px',
+              flexShrink: 0,
               transition: 'all 0.15s ease',
             }}
           >
@@ -122,14 +109,15 @@ export default function AppNavHeader({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem',
+              gap: '0.45rem',
               textDecoration: 'none',
+              minWidth: 0,
             }}
           >
             <span
               style={{
-                width: '32px',
-                height: '32px',
+                width: '30px',
+                height: '30px',
                 borderRadius: '6px',
                 backgroundColor: 'var(--primary)',
                 color: 'white',
@@ -137,19 +125,20 @@ export default function AppNavHeader({
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 900,
-                fontSize: '1rem',
+                fontSize: '0.95rem',
+                flexShrink: 0,
                 boxShadow: '0 2px 6px rgba(37, 99, 235, 0.4)',
               }}
             >
               H
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', minWidth: 0 }}>
               <span
                 style={{
                   fontWeight: 900,
-                  fontSize: '1.1rem',
+                  fontSize: '1.05rem',
                   color: 'var(--text-primary)',
-                  letterSpacing: '0.03em',
+                  letterSpacing: '0.02em',
                 }}
               >
                 HADANG
@@ -161,19 +150,21 @@ export default function AppNavHeader({
                   border: isAdmin ? '1px solid rgba(37, 99, 235, 0.3)' : '1px solid rgba(34, 197, 94, 0.3)',
                   fontSize: '0.65rem',
                   fontWeight: 800,
-                  padding: '0.15rem 0.5rem',
+                  padding: '0.15rem 0.45rem',
                   borderRadius: '9999px',
                   letterSpacing: '0.04em',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                {titleBadge}
+                <span className="nav-badge-text-full">{titleBadge}</span>
+                <span className="nav-badge-text-short">{isAdmin ? 'ADMIN' : 'SCORING'}</span>
               </span>
             </div>
           </Link>
         </div>
 
         {/* Right: User Greeting + Theme Toggle + Logout */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
           {/* Greeting shown on screens >= 640px */}
           <div
             className="hide-on-mobile"
@@ -192,7 +183,7 @@ export default function AppNavHeader({
           <form action={logoutAction} style={{ display: 'inline' }}>
             <button
               type="submit"
-              className="touch-manipulation"
+              className="touch-manipulation nav-logout-btn"
               title="Keluar / Logout"
               style={{
                 color: 'var(--danger)',
@@ -214,7 +205,7 @@ export default function AppNavHeader({
                 <polyline points="16 17 21 12 16 7"></polyline>
                 <line x1="21" y1="12" x2="9" y2="12"></line>
               </svg>
-              <span>Keluar</span>
+              <span className="nav-logout-text">Keluar</span>
             </button>
           </form>
         </div>

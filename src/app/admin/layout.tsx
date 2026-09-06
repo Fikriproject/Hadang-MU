@@ -34,16 +34,7 @@ export default async function AdminLayout({
       />
 
       {/* Main Admin Content Container */}
-      <main
-        style={{
-          flex: 1,
-          padding: '1.5rem',
-          maxWidth: '1280px',
-          width: '100%',
-          margin: '0 auto',
-          boxSizing: 'border-box',
-        }}
-      >
+      <main className="admin-main-container">
         {children}
       </main>
     </div>

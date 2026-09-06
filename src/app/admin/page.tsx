@@ -98,43 +98,43 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Stats Overview */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}>
-          <div className="metadata-text" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Tim</div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text-primary)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '0.75rem' }}>
+        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}>
+          <div className="metadata-text" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.75rem' }}>Total Tim</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--text-primary)' }}>
             {totalTeams ?? 0}
           </div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--success)', boxShadow: 'var(--card-shadow)' }}>
-          <div className="metadata-text" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--success)', fontWeight: 700 }}>
+        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--success)', boxShadow: 'var(--card-shadow)' }}>
+          <div className="metadata-text" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--success)', fontWeight: 700, fontSize: '0.75rem' }}>
             Pertandingan Berjalan
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--success)' }}>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--success)' }}>
             {liveMatches.length}
           </div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--primary)', boxShadow: 'var(--card-shadow)' }}>
-          <div className="metadata-text" style={{ textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--primary)', fontWeight: 700 }}>
+        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--primary)', boxShadow: 'var(--card-shadow)' }}>
+          <div className="metadata-text" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--primary)', fontWeight: 700, fontSize: '0.75rem' }}>
             Siap Dimulai
           </div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--primary)' }}>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--primary)' }}>
             {readyMatches.length}
           </div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}>
-          <div className="metadata-text" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Selesai</div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text-secondary)' }}>
+        <div style={{ backgroundColor: 'var(--surface-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}>
+          <div className="metadata-text" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.75rem' }}>Selesai</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.35rem', color: 'var(--text-secondary)' }}>
             {finishedMatches.length}
           </div>
         </div>
       </div>
 
       {/* Matches List */}
-      <div style={{ backgroundColor: 'var(--surface-color)', borderRadius: '8px', border: '1px solid var(--border-color)', padding: '1.5rem', boxShadow: 'var(--card-shadow)' }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', fontWeight: 700 }}>
+      <div style={{ backgroundColor: 'var(--surface-color)', borderRadius: '10px', border: '1px solid var(--border-color)', padding: '1.25rem 1rem', boxShadow: 'var(--card-shadow)' }}>
+        <h2 style={{ fontSize: '1.2rem', marginBottom: '1.25rem', fontWeight: 700 }}>
           Daftar Pertandingan ({matches.length})
         </h2>
 
@@ -211,34 +211,42 @@ export default async function AdminDashboardPage() {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: '1 1 auto' }}>
                       <span
                         style={{
                           backgroundColor: statusBg,
                           color: statusColor,
                           border: statusBorder,
-                          padding: '0.25rem 0.65rem',
+                          padding: '0.2rem 0.55rem',
                           borderRadius: '9999px',
-                          fontSize: '0.75rem',
+                          fontSize: '0.7rem',
                           fontWeight: 800,
-                          letterSpacing: '0.05em',
+                          letterSpacing: '0.04em',
+                          flexShrink: 0,
                         }}
                       >
                         {statusLabel}
                       </span>
-                      <span style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--text-primary)' }}>{m.name}</span>
+                      <span style={{ fontWeight: 800, fontSize: '1.05rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {m.name}
+                      </span>
+                      {m.round && (
+                        <span style={{ backgroundColor: 'var(--badge-neutral-bg)', border: '1px solid var(--border-color)', padding: '0.15rem 0.4rem', borderRadius: '4px', fontSize: '0.7rem', color: 'var(--badge-neutral-text)', fontWeight: 600, flexShrink: 0 }}>
+                          {m.round}
+                        </span>
+                      )}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
                       <Link
                         href={`/admin/matches/${m.id}`}
                         style={{
                           backgroundColor: 'var(--primary)',
                           color: 'white',
-                          padding: '0.5rem 1rem',
+                          padding: '0.45rem 0.85rem',
                           borderRadius: '6px',
                           fontWeight: 700,
-                          fontSize: '0.875rem',
+                          fontSize: '0.8125rem',
                           boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
                         }}
                       >
@@ -252,13 +260,13 @@ export default async function AdminDashboardPage() {
                           backgroundColor: 'var(--btn-secondary-bg)',
                           color: 'var(--btn-secondary-text)',
                           border: '1px solid var(--border-color)',
-                          padding: '0.5rem 1rem',
+                          padding: '0.45rem 0.75rem',
                           borderRadius: '6px',
                           fontWeight: 600,
-                          fontSize: '0.875rem',
+                          fontSize: '0.8125rem',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '0.35rem',
+                          gap: '0.3rem',
                         }}
                       >
                         📺 TV Score
@@ -275,62 +283,85 @@ export default async function AdminDashboardPage() {
                     const sRight = activeEvents.filter((e) => e.team_id === teamRight.id).reduce((sum, e) => sum + e.points, 0)
 
                     return (
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1fr auto 1fr',
-                          alignItems: 'center',
-                          backgroundColor: 'var(--card-inner-bg)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '8px',
-                          padding: '1.1rem 1.25rem',
-                          gap: '1rem',
-                        }}
-                      >
-                        {/* Team Left */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                          <span style={{ fontSize: '0.7rem', color: isLeftAttacking ? 'var(--success)' : 'var(--text-muted)', fontWeight: 800 }}>
-                            {isLeftAttacking ? '⚡ GILIRAN SERANG' : 'BERTAHAN'}
-                          </span>
-                          <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)' }}>
-                            {teamLeft.name}
-                          </span>
+                      <>
+                        {/* Desktop View (>= 641px): 3-Column side-by-side */}
+                        <div className="admin-scorebox-desktop">
+                          {/* Team Left */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0 }}>
+                            <span style={{ fontSize: '0.7rem', color: isLeftAttacking ? 'var(--success)' : 'var(--text-muted)', fontWeight: 800 }}>
+                              {isLeftAttacking ? '⚡ GILIRAN SERANG' : 'BERTAHAN'}
+                            </span>
+                            <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {teamLeft.name}
+                            </span>
+                          </div>
+
+                          {/* Score display */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                            <span style={{ fontSize: '2.25rem', fontWeight: 900, color: isLeftAttacking ? 'var(--success)' : 'var(--text-primary)', minWidth: '2ch', textAlign: 'center' }}>
+                              {sLeft}
+                            </span>
+                            <span style={{ color: 'var(--text-muted)', fontWeight: 800, fontSize: '1.5rem' }}>:</span>
+                            <span
+                              style={{
+                                fontSize: '2.25rem',
+                                fontWeight: 900,
+                                color: !isLeftAttacking ? 'var(--success)' : 'var(--text-primary)',
+                                minWidth: '2ch',
+                                textAlign: 'center',
+                              }}
+                            >
+                              {sRight}
+                            </span>
+                          </div>
+
+                          {/* Team Right */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', textAlign: 'right', minWidth: 0 }}>
+                            <span style={{ fontSize: '0.7rem', color: !isLeftAttacking ? 'var(--success)' : 'var(--text-muted)', fontWeight: 800 }}>
+                              {!isLeftAttacking ? '⚡ GILIRAN SERANG' : 'BERTAHAN'}
+                            </span>
+                            <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {teamRight.name}
+                            </span>
+                          </div>
                         </div>
 
-                        {/* Score display */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <span style={{ fontSize: '2.25rem', fontWeight: 900, color: isLeftAttacking ? 'var(--success)' : 'var(--text-primary)', minWidth: '2ch', textAlign: 'center' }}>
-                            {sLeft}
-                          </span>
-                          <span style={{ color: 'var(--text-muted)', fontWeight: 800, fontSize: '1.5rem' }}>:</span>
-                          <span
-                            style={{
-                              fontSize: '2.25rem',
-                              fontWeight: 900,
-                              color: !isLeftAttacking ? 'var(--success)' : 'var(--text-primary)',
-                              minWidth: '2ch',
-                              textAlign: 'center',
-                            }}
-                          >
-                            {sRight}
-                          </span>
-                        </div>
+                        {/* Mobile View (<= 640px): 2 stacked team cards, zero overflow */}
+                        <div className="admin-scorebox-mobile">
+                          <div className={`admin-mobile-team-card ${isLeftAttacking ? 'is-attacking' : ''}`}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: isLeftAttacking ? 'var(--success)' : 'var(--text-muted)', display: 'block' }}>
+                                {isLeftAttacking ? '⚡ GILIRAN SERANG' : 'BERTAHAN'}
+                              </span>
+                              <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {teamLeft.name}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '1.75rem', fontWeight: 900, color: isLeftAttacking ? 'var(--success)' : 'var(--text-primary)', minWidth: '2ch', textAlign: 'right' }}>
+                              {sLeft}
+                            </span>
+                          </div>
 
-                        {/* Team Right */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', textAlign: 'right' }}>
-                          <span style={{ fontSize: '0.7rem', color: !isLeftAttacking ? 'var(--success)' : 'var(--text-muted)', fontWeight: 800 }}>
-                            {!isLeftAttacking ? '⚡ GILIRAN SERANG' : 'BERTAHAN'}
-                          </span>
-                          <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)' }}>
-                            {teamRight.name}
-                          </span>
+                          <div className={`admin-mobile-team-card ${!isLeftAttacking ? 'is-attacking' : ''}`}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: !isLeftAttacking ? 'var(--success)' : 'var(--text-muted)', display: 'block' }}>
+                                {!isLeftAttacking ? '⚡ GILIRAN SERANG' : 'BERTAHAN'}
+                              </span>
+                              <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-primary)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {teamRight.name}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: '1.75rem', fontWeight: 900, color: !isLeftAttacking ? 'var(--success)' : 'var(--text-primary)', minWidth: '2ch', textAlign: 'right' }}>
+                              {sRight}
+                            </span>
+                          </div>
                         </div>
-                      </div>
+                      </>
                     )
                   })()}
 
                   {/* Scoring Assigned info */}
-                  <div style={{ display: 'flex', gap: '2rem', fontSize: '0.8125rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem 1.5rem', fontSize: '0.78rem', flexWrap: 'wrap' }}>
                     <div>
                       <span style={{ color: 'var(--text-muted)' }}>Scoring 1 (Depan): </span>
                       <strong style={{ color: 'var(--text-primary)' }}>{m.jury_1?.name || '-'}</strong>
