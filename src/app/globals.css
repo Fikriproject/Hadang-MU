@@ -207,3 +207,97 @@ div:where(.swal2-popup.swal2-hadang-popup) {
   font-family: inherit !important;
   transition: background-color 0.2s ease !important;
 }
+
+/* Mobile & Touch Ergonomics Utilities */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.safe-area-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+}
+
+.safe-area-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+}
+
+/* Pulsing effect for active attacking indicator */
+@keyframes attackPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.pulse-attack {
+  animation: attackPulse 1.8s infinite;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 480px) {
+  div:where(.swal2-popup.swal2-hadang-popup) {
+    width: 92% !important;
+    padding: 1.25rem 1rem !important;
+    margin: 0.5rem !important;
+  }
+
+  .swal2-reason-btn {
+    padding: 0.75rem 0.875rem !important;
+  }
+}
+
+/* Control Room & Admin Mobile Responsive Grid Utilities */
+@media (max-width: 768px) {
+  .admin-control-arena {
+    grid-template-columns: 1fr !important;
+    padding: 1.25rem 1rem !important;
+    gap: 1.25rem !important;
+  }
+
+  .admin-team-manager-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.5rem !important;
+  }
+
+  .admin-team-manager-sticky {
+    position: static !important;
+    top: auto !important;
+  }
+}
+
+/* Zero-Hydration-Mismatch CSS Theme Toggle Icons */
+:root,
+[data-theme="dark"] .theme-icon-moon {
+  display: none !important;
+}
+:root,
+[data-theme="dark"] .theme-icon-sun {
+  display: inline-block !important;
+}
+
+[data-theme="light"] .theme-icon-sun {
+  display: none !important;
+}
+[data-theme="light"] .theme-icon-moon {
+  display: inline-block !important;
+}
+
+@media (max-width: 640px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+

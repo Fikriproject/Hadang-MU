@@ -90,7 +90,7 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
       </div>
 
       {/* Teams Selection: Tim 1 (Kiri) & Tim 2 (Kanan) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <label htmlFor="team_1_id" className="metadata-text" style={{ color: 'var(--primary)', fontWeight: 700 }}>
             Tim 1 (Sisi Kiri) <span style={{ color: 'var(--danger)' }}>*</span>
@@ -167,7 +167,7 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
       </div>
 
       {/* Scoring Assignment */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <label htmlFor="jury_1_id" className="metadata-text" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
             Scoring 1 (Area Depan/Awal) <span style={{ color: 'var(--danger)' }}>*</span>

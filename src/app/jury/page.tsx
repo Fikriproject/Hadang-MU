@@ -175,28 +175,32 @@ export default async function JuryDashboardPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                     Tugas Anda: <strong style={{ color: 'var(--text-primary)' }}>{juryPosText}</strong>
                   </div>
 
                   <Link
                     href={`/jury/matches/${m.id}`}
+                    className="touch-manipulation"
                     style={{
                       backgroundColor: isLive ? 'var(--success)' : 'var(--primary)',
                       color: 'white',
-                      padding: '0.625rem 1.25rem',
-                      borderRadius: '6px',
-                      fontWeight: 700,
-                      fontSize: '0.9375rem',
-                      display: 'inline-flex',
+                      padding: '0.875rem 1.25rem',
+                      borderRadius: '8px',
+                      fontWeight: 800,
+                      fontSize: '0.95rem',
+                      display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: '0.5rem',
                       textDecoration: 'none',
-                      boxShadow: isLive ? '0 2px 8px rgba(22, 163, 74, 0.4)' : '0 2px 8px rgba(37, 99, 235, 0.4)',
+                      boxShadow: isLive ? '0 4px 14px rgba(22, 163, 74, 0.4)' : '0 4px 14px rgba(37, 99, 235, 0.35)',
+                      transition: 'transform 0.1s ease',
+                      textAlign: 'center',
                     }}
                   >
-                    Buka Panel Skor →
+                    Buka Panel Skor Hadang →
                   </Link>
                 </div>
               </div>

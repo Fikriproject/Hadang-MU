@@ -1,17 +1,6 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import styles from './admin.module.css'
-import { revalidatePath } from 'next/cache'
-import ThemeToggle from '@/components/theme-toggle'
-
-async function logout() {
-  'use server'
-  const supabase = await createClient()
-  await supabase.auth.signOut()
-  revalidatePath('/', 'layout')
-  redirect('/login')
-}
+import AppNavHeader from '@/components/app-nav-header'
 
 export default async function AdminLayout({
   children,
@@ -36,38 +25,25 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className={styles.adminLayout}>
-      <aside className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <div className={styles.sidebarTitle}>HADANG</div>
-          <div className={styles.sidebarRole}>ADMIN PANEL</div>
-        </div>
-        <nav className={styles.nav}>
-          <Link href="/admin" className={styles.navLink}>
-            Dashboard
-          </Link>
-          <Link href="/admin/matches/create" className={styles.navLink}>
-            Buat Pertandingan
-          </Link>
-          <Link href="/admin/teams" className={styles.navLink}>
-            Kelola Tim
-          </Link>
-        </nav>
-      </aside>
-      <main className={styles.mainContent}>
-        <header className={styles.topbar}>
-          <div style={{ marginRight: 'auto', fontWeight: 'bold' }}>
-            Halo, {profile.name}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <ThemeToggle />
-            <form action={logout}>
-              <button type="submit" className={styles.logoutBtn}>
-                Keluar
-              </button>
-            </form>
-          </div>
-        </header>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--background)' }}>
+      {/* Synchronized Hamburger Navigation Header */}
+      <AppNavHeader
+        userName={profile?.name || 'Admin'}
+        userRole="ADMIN"
+        titleBadge="ADMIN PANEL"
+      />
+
+      {/* Main Admin Content Container */}
+      <main
+        style={{
+          flex: 1,
+          padding: '1.5rem',
+          maxWidth: '1280px',
+          width: '100%',
+          margin: '0 auto',
+          boxSizing: 'border-box',
+        }}
+      >
         {children}
       </main>
     </div>

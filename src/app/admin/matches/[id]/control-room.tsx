@@ -374,6 +374,7 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
 
       {/* Main Scoreboard Arena with Static Left & Right Positions */}
       <div
+        className="admin-control-arena"
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr auto 1fr',

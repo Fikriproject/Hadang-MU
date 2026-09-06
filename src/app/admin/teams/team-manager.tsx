@@ -195,12 +195,13 @@ export default function TeamManager({ initialTeams }: TeamManagerProps) {
       </div>
 
       {/* Main Grid: Input Card & Grouped Lists */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 380px) 1fr', gap: '1.75rem', alignItems: 'start' }}>
+      <div className="admin-team-manager-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 380px) 1fr', gap: '1.75rem', alignItems: 'start' }}>
         
         {/* ========================================================================= */}
         {/* 1. INPUT FORM CARD WITH CLEAR CATEGORY SWITCHER                          */}
         {/* ========================================================================= */}
         <div
+          className="admin-team-manager-sticky"
           style={{
             backgroundColor: 'var(--surface-color)',
             borderRadius: '12px',

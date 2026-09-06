@@ -83,3 +83,28 @@
 .logoutBtn:hover {
   background-color: rgba(220, 38, 38, 0.1);
 }
+
+/* Mobile Responsiveness for Admin Panel: Hamburger Drawer Mode */
+@media (max-width: 768px) {
+  .adminLayout {
+    flex-direction: column;
+  }
+
+  /* Hide regular desktop sidebar & topbar on mobile in favor of hamburger drawer */
+  .sidebar {
+    display: none !important;
+  }
+
+  .topbar {
+    display: none !important;
+  }
+
+  .admin-mobile-header {
+    display: flex !important;
+  }
+
+  .mainContent {
+    padding: 1rem 0.85rem;
+  }
+}
+
