@@ -615,14 +615,14 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
           )}
         </div>
 
-        {/* Assigned Juries bar */}
+        {/* Assigned Scoring bar */}
         <div style={{ display: 'flex', gap: '2rem', fontSize: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
           <div>
-            <span style={{ color: 'var(--text-secondary)' }}>Juri 1 (Depan): </span>
+            <span style={{ color: 'var(--text-secondary)' }}>Scoring 1 (Depan): </span>
             <strong style={{ color: 'var(--text-primary)' }}>{match.jury_1?.name || 'Belum ditugaskan'}</strong>
           </div>
           <div>
-            <span style={{ color: 'var(--text-secondary)' }}>Juri 2 (Belakang): </span>
+            <span style={{ color: 'var(--text-secondary)' }}>Scoring 2 (Belakang): </span>
             <strong style={{ color: 'var(--text-primary)' }}>{match.jury_2?.name || 'Belum ditugaskan'}</strong>
           </div>
         </div>

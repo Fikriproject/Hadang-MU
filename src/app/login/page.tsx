@@ -32,7 +32,7 @@ export default async function LoginPage({
     <main className={styles.container}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <h1 className={`${styles.title} heading`}>GROBAK SODOR</h1>
+          <h1 className={`${styles.title} heading`}>HADANG</h1>
           <p className={styles.subtitle}>SCORING SYSTEM</p>
         </div>
 

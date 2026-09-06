@@ -48,7 +48,7 @@ export default async function JuryLayout({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Link href="/jury" style={{ fontWeight: 900, color: 'var(--primary)', fontSize: '1.125rem', letterSpacing: '0.05em' }}>
-            HADANG JURY
+            HADANG SCORING
           </Link>
           <span
             style={{
@@ -60,13 +60,13 @@ export default async function JuryLayout({
               borderRadius: '9999px',
             }}
           >
-            {profile?.role === 'ADMIN' ? 'ADMIN (JURY MODE)' : 'JURI RESMI'}
+            {profile?.role === 'ADMIN' ? 'ADMIN (SCORING MODE)' : 'SCORING RESMI'}
           </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-            {profile?.name || 'Juri'}
+            {profile?.name || 'Scoring'}
           </span>
           {profile?.role === 'ADMIN' && (
             <Link

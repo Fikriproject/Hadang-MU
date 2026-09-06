@@ -23,10 +23,10 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: {
     template: "%s | HadangMU",
-    default: "HadangMU - Sistem Penilaian Digital Hadang (Gobak Sodor)",
+    default: "HadangMU - Sistem Penilaian Digital Hadang",
   },
   description:
-    "Platform pencatatan skor realtime, meja juri mobile, dan papan skor TV untuk olahraga tradisional Hadang (Gobak Sodor).",
+    "Platform pencatatan skor realtime, meja scoring mobile, dan papan skor TV untuk olahraga tradisional Hadang.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

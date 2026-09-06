@@ -31,7 +31,7 @@ export async function createMatch(
   }
 
   if (jury_1_id === jury_2_id) {
-    return { error: 'Juri 1 dan Juri 2 tidak boleh sama.' }
+    return { error: 'Scoring 1 dan Scoring 2 tidak boleh sama.' }
   }
 
   const { data: newMatch, error } = await supabase

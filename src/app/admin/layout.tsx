@@ -39,7 +39,7 @@ export default async function AdminLayout({
     <div className={styles.adminLayout}>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
-          <div className={styles.sidebarTitle}>GROBAK SODOR</div>
+          <div className={styles.sidebarTitle}>HADANG</div>
           <div className={styles.sidebarRole}>ADMIN PANEL</div>
         </div>
         <nav className={styles.nav}>

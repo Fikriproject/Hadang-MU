@@ -57,7 +57,7 @@ export default async function AdminDashboardPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="heading" style={{ fontSize: '1.875rem' }}>Dashboard Pertandingan</h1>
-          <p className="metadata-text">Sistem Penilaian Hadang (Gobak Sodor)</p>
+          <p className="metadata-text">Sistem Penilaian Hadang</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <Link
@@ -334,14 +334,14 @@ export default async function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  {/* Juries Assigned info */}
+                  {/* Scoring Assigned info */}
                   <div style={{ display: 'flex', gap: '2rem', fontSize: '0.8125rem', flexWrap: 'wrap' }}>
                     <div>
-                      <span style={{ color: 'var(--text-muted)' }}>Juri 1 (Depan): </span>
+                      <span style={{ color: 'var(--text-muted)' }}>Scoring 1 (Depan): </span>
                       <strong style={{ color: 'var(--text-primary)' }}>{m.jury_1?.name || '-'}</strong>
                     </div>
                     <div>
-                      <span style={{ color: 'var(--text-muted)' }}>Juri 2 (Belakang): </span>
+                      <span style={{ color: 'var(--text-muted)' }}>Scoring 2 (Belakang): </span>
                       <strong style={{ color: 'var(--text-primary)' }}>{m.jury_2?.name || '-'}</strong>
                     </div>
                   </div>

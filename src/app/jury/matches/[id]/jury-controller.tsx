@@ -194,10 +194,10 @@ export default function JuryController({
   const isJury1 = match.jury_1_id === currentUserId
   const isJury2 = match.jury_2_id === currentUserId
   const juryLabel = isJury1
-    ? 'Juri 1 (Area Depan)'
+    ? 'Scoring 1 (Area Depan)'
     : isJury2
-    ? 'Juri 2 (Area Belakang)'
-    : 'Petugas Meja Juri'
+    ? 'Scoring 2 (Area Belakang)'
+    : 'Petugas Meja Scoring'
 
   // Memoized scores & undo availability
   const { attackScore, defenseScore, myActiveEvents, canUndo } = useMemo(() => {
@@ -288,7 +288,7 @@ export default function JuryController({
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Link href="/jury" style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', textDecoration: 'underline' }}>
-              ← Meja Juri
+              ← Meja Scoring
             </Link>
             <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>•</span>
             <span style={{ fontSize: '0.8125rem', color: 'var(--primary)', fontWeight: 700 }}>
@@ -459,7 +459,7 @@ export default function JuryController({
         >
           <span style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: 1 }}>+1 POIN</span>
           <span style={{ fontSize: '1.125rem', fontWeight: 700, letterSpacing: '0.05em', opacity: 0.9 }}>
-            HADANG / SODOR
+            HADANG
           </span>
           <span style={{ fontSize: '0.8125rem', opacity: 0.85 }}>
             Untuk Tim: {match.team_attack?.name}

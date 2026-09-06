@@ -489,7 +489,7 @@ export default function ScoreboardView({
               letterSpacing: '0.05em',
             }}
           >
-            GROBAK SODOR
+            HADANG
           </div>
         </div>
 
@@ -582,10 +582,10 @@ export default function ScoreboardView({
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', fontSize: 'clamp(0.75rem, 1.2vw, 0.95rem)' }}>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Juri 1: <strong style={{ color: 'var(--text-primary)' }}>{match.jury_1?.name || '-'}</strong>
+            Scoring 1: <strong style={{ color: 'var(--text-primary)' }}>{match.jury_1?.name || '-'}</strong>
           </span>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Juri 2: <strong style={{ color: 'var(--text-primary)' }}>{match.jury_2?.name || '-'}</strong>
+            Scoring 2: <strong style={{ color: 'var(--text-primary)' }}>{match.jury_2?.name || '-'}</strong>
           </span>
         </div>
 

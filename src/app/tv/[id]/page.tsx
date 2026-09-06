@@ -19,7 +19,7 @@ export async function generateMetadata({
 
   return {
     title: match ? `${match.name} - TV Scoreboard Hadang` : 'TV Scoreboard Hadang',
-    description: 'Papan skor langsung pertandingan Hadang / Grobak Sodor realtime.',
+    description: 'Papan skor langsung pertandingan Hadang realtime.',
   }
 }
 

@@ -62,7 +62,7 @@ export default async function JuryDashboardPage() {
     <div style={{ padding: '1.25rem', maxWidth: '680px', margin: '0 auto', width: '100%' }}>
       <div style={{ marginBottom: '1.5rem' }}>
         <h1 className="heading" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>
-          Meja Juri Hadang
+          Meja Scoring Hadang
         </h1>
         <p className="metadata-text">
           Pilih pertandingan yang sedang ditugaskan kepada Anda untuk mulai mencatat skor.
@@ -84,7 +84,7 @@ export default async function JuryDashboardPage() {
             Belum Ada Penugasan
           </h3>
           <p className="metadata-text">
-            Anda belum ditugaskan sebagai juri pada pertandingan manapun saat ini. Silakan hubungi Admin pertandingan.
+            Anda belum ditugaskan sebagai scoring pada pertandingan manapun saat ini. Silakan hubungi Admin pertandingan.
           </p>
         </div>
       ) : (
@@ -93,9 +93,9 @@ export default async function JuryDashboardPage() {
             const isJury1 = m.jury_1_id === user.id
             const isJury2 = m.jury_2_id === user.id
             const juryPosText = isJury1
-              ? 'Juri 1 (Area Depan)'
+              ? 'Scoring 1 (Area Depan)'
               : isJury2
-              ? 'Juri 2 (Area Belakang)'
+              ? 'Scoring 2 (Area Belakang)'
               : 'Petugas / Admin'
 
             const isLive = m.status === 'LIVE'

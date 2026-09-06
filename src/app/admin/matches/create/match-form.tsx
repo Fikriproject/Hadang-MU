@@ -18,6 +18,37 @@ const initialState: CreateMatchState = {}
 export default function MatchForm({ teams, juries }: MatchFormProps) {
   const [state, formAction, isPending] = useActionState(createMatch, initialState)
 
+  const putraTeams = teams.filter((t) => !t.name.toLowerCase().includes('putri'))
+  const putriTeams = teams.filter((t) => t.name.toLowerCase().includes('putri'))
+
+  const renderTeamOptions = () => {
+    if (putriTeams.length > 0 && putraTeams.length > 0) {
+      return (
+        <>
+          <optgroup label="🚹 Tim Putra">
+            {putraTeams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="🚺 Tim Putri">
+            {putriTeams.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </optgroup>
+        </>
+      )
+    }
+    return teams.map((t) => (
+      <option key={t.id} value={t.id}>
+        {t.name}
+      </option>
+    ))
+  }
+
   return (
     <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {state?.error && (
@@ -97,11 +128,7 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
             }}
           >
             <option value="">Pilih Tim...</option>
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
+            {renderTeamOptions()}
           </select>
         </div>
 
@@ -123,11 +150,7 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
             }}
           >
             <option value="">Pilih Tim...</option>
-            {teams.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
+            {renderTeamOptions()}
           </select>
         </div>
       </div>
@@ -135,7 +158,7 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <label htmlFor="jury_1_id" className="metadata-text" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-            Juri 1 (Area Depan/Awal)
+            Scoring 1 (Area Depan/Awal)
           </label>
           <select
             id="jury_1_id"
@@ -150,7 +173,7 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
               fontSize: '1rem',
             }}
           >
-            <option value="">Pilih Juri...</option>
+            <option value="">Pilih Scoring...</option>
             {juries.map((j) => (
               <option key={j.id} value={j.id}>
                 {j.name}
@@ -161,7 +184,7 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <label htmlFor="jury_2_id" className="metadata-text" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-            Juri 2 (Area Belakang/Akhir)
+            Scoring 2 (Area Belakang/Akhir)
           </label>
           <select
             id="jury_2_id"
@@ -176,7 +199,7 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
               fontSize: '1rem',
             }}
           >
-            <option value="">Pilih Juri...</option>
+            <option value="">Pilih Scoring...</option>
             {juries.map((j) => (
               <option key={j.id} value={j.id}>
                 {j.name}

@@ -78,9 +78,9 @@ export default async function HomePage() {
               H
             </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: '1.125rem', letterSpacing: '0.05em' }}>HADANGMU</div>
+              <div style={{ fontWeight: 800, fontSize: '1.125rem', letterSpacing: '0.05em' }}>HADANG-MU</div>
               <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
-                GROBAK SODOR SCORING
+                HADANG MU
               </div>
             </div>
           </div>
@@ -100,7 +100,7 @@ export default async function HomePage() {
                 transition: 'background-color 0.2s',
               }}
             >
-              Login Petugas (Admin / Juri) →
+              Login Petugas
             </Link>
           </div>
         </div>
@@ -133,13 +133,13 @@ export default async function HomePage() {
             SISTEM SKOR DIGITAL OLAHRAGA TRADISIONAL
           </span>
           <h1 className="heading" style={{ marginBottom: '1rem', fontSize: 'clamp(2.2rem, 5vw, 3.5rem)' }}>
-            Turnamen Hadang & Gobak Sodor
+            Turnamen Hadang
           </h1>
           <p
             className="body-text"
             style={{ color: 'var(--text-secondary)', fontSize: '1.125rem', maxWidth: '650px', margin: '0 auto 2rem' }}
           >
-            Pencatatan skor terpadu dengan integrasi meja juri mobile, ruang kontrol admin, dan papan skor TV layar penuh secara realtime.
+            Pencatatan skor terpadu dengan integrasi meja scoring mobile, ruang kontrol admin, dan papan skor TV layar penuh secara realtime.
           </p>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -209,7 +209,7 @@ export default async function HomePage() {
                 Belum Ada Pertandingan yang Sedang Berlangsung
               </h3>
               <p className="metadata-text">
-                Pertandingan yang dimulai oleh admin akan otomatis tampil di sini dengan pembaruan skor langsung.
+                Pertandingan yang dimulai akan otomatis tampil di sini dengan pembaruan skor langsung.
               </p>
             </div>
           ) : (
@@ -461,7 +461,7 @@ export default async function HomePage() {
           }}
         >
           <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-primary)' }}>
-            Ketentuan Skor & Permainan Hadang (Gobak Sodor)
+            Ketentuan Skor & Permainan Hadang
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6 }}>
             <div>
@@ -478,9 +478,9 @@ export default async function HomePage() {
             </div>
             <div>
               <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
-                3. Sistem Penilaian Juri
+                3. Sistem Penilaian Scoring
               </strong>
-              Juri 1 (Area Depan) dan Juri 2 (Area Belakang) mencatat poin langsung dari ponsel/tablet saat pemain berhasil menembus garis. Skor otomatis tersinkronisasi ke layar TV.
+              Scoring 1 (Area Depan) dan Scoring 2 (Area Belakang) mencatat poin langsung dari ponsel/tablet saat pemain berhasil menembus garis. Skor otomatis tersinkronisasi ke layar TV.
             </div>
           </div>
         </section>
