@@ -216,24 +216,24 @@ export default async function HomePage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
               {liveMatches.map((m) => {
                 const activeEvents = m.score_events?.filter((e) => e.status === 'ACTIVE') || []
-                const attackScore = activeEvents
-                  .filter((e) => e.team_id === m.team_attack?.id)
-                  .reduce((sum, e) => sum + e.points, 0)
-                const defenseScore = activeEvents
-                  .filter((e) => e.team_id === m.team_defense?.id)
-                  .reduce((sum, e) => sum + e.points, 0)
+                const tA = m.team_attack || { id: 'team-a', name: 'Tim 1' }
+                const tB = m.team_defense || { id: 'team-b', name: 'Tim 2' }
+                const [teamLeft, teamRight] = (m.round === tA.id || (m.round !== tB.id && tA.id < tB.id)) ? [tA, tB] : [tB, tA]
+                const isLeftAttacking = m.team_attack?.id === teamLeft.id
+                const scoreLeft = activeEvents.filter((e) => e.team_id === teamLeft.id).reduce((sum, e) => sum + e.points, 0)
+                const scoreRight = activeEvents.filter((e) => e.team_id === teamRight.id).reduce((sum, e) => sum + e.points, 0)
 
                 return (
                   <div
                     key={m.id}
                     style={{
                       backgroundColor: 'var(--surface-color)',
-                      border: '2px solid var(--success)',
-                      borderRadius: '12px',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '10px',
                       padding: '1.5rem',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '1.25rem',
+                      gap: '1rem',
                       boxShadow: 'var(--card-shadow)',
                     }}
                   >
@@ -252,14 +252,11 @@ export default async function HomePage() {
                       >
                         {m.status === 'LIVE' ? '● LIVE' : 'PAUSED'}
                       </span>
-                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        {m.round || 'Babak 1'}
-                      </span>
                     </div>
 
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>{m.name}</h3>
 
-                    {/* Score preview */}
+                    {/* Score preview with static Left & Right */}
                     <div
                       style={{
                         display: 'grid',
@@ -274,24 +271,40 @@ export default async function HomePage() {
                       }}
                     >
                       <div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--success)', fontWeight: 800 }}>ATTACK</span>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.2rem', color: 'var(--text-primary)' }}>
-                          {m.team_attack?.name}
+                        {isLeftAttacking ? (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--success)', fontWeight: 800, backgroundColor: 'var(--success-subtle)', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                            ⚡ SERANG
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            BERTAHAN
+                          </span>
+                        )}
+                        <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.3rem', color: 'var(--text-primary)' }}>
+                          {teamLeft.name}
                         </div>
-                        <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--success)' }}>
-                          {attackScore}
+                        <div style={{ fontSize: '2rem', fontWeight: 900, color: isLeftAttacking ? 'var(--success)' : 'var(--text-primary)' }}>
+                          {scoreLeft}
                         </div>
                       </div>
 
                       <div style={{ fontWeight: 800, color: 'var(--text-muted)', fontSize: '1.25rem' }}>VS</div>
 
                       <div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--danger)', fontWeight: 800 }}>DEFENSE</span>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.2rem', color: 'var(--text-primary)' }}>
-                          {m.team_defense?.name}
+                        {!isLeftAttacking ? (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--success)', fontWeight: 800, backgroundColor: 'var(--success-subtle)', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                            ⚡ SERANG
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            BERTAHAN
+                          </span>
+                        )}
+                        <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.3rem', color: 'var(--text-primary)' }}>
+                          {teamRight.name}
                         </div>
-                        <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--danger)' }}>
-                          {defenseScore}
+                        <div style={{ fontSize: '2rem', fontWeight: 900, color: !isLeftAttacking ? 'var(--success)' : 'var(--text-primary)' }}>
+                          {scoreRight}
                         </div>
                       </div>
                     </div>
@@ -466,13 +479,13 @@ export default async function HomePage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6 }}>
             <div>
               <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
-                1. Tim Penyerang (Attack)
+                1. Pergantian Posisi Instan (Foul Turnover)
               </strong>
-              Pemain tim penyerang berusaha meloloskan diri melewati garis-garis petak penjagaan dari garis awal hingga garis belakang, lalu kembali ke garis awal.
+              Permainan tidak terikat sistem babak kaku. Setiap kali terjadi pelanggaran (foul), tersentuh penjaga, atau pemain keluar garis, giliran serang langsung berpindah ke tim lawan secara seketika.
             </div>
             <div>
               <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
-                2. Tim Bertahan (Defense)
+                2. Tim Bertahan & Garis Sodor
               </strong>
               Pemain bertahan menjaga di sepanjang garis lintang dan garis sodor (tengah) untuk menyentuh pemain penyerang agar terjadi pergantian posisi serang/bertahan.
             </div>
@@ -480,7 +493,7 @@ export default async function HomePage() {
               <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
                 3. Sistem Penilaian Scoring
               </strong>
-              Scoring 1 (Area Depan) dan Scoring 2 (Area Belakang) mencatat poin langsung dari ponsel/tablet saat pemain berhasil menembus garis. Skor otomatis tersinkronisasi ke layar TV.
+              Poin otomatis masuk ke tim yang sedang memegang hak serang. Scoring 1 dan Scoring 2 mencatat poin langsung dari ponsel/tablet saat pemain berhasil menembus petak garis.
             </div>
           </div>
         </section>

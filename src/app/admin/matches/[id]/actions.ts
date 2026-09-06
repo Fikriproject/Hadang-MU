@@ -34,31 +34,39 @@ export async function updateMatchStatus(matchId: string, status: string) {
   return { success: true }
 }
 
-export async function swapTeams(matchId: string, newRound?: string) {
+export async function toggleAttackingTeam(matchId: string, targetAttackingTeamId?: string) {
   const supabase = await createClient()
 
   // Fetch current attack and defense IDs
   const { data: match, error: fetchError } = await supabase
     .from('matches')
-    .select('team_attack_id, team_defense_id, round')
+    .select('team_attack_id, team_defense_id')
     .eq('id', matchId)
     .single()
 
   if (fetchError || !match) {
-    return { error: fetchError?.message || 'Match not found' }
+    return { error: fetchError?.message || 'Pertandingan tidak ditemukan' }
   }
 
-  const updateData: Record<string, any> = {
-    team_attack_id: match.team_defense_id,
-    team_defense_id: match.team_attack_id,
-    updated_at: new Date().toISOString(),
+  let newAttackId = match.team_defense_id
+  let newDefenseId = match.team_attack_id
+
+  if (targetAttackingTeamId) {
+    if (targetAttackingTeamId === match.team_attack_id) {
+      return { success: true } // Sudah berstatus penyerang
+    }
+    newAttackId = targetAttackingTeamId
+    newDefenseId = targetAttackingTeamId === match.team_attack_id ? match.team_defense_id : match.team_attack_id
   }
 
-  if (newRound) {
-    updateData.round = newRound
-  }
-
-  const { error } = await supabase.from('matches').update(updateData).eq('id', matchId)
+  const { error } = await supabase
+    .from('matches')
+    .update({
+      team_attack_id: newAttackId,
+      team_defense_id: newDefenseId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', matchId)
 
   if (error) {
     return { error: error.message }
@@ -67,7 +75,12 @@ export async function swapTeams(matchId: string, newRound?: string) {
   revalidatePath('/admin')
   revalidatePath(`/admin/matches/${matchId}`)
   revalidatePath(`/tv/${matchId}`)
-  return { success: true }
+  revalidatePath(`/jury/matches/${matchId}`)
+  return { success: true, newAttackId }
+}
+
+export async function swapTeams(matchId: string, _newRound?: string) {
+  return toggleAttackingTeam(matchId)
 }
 
 export async function cancelScoreEvent(eventId: string, matchId: string, reason?: string) {

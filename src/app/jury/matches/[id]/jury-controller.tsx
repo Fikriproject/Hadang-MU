@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useTransition, useMemo } from 'react'
+import React, { useState, useEffect, useTransition, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { addJuryScore, cancelRecentScore } from './actions'
@@ -59,13 +59,30 @@ export default function JuryController({
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
   const [isButtonActive, setIsButtonActive] = useState(false)
 
-  // Realtime Supabase Subscription + Background Fallback
+  // Deterministic Left & Right teams: positions NEVER swap on screen
+  const { teamLeft, teamRight } = useMemo(() => {
+    const tA = initialMatch.team_attack || { id: initialMatch.team_attack_id, name: 'Tim 1' }
+    const tB = initialMatch.team_defense || { id: initialMatch.team_defense_id, name: 'Tim 2' }
+
+    if (initialMatch.round === tA.id) return { teamLeft: tA, teamRight: tB }
+    if (initialMatch.round === tB.id) return { teamLeft: tB, teamRight: tA }
+
+    return tA.id < tB.id ? { teamLeft: tA, teamRight: tB } : { teamLeft: tB, teamRight: tA }
+  }, [
+    initialMatch.team_attack,
+    initialMatch.team_defense,
+    initialMatch.team_attack_id,
+    initialMatch.team_defense_id,
+    initialMatch.round,
+  ])
+
+  // Realtime Supabase Subscription
   useEffect(() => {
     const supabase = createClient()
     const matchId = initialMatch.id
 
     const channel = supabase
-      .channel(`jury-live-${matchId}`)
+      .channel(`jury-match-${matchId}`)
       .on(
         'postgres_changes',
         {
@@ -76,26 +93,10 @@ export default function JuryController({
         },
         (payload: any) => {
           const updated = payload.new as any
-          setMatch((prev) => {
-            const wasSwapped =
-              prev.team_attack_id !== updated.team_attack_id ||
-              prev.team_defense_id !== updated.team_defense_id
-
-            return {
-              ...prev,
-              ...updated,
-              team_attack: wasSwapped
-                ? updated.team_attack_id === prev.team_defense?.id
-                  ? prev.team_defense
-                  : prev.team_attack
-                : prev.team_attack,
-              team_defense: wasSwapped
-                ? updated.team_defense_id === prev.team_attack?.id
-                  ? prev.team_attack
-                  : prev.team_defense
-                : prev.team_defense,
-            }
-          })
+          setMatch((prev) => ({
+            ...prev,
+            ...updated,
+          }))
         }
       )
       .on(
@@ -127,7 +128,6 @@ export default function JuryController({
       .subscribe()
 
     const pollInterval = setInterval(async () => {
-      // Skip polling when tab is inactive to save battery and reduce background work
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
 
       try {
@@ -157,24 +157,17 @@ export default function JuryController({
           .single()
 
         if (latestMatch) {
-          setMatch((prev) => {
-            if (
-              prev.status !== latestMatch.status ||
-              prev.round !== latestMatch.round ||
-              prev.team_attack_id !== latestMatch.team_attack_id
-            ) {
-              const wasSwapped = prev.team_attack_id !== latestMatch.team_attack_id
-              return {
-                ...prev,
-                ...latestMatch,
-                team_attack: wasSwapped ? prev.team_defense : prev.team_attack,
-                team_defense: wasSwapped ? prev.team_attack : prev.team_defense,
-              }
-            }
-            return prev
-          })
+          setMatch((prev) => ({
+            ...prev,
+            status: latestMatch.status,
+            round: latestMatch.round,
+            team_attack_id: latestMatch.team_attack_id,
+            team_defense_id: latestMatch.team_defense_id,
+          }))
         }
-      } catch (err) {}
+      } catch (err) {
+        // Silent error
+      }
     }, 2500)
 
     return () => {
@@ -183,10 +176,12 @@ export default function JuryController({
     }
   }, [initialMatch.id])
 
-  // Clear toast after 3 seconds
+  // Clear toast timer
   useEffect(() => {
     if (!toastMessage) return
-    const timer = setTimeout(() => setToastMessage(null), 3000)
+    const timer = setTimeout(() => {
+      setToastMessage(null)
+    }, 2500)
     return () => clearTimeout(timer)
   }, [toastMessage])
 
@@ -199,61 +194,95 @@ export default function JuryController({
     ? 'Scoring 2 (Area Belakang)'
     : 'Petugas Meja Scoring'
 
-  // Memoized scores & undo availability
-  const { attackScore, defenseScore, myActiveEvents, canUndo } = useMemo(() => {
+  // Active attacking team
+  const isLeftAttacking = match.team_attack_id === teamLeft.id
+  const isRightAttacking = match.team_attack_id === teamRight.id
+  const attackingTeamName = isLeftAttacking ? teamLeft.name : teamRight.name
+
+  // Memoized scores & undo availability for static teams
+  const { scoreLeft, scoreRight, myActiveEvents, canUndo } = useMemo(() => {
     const active = scoreEvents.filter((e) => e.status === 'ACTIVE')
-    const attack = active
-      .filter((e) => e.team_id === match.team_attack_id)
+    const sLeft = active
+      .filter((e) => e.team_id === teamLeft.id)
       .reduce((sum, e) => sum + e.points, 0)
-    const defense = active
-      .filter((e) => e.team_id === match.team_defense_id)
+    const sRight = active
+      .filter((e) => e.team_id === teamRight.id)
       .reduce((sum, e) => sum + e.points, 0)
     const myActive = active.filter((e) => e.jury_id === currentUserId)
     return {
-      attackScore: attack,
-      defenseScore: defense,
+      scoreLeft: sLeft,
+      scoreRight: sRight,
       myActiveEvents: myActive,
       canUndo: myActive.length > 0,
     }
-  }, [scoreEvents, match.team_attack_id, match.team_defense_id, currentUserId])
+  }, [scoreEvents, teamLeft.id, teamRight.id, currentUserId])
 
   const isLive = match.status === 'LIVE'
 
-  // Handle Score Button Click
+  // Action: Add +1 Score
   const handleScoreClick = () => {
     if (!isLive || isPending) return
 
-    // Haptic feedback
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate([60])
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(60)
+      } catch (e) {}
     }
 
     setIsButtonActive(true)
-    setTimeout(() => setIsButtonActive(false), 200)
+    setTimeout(() => setIsButtonActive(false), 150)
+
+    const tempId = `optimistic-${Date.now()}`
+    const attackingId = match.team_attack_id
+    const optimisticEvent: ScoreEvent = {
+      id: tempId,
+      match_id: match.id,
+      team_id: attackingId,
+      jury_id: currentUserId,
+      event_type: 'HADANG_POINT',
+      points: 1,
+      status: 'ACTIVE',
+      created_at: new Date().toISOString(),
+    }
+
+    setScoreEvents((prev) => [optimisticEvent, ...prev])
+    setToastMessage({ text: `+1 Poin untuk ${attackingTeamName}!`, type: 'success' })
 
     startTransition(async () => {
       const res = await addJuryScore(match.id)
       if (res?.error) {
+        setScoreEvents((prev) => prev.filter((e) => e.id !== tempId))
         setToastMessage({ text: res.error, type: 'error' })
-      } else {
-        setToastMessage({ text: '+1 POIN DITAMBAHKAN!', type: 'success' })
+      } else if (res?.eventId) {
+        setScoreEvents((prev) =>
+          prev.map((e) => (e.id === tempId ? { ...e, id: res.eventId } : e))
+        )
       }
     })
   }
 
-  // Handle Undo Click with SweetAlert validation
+  // Action: Undo recent score
   const handleUndoClick = async () => {
-    if (isPending || !canUndo) return
+    if (!canUndo || isPending) return
 
     const reason = await promptUndoScoreReason()
     if (!reason) return
 
+    const targetEvent = myActiveEvents[0]
+    if (!targetEvent) return
+
+    setScoreEvents((prev) =>
+      prev.map((e) => (e.id === targetEvent.id ? { ...e, status: 'CANCELLED' } : e))
+    )
+    setToastMessage({ text: `Poin berhasil dibatalkan (${reason})`, type: 'success' })
+
     startTransition(async () => {
       const res = await cancelRecentScore(match.id, reason)
       if (res?.error) {
+        setScoreEvents((prev) =>
+          prev.map((e) => (e.id === targetEvent.id ? { ...e, status: 'ACTIVE' } : e))
+        )
         setToastMessage({ text: res.error, type: 'error' })
-      } else {
-        setToastMessage({ text: `Poin dibatalkan: ${reason}`, type: 'success' })
       }
     })
   }
@@ -261,18 +290,18 @@ export default function JuryController({
   return (
     <div
       style={{
-        flex: 1,
         display: 'flex',
         flexDirection: 'column',
+        minHeight: 'calc(100vh - 80px)',
         padding: '1rem',
-        maxWidth: '540px',
+        maxWidth: '520px',
         margin: '0 auto',
         width: '100%',
+        boxSizing: 'border-box',
         gap: '1rem',
-        userSelect: 'none',
       }}
     >
-      {/* Top Bar: Match Info */}
+      {/* Match Header Bar */}
       <div
         style={{
           display: 'flex',
@@ -290,10 +319,6 @@ export default function JuryController({
             <Link href="/jury" style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', textDecoration: 'underline' }}>
               ← Meja Scoring
             </Link>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>•</span>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--primary)', fontWeight: 700 }}>
-              {match.round || 'Babak 1'}
-            </span>
           </div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginTop: '0.2rem', color: 'var(--text-primary)' }}>{match.name}</h2>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{juryLabel}</span>
@@ -318,7 +343,6 @@ export default function JuryController({
               padding: '0.35rem 0.75rem',
               borderRadius: '9999px',
               letterSpacing: '0.05em',
-              display: 'inline-block',
             }}
           >
             {isLive ? '● LIVE' : match.status}
@@ -326,50 +350,48 @@ export default function JuryController({
         </div>
       </div>
 
-      {/* Toast Notification */}
+      {/* Floating Feedback Toast */}
       {toastMessage && (
         <div
           style={{
-            backgroundColor: toastMessage.type === 'success' ? 'var(--success)' : 'var(--danger)',
+            backgroundColor: toastMessage.type === 'success' ? '#22c55e' : '#ef4444',
             color: 'white',
-            padding: '0.75rem 1rem',
-            borderRadius: '6px',
             fontWeight: 700,
-            fontSize: '0.9375rem',
+            fontSize: '0.875rem',
+            padding: '0.65rem 1rem',
+            borderRadius: '6px',
             textAlign: 'center',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-            animation: 'fadeIn 0.2s ease-in',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            animation: 'fadeIn 0.2s ease-in-out',
           }}
         >
           {toastMessage.text}
         </div>
       )}
 
-      {/* Non-LIVE Notice */}
+      {/* Non-LIVE Notice Banner */}
       {!isLive && (
         <div
           style={{
-            backgroundColor: match.status === 'PAUSED' ? 'var(--warning-subtle)' : 'var(--surface-subtle)',
-            border: match.status === 'PAUSED' ? '1px solid var(--warning)' : '1px solid var(--border-color)',
-            color: match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-secondary)',
-            padding: '0.875rem',
+            backgroundColor: 'var(--warning-subtle)',
+            border: '1px solid var(--warning)',
+            color: 'var(--warning)',
+            padding: '0.75rem',
             borderRadius: '8px',
-            textAlign: 'center',
             fontSize: '0.875rem',
+            textAlign: 'center',
             fontWeight: 600,
           }}
         >
           {match.status === 'PAUSED'
-            ? '⏸ Pertandingan sedang dijeda (PAUSED). Tombol skor terkunci sementara.'
-            : match.status === 'READY'
-            ? '⏳ Menunggu Admin memulai pertandingan (Status: READY).'
+            ? '⏸ Pertandingan sedang dijeda oleh Admin. Tombol input dinonaktifkan.'
             : match.status === 'FINISHED'
             ? '🏁 Pertandingan telah selesai.'
-            : 'Pertandingan berstatus: ' + match.status}
+            : '⏳ Pertandingan belum dimulai (Status: ' + match.status + ').'}
         </div>
       )}
 
-      {/* Score Overview Card */}
+      {/* Compact Score Board with Static Left & Right Positions */}
       <div
         style={{
           display: 'grid',
@@ -383,56 +405,94 @@ export default function JuryController({
           boxShadow: 'var(--card-shadow)',
         }}
       >
-        {/* Attack Team */}
+        {/* TIM 1 (LEFT) */}
         <div style={{ textAlign: 'center' }}>
-          <span
-            style={{
-              backgroundColor: 'var(--success)',
-              color: 'white',
-              fontWeight: 800,
-              fontSize: '0.65rem',
-              padding: '0.2rem 0.5rem',
-              borderRadius: '9999px',
-              letterSpacing: '0.05em',
-            }}
-          >
-            ATTACK
-          </span>
+          {isLeftAttacking ? (
+            <span
+              style={{
+                backgroundColor: 'var(--success)',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.65rem',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '9999px',
+                letterSpacing: '0.05em',
+                boxShadow: '0 2px 6px rgba(34, 197, 94, 0.4)',
+              }}
+            >
+              ⚡ SERANG
+            </span>
+          ) : (
+            <span
+              style={{
+                backgroundColor: 'var(--surface-subtle)',
+                color: 'var(--text-muted)',
+                fontWeight: 600,
+                fontSize: '0.65rem',
+                padding: '0.2rem 0.5rem',
+                borderRadius: '9999px',
+                letterSpacing: '0.05em',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              BERTAHAN
+            </span>
+          )}
+
           <div style={{ fontWeight: 800, fontSize: '1.125rem', marginTop: '0.4rem', lineHeight: 1.2, color: 'var(--text-primary)' }}>
-            {match.team_attack?.name || 'Tim Serang'}
+            {teamLeft.name}
           </div>
-          <div className="jury-score" style={{ color: 'var(--success)', margin: '0.25rem 0' }}>
-            {attackScore}
+          <div className="jury-score" style={{ color: isLeftAttacking ? 'var(--success)' : 'var(--text-primary)', margin: '0.25rem 0' }}>
+            {scoreLeft}
           </div>
         </div>
 
         <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-muted)' }}>VS</div>
 
-        {/* Defense Team */}
+        {/* TIM 2 (RIGHT) */}
         <div style={{ textAlign: 'center' }}>
-          <span
-            style={{
-              backgroundColor: 'var(--danger)',
-              color: 'white',
-              fontWeight: 800,
-              fontSize: '0.65rem',
-              padding: '0.2rem 0.5rem',
-              borderRadius: '9999px',
-              letterSpacing: '0.05em',
-            }}
-          >
-            DEFENSE
-          </span>
+          {isRightAttacking ? (
+            <span
+              style={{
+                backgroundColor: 'var(--success)',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.65rem',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '9999px',
+                letterSpacing: '0.05em',
+                boxShadow: '0 2px 6px rgba(34, 197, 94, 0.4)',
+              }}
+            >
+              ⚡ SERANG
+            </span>
+          ) : (
+            <span
+              style={{
+                backgroundColor: 'var(--surface-subtle)',
+                color: 'var(--text-muted)',
+                fontWeight: 600,
+                fontSize: '0.65rem',
+                padding: '0.2rem 0.5rem',
+                borderRadius: '9999px',
+                letterSpacing: '0.05em',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              BERTAHAN
+            </span>
+          )}
+
           <div style={{ fontWeight: 800, fontSize: '1.125rem', marginTop: '0.4rem', lineHeight: 1.2, color: 'var(--text-primary)' }}>
-            {match.team_defense?.name || 'Tim Bertahan'}
+            {teamRight.name}
           </div>
-          <div className="jury-score" style={{ color: 'var(--danger)', margin: '0.25rem 0' }}>
-            {defenseScore}
+          <div className="jury-score" style={{ color: isRightAttacking ? 'var(--success)' : 'var(--text-primary)', margin: '0.25rem 0' }}>
+            {scoreRight}
           </div>
         </div>
       </div>
 
-      {/* Massive Touch Button: +1 POIN */}
+      {/* Massive Touch Button: +1 POIN HADANG */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, justifyContent: 'center' }}>
         <button
           type="button"
@@ -461,8 +521,8 @@ export default function JuryController({
           <span style={{ fontSize: '1.125rem', fontWeight: 700, letterSpacing: '0.05em', opacity: 0.9 }}>
             HADANG
           </span>
-          <span style={{ fontSize: '0.8125rem', opacity: 0.85 }}>
-            Untuk Tim: {match.team_attack?.name}
+          <span style={{ fontSize: '0.875rem', opacity: 0.95, fontWeight: 700, backgroundColor: 'rgba(0,0,0,0.2)', padding: '0.2rem 0.75rem', borderRadius: '6px' }}>
+            Untuk Tim: {attackingTeamName}
           </span>
         </button>
 
@@ -474,26 +534,26 @@ export default function JuryController({
           style={{
             padding: '1rem',
             borderRadius: '10px',
+            border: canUndo ? '2px solid var(--danger)' : '1px solid var(--border-color)',
             backgroundColor: canUndo ? 'var(--danger-subtle)' : 'var(--surface-subtle)',
-            border: canUndo ? '1px solid var(--danger)' : '1px solid var(--border-color)',
             color: canUndo ? 'var(--danger)' : 'var(--text-muted)',
-            fontWeight: 700,
-            fontSize: '0.9375rem',
-            cursor: canUndo && !isPending ? 'pointer' : 'not-allowed',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            WebkitTapHighlightColor: 'transparent',
+            fontWeight: 800,
+            fontSize: '1rem',
+            cursor: !canUndo || isPending ? 'not-allowed' : 'pointer',
+            opacity: canUndo ? 1 : 0.5,
+            boxShadow: canUndo ? '0 2px 8px rgba(220, 38, 38, 0.2)' : 'none',
+            transition: 'all 0.15s ease',
           }}
         >
-          ↩ BATALKAN POIN TERAKHIR ({myActiveEvents.length})
+          ↩ BATALKAN POIN TERAKHIR (UNDO)
         </button>
       </div>
 
       {/* Footer Info */}
-      <div style={{ textAlign: 'center', fontSize: '0.75rem', color: '#64748b', paddingBottom: '0.5rem' }}>
-        Sentuh tombol hijau saat pemain menyerang berhasil menembus garis hadang.
+      <div style={{ textAlign: 'center', marginTop: 'auto', paddingBottom: '0.5rem' }}>
+        <p className="metadata-text" style={{ fontSize: '0.75rem' }}>
+          Poin otomatis tersinkronisasi ke Layar TV & Ruang Kontrol secara realtime.
+        </p>
       </div>
     </div>
   )

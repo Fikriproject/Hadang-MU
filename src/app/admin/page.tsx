@@ -227,21 +227,6 @@ export default async function AdminDashboardPage() {
                         {statusLabel}
                       </span>
                       <span style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--text-primary)' }}>{m.name}</span>
-                      {m.round && (
-                        <span
-                          style={{
-                            backgroundColor: 'var(--badge-neutral-bg)',
-                            color: 'var(--badge-neutral-text)',
-                            border: '1px solid var(--border-color)',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
-                            padding: '0.2rem 0.5rem',
-                            borderRadius: '4px',
-                          }}
-                        >
-                          {m.round}
-                        </span>
-                      )}
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -281,58 +266,68 @@ export default async function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  {/* Match Teams & Score Bar */}
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr auto 1fr',
-                      alignItems: 'center',
-                      backgroundColor: 'var(--card-inner-bg)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '8px',
-                      padding: '1.1rem 1.25rem',
-                      gap: '1rem',
-                    }}
-                  >
-                    {/* Team Attack */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        ATTACK (Penyerang)
-                      </span>
-                      <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)' }}>
-                        {m.team_attack?.name || 'Belum dipilih'}
-                      </span>
-                    </div>
+                  {(() => {
+                    const tA = m.team_attack || { id: 'team-a', name: 'Tim 1' }
+                    const tB = m.team_defense || { id: 'team-b', name: 'Tim 2' }
+                    const [teamLeft, teamRight] = (m.round === tA.id || (m.round !== tB.id && tA.id < tB.id)) ? [tA, tB] : [tB, tA]
+                    const isLeftAttacking = m.team_attack?.id === teamLeft.id
+                    const sLeft = activeEvents.filter((e) => e.team_id === teamLeft.id).reduce((sum, e) => sum + e.points, 0)
+                    const sRight = activeEvents.filter((e) => e.team_id === teamRight.id).reduce((sum, e) => sum + e.points, 0)
 
-                    {/* Score display */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ fontSize: '2.25rem', fontWeight: 900, color: 'var(--success)', minWidth: '2ch', textAlign: 'center' }}>
-                        {attackScore}
-                      </span>
-                      <span style={{ color: 'var(--text-muted)', fontWeight: 800, fontSize: '1.5rem' }}>:</span>
-                      <span
+                    return (
+                      <div
                         style={{
-                          fontSize: '2.25rem',
-                          fontWeight: 900,
-                          color: defenseScore > 0 ? 'var(--danger)' : 'var(--score-inactive-text)',
-                          minWidth: '2ch',
-                          textAlign: 'center',
+                          display: 'grid',
+                          gridTemplateColumns: '1fr auto 1fr',
+                          alignItems: 'center',
+                          backgroundColor: 'var(--card-inner-bg)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px',
+                          padding: '1.1rem 1.25rem',
+                          gap: '1rem',
                         }}
                       >
-                        {defenseScore}
-                      </span>
-                    </div>
+                        {/* Team Left */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <span style={{ fontSize: '0.7rem', color: isLeftAttacking ? 'var(--success)' : 'var(--text-muted)', fontWeight: 800 }}>
+                            {isLeftAttacking ? '⚡ GILIRAN SERANG' : 'BERTAHAN'}
+                          </span>
+                          <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)' }}>
+                            {teamLeft.name}
+                          </span>
+                        </div>
 
-                    {/* Team Defense */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', textAlign: 'right' }}>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        DEFENSE (Bertahan)
-                      </span>
-                      <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)' }}>
-                        {m.team_defense?.name || 'Belum dipilih'}
-                      </span>
-                    </div>
-                  </div>
+                        {/* Score display */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <span style={{ fontSize: '2.25rem', fontWeight: 900, color: isLeftAttacking ? 'var(--success)' : 'var(--text-primary)', minWidth: '2ch', textAlign: 'center' }}>
+                            {sLeft}
+                          </span>
+                          <span style={{ color: 'var(--text-muted)', fontWeight: 800, fontSize: '1.5rem' }}>:</span>
+                          <span
+                            style={{
+                              fontSize: '2.25rem',
+                              fontWeight: 900,
+                              color: !isLeftAttacking ? 'var(--success)' : 'var(--text-primary)',
+                              minWidth: '2ch',
+                              textAlign: 'center',
+                            }}
+                          >
+                            {sRight}
+                          </span>
+                        </div>
+
+                        {/* Team Right */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', textAlign: 'right' }}>
+                          <span style={{ fontSize: '0.7rem', color: !isLeftAttacking ? 'var(--success)' : 'var(--text-muted)', fontWeight: 800 }}>
+                            {!isLeftAttacking ? '⚡ GILIRAN SERANG' : 'BERTAHAN'}
+                          </span>
+                          <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)' }}>
+                            {teamRight.name}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })()}
 
                   {/* Scoring Assigned info */}
                   <div style={{ display: 'flex', gap: '2rem', fontSize: '0.8125rem', flexWrap: 'wrap' }}>

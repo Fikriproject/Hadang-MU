@@ -15,24 +15,30 @@ export async function createMatch(
   const supabase = await createClient()
   
   const name = (formData.get('name') as string)?.trim()
-  const round = (formData.get('round') as string)?.trim() || 'Babak 1'
-  const team_attack_id = formData.get('team_attack_id') as string
-  const team_defense_id = formData.get('team_defense_id') as string
+  const team_1_id = ((formData.get('team_1_id') || formData.get('team_attack_id')) as string)?.trim()
+  const team_2_id = ((formData.get('team_2_id') || formData.get('team_defense_id')) as string)?.trim()
+  const first_attacker = formData.get('first_attacker') as string
   const jury_1_id = formData.get('jury_1_id') as string
   const jury_2_id = formData.get('jury_2_id') as string
 
   // Simple validation
-  if (!name || !team_attack_id || !team_defense_id || !jury_1_id || !jury_2_id) {
-    return { error: 'Semua kolom wajib diisi kecuali ronde.' }
+  if (!name || !team_1_id || !team_2_id || !jury_1_id || !jury_2_id) {
+    return { error: 'Semua kolom wajib diisi.' }
   }
 
-  if (team_attack_id === team_defense_id) {
-    return { error: 'Tim Penyerang dan Bertahan tidak boleh sama.' }
+  if (team_1_id === team_2_id) {
+    return { error: 'Tim 1 dan Tim 2 tidak boleh sama.' }
   }
 
   if (jury_1_id === jury_2_id) {
     return { error: 'Scoring 1 dan Scoring 2 tidak boleh sama.' }
   }
+
+  const team_attack_id = first_attacker === 'team_2' ? team_2_id : team_1_id
+  const team_defense_id = first_attacker === 'team_2' ? team_1_id : team_2_id
+  
+  // Store team_1_id as the anchor left team in round so devices always anchor team 1 on left
+  const round = team_1_id
 
   const { data: newMatch, error } = await supabase
     .from('matches')
