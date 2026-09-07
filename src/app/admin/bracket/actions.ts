@@ -26,8 +26,12 @@ async function readBracketsStore(): Promise<Record<string, BracketData | null>> 
 }
 
 async function writeBracketsStore(store: Record<string, BracketData | null>) {
-  await fs.mkdir(path.dirname(BRACKET_FILE), { recursive: true })
-  await fs.writeFile(BRACKET_FILE, JSON.stringify(store, null, 2), 'utf-8')
+  try {
+    await fs.mkdir(path.dirname(BRACKET_FILE), { recursive: true })
+    await fs.writeFile(BRACKET_FILE, JSON.stringify(store, null, 2), 'utf-8')
+  } catch (err) {
+    console.warn('Gagal menyimpan file brackets ke filesystem (read-only environment):', err)
+  }
 }
 
 export type BracketActionResult = {
@@ -40,53 +44,81 @@ export type BracketActionResult = {
  * Fetch bracket data for a category and reconcile with active DB matches
  */
 export async function getBracket(category: BracketCategory) {
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  // 1. Read stored bracket
-  const store = await readBracketsStore()
-  let bracket = store[category]
+    // 1. Read stored bracket
+    const store = await readBracketsStore()
+    let bracket = store[category]
 
-  // 2. Fetch all teams of this category
-  const { data: rawTeams } = await supabase
-    .from('teams')
-    .select('id, name')
-    .order('name')
+    // 2. Fetch all teams of this category
+    const { data: rawTeams, error: teamsErr } = await supabase
+      .from('teams')
+      .select('id, name')
+      .order('name')
 
-  const allTeams = (rawTeams || []).filter((t) => detectTeamCategory(t) === category)
-
-  // 3. Fetch matches to reconcile scores and winners
-  const { data: rawMatches } = await supabase
-    .from('matches')
-    .select(`
-      id,
-      status,
-      team_attack_id,
-      team_defense_id,
-      team_attack:team_attack_id(id, name),
-      team_defense:team_defense_id(id, name),
-      score_events(team_id, points, status)
-    `)
-
-  if (bracket && rawMatches) {
-    const reconciled = reconcileBracketWithDb(bracket, rawMatches as any)
-    if (JSON.stringify(reconciled) !== JSON.stringify(bracket)) {
-      bracket = reconciled
-      store[category] = bracket
-      await writeBracketsStore(store)
+    if (teamsErr) {
+      console.warn('Warning: Gagal fetch teams untuk bracket:', teamsErr.message)
     }
-  }
 
-  // 4. Fetch available juries
-  const { data: juries } = await supabase
-    .from('profiles')
-    .select('id, name')
-    .eq('role', 'JURY')
-    .order('name')
+    const allTeams = (rawTeams || []).filter((t) => detectTeamCategory(t) === category)
 
-  return {
-    bracket,
-    categoryTeams: allTeams,
-    juries: juries || [],
+    // 3. Fetch matches to reconcile scores and winners
+    const { data: rawMatches, error: matchesErr } = await supabase
+      .from('matches')
+      .select(`
+        id,
+        status,
+        team_attack_id,
+        team_defense_id,
+        team_attack:team_attack_id(id, name),
+        team_defense:team_defense_id(id, name),
+        score_events(team_id, points, status)
+      `)
+
+    if (matchesErr) {
+      console.warn('Warning: Gagal fetch matches untuk bracket:', matchesErr.message)
+    }
+
+    if (bracket && rawMatches) {
+      try {
+        const reconciled = reconcileBracketWithDb(bracket, rawMatches as any)
+        if (JSON.stringify(reconciled) !== JSON.stringify(bracket)) {
+          bracket = reconciled
+          store[category] = bracket
+          await writeBracketsStore(store)
+        }
+      } catch (recErr) {
+        console.warn('Warning: Gagal reconcile bracket dengan db:', recErr)
+      }
+    }
+
+    // 4. Fetch available juries
+    const { data: juries, error: juriesErr } = await supabase
+      .from('profiles')
+      .select('id, name')
+      .eq('role', 'JURY')
+      .order('name')
+
+    if (juriesErr) {
+      console.warn('Warning: Gagal fetch juries untuk bracket:', juriesErr.message)
+    }
+
+    return {
+      bracket,
+      categoryTeams: allTeams,
+      juries: juries || [],
+    }
+  } catch (err: any) {
+    if (err?.digest === 'DYNAMIC_SERVER_USAGE' || err?.message?.includes('Dynamic server usage')) {
+      throw err
+    }
+    console.error('Critical error in getBracket:', err)
+    return {
+      bracket: null,
+      categoryTeams: [],
+      juries: [],
+    }
   }
 }
 

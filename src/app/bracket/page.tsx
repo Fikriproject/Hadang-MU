@@ -3,13 +3,24 @@ import { getBracket } from '@/app/admin/bracket/actions'
 import BracketView from '@/app/admin/bracket/bracket-view'
 import ThemeToggle from '@/components/theme-toggle'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Bagan Pertandingan Turnamen (Putra & Putri) - HadangMU',
   description: 'Pantau pohon bagan kejuaraan turnamen Hadang Putra dan Putri secara realtime.',
 }
 
 export default async function PublicBracketPage() {
-  const { bracket, categoryTeams } = await getBracket('PUTRA')
+  let bracket = null
+  let categoryTeams: { id: string; name: string }[] = []
+
+  try {
+    const res = await getBracket('PUTRA')
+    bracket = res.bracket
+    categoryTeams = res.categoryTeams
+  } catch (err) {
+    console.error('Error fetching public bracket:', err)
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--background)', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column' }}>
