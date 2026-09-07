@@ -218,6 +218,49 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
         />
       </div>
 
+      {/* 2.5 JADWAL PERTANDINGAN */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <label className="metadata-text" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+          Jadwal Pertandingan <span style={{ color: 'var(--danger)' }}>*</span>
+        </label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <label htmlFor="scheduled_date" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tanggal</label>
+            <input
+              type="date"
+              id="scheduled_date"
+              name="scheduled_date"
+              required
+              style={{
+                padding: '0.75rem',
+                borderRadius: '6px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--surface-subtle)',
+                color: 'var(--text-primary)',
+                fontSize: '1rem',
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <label htmlFor="scheduled_time" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Waktu (Jam:Menit)</label>
+            <input
+              type="time"
+              id="scheduled_time"
+              name="scheduled_time"
+              required
+              style={{
+                padding: '0.75rem',
+                borderRadius: '6px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--surface-subtle)',
+                color: 'var(--text-primary)',
+                fontSize: '1rem',
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* 3. TEAMS SELECTION: TIM 1 & TIM 2 (HANYA KATEGORI TERPILIH) */}
       <div
         style={{

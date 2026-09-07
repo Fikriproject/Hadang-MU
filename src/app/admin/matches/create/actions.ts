@@ -20,9 +20,11 @@ export async function createMatch(
   const first_attacker = formData.get('first_attacker') as string
   const jury_1_id = formData.get('jury_1_id') as string
   const jury_2_id = formData.get('jury_2_id') as string
+  const scheduled_date = formData.get('scheduled_date') as string
+  const scheduled_time = formData.get('scheduled_time') as string
 
   // Simple validation
-  if (!name || !team_1_id || !team_2_id || !jury_1_id || !jury_2_id) {
+  if (!name || !team_1_id || !team_2_id || !jury_1_id || !jury_2_id || !scheduled_date || !scheduled_time) {
     return { error: 'Semua kolom wajib diisi.' }
   }
 
@@ -53,12 +55,16 @@ export async function createMatch(
   
   // Store team_1_id as the anchor left team in round so devices always anchor team 1 on left
   const round = team_1_id
+  
+  // Combine date + time into ISO string
+  const scheduled_at = new Date(`${scheduled_date}T${scheduled_time}:00`).toISOString()
 
   const { data: newMatch, error } = await supabase
     .from('matches')
     .insert({
       name,
       round,
+      scheduled_at,
       team_attack_id,
       team_defense_id,
       jury_1_id,

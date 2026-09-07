@@ -16,6 +16,22 @@ export async function updateMatchStatus(matchId: string, status: string) {
   const updateData: Record<string, any> = { status, updated_at: new Date().toISOString() }
 
   if (status === 'LIVE') {
+    // Cek apakah ada pertandingan lain yang sedang berjalan (LIVE/PAUSED)
+    const { data: activeMatches } = await adminClient
+      .from('matches')
+      .select('id, name, status')
+      .in('status', ['LIVE', 'PAUSED'])
+      .neq('id', matchId)
+      .limit(1)
+
+    if (activeMatches && activeMatches.length > 0) {
+      const activeMatch = activeMatches[0]
+      const statusLabel = activeMatch.status === 'LIVE' ? 'sedang berlangsung (LIVE)' : 'sedang dijeda (PAUSED)'
+      return {
+        error: `Tidak bisa memulai pertandingan ini. Pertandingan "${activeMatch.name}" ${statusLabel}. Selesaikan pertandingan tersebut terlebih dahulu.`
+      }
+    }
+
     const { data: match } = await adminClient
       .from('matches')
       .select('started_at, updated_at, status')

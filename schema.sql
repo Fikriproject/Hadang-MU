@@ -35,6 +35,7 @@ CREATE TABLE matches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   round TEXT,
+  scheduled_at TIMESTAMPTZ,
   team_attack_id UUID REFERENCES teams(id) ON DELETE SET NULL,
   team_defense_id UUID REFERENCES teams(id) ON DELETE SET NULL,
   jury_1_id UUID REFERENCES profiles(id) ON DELETE SET NULL,

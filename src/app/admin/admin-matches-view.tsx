@@ -8,6 +8,7 @@ export interface MatchWithRelations {
   id: string
   name: string
   round: string | null
+  scheduled_at?: string | null
   status: 'DRAFT' | 'READY' | 'LIVE' | 'PAUSED' | 'FINISHED'
   created_at: string
   started_at: string | null
@@ -352,6 +353,29 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                         }}
                       >
                         {m.round}
+                      </span>
+                    )}
+
+                    {m.scheduled_at && (
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'var(--text-secondary)',
+                          fontWeight: 600,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          marginLeft: '0.2rem'
+                        }}
+                      >
+                        📅 {new Intl.DateTimeFormat('id-ID', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        }).format(new Date(m.scheduled_at)).replace(/\./g, ':')} WIB
                       </span>
                     )}
                   </div>

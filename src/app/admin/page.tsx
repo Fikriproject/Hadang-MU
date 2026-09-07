@@ -17,6 +17,7 @@ export default async function AdminDashboardPage() {
       created_at,
       started_at,
       finished_at,
+      scheduled_at,
       team_attack:team_attack_id(id, name),
       team_defense:team_defense_id(id, name),
       jury_1:jury_1_id(id, name),
