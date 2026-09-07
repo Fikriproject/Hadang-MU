@@ -38,6 +38,7 @@ interface MatchData {
   id: string
   name: string
   round: string | null
+  scheduled_at: string | null
   status: 'DRAFT' | 'READY' | 'LIVE' | 'PAUSED' | 'FINISHED'
   started_at: string | null
   finished_at: string | null
@@ -146,7 +147,7 @@ export default function ControlRoom({
       const [resMatch, resEvents] = await Promise.all([
         supabase
           .from('matches')
-          .select('id, status, started_at, finished_at, updated_at, team_attack_id, team_defense_id, round')
+          .select('id, status, started_at, finished_at, updated_at, scheduled_at, team_attack_id, team_defense_id, round')
           .eq('id', matchId)
           .single(),
         supabase
@@ -164,6 +165,7 @@ export default function ControlRoom({
           started_at: resMatch.data.started_at,
           finished_at: resMatch.data.finished_at,
           updated_at: resMatch.data.updated_at,
+          scheduled_at: resMatch.data.scheduled_at,
           team_attack_id: resMatch.data.team_attack_id,
           team_defense_id: resMatch.data.team_defense_id,
         }))
@@ -347,12 +349,13 @@ export default function ControlRoom({
               <span>Bagan Turnamen</span>
             </Link>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <h1 className="heading" style={{ fontSize: '1.75rem', margin: 0 }}>
-              {match.name}
-            </h1>
-            <span
-              style={{
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <h1 className="heading" style={{ fontSize: '1.75rem', margin: 0 }}>
+                {match.name}
+              </h1>
+              <span
+                style={{
                 backgroundColor:
                   match.status === 'LIVE'
                     ? 'var(--success-subtle)'
@@ -401,8 +404,21 @@ export default function ControlRoom({
                   }}
                 />
               )}
-              {match.status === 'LIVE' ? 'LIVE' : match.status}
-            </span>
+                {match.status === 'LIVE' ? 'LIVE' : match.status}
+              </span>
+            </div>
+            {match.scheduled_at && (
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.35rem' }}>
+                📅 {new Intl.DateTimeFormat('id-ID', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }).format(new Date(match.scheduled_at)).replace(/\./g, ':')} WIB
+              </span>
+            )}
           </div>
         </div>
 

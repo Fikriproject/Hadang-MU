@@ -6,6 +6,7 @@ interface MatchWithRelations {
   id: string
   name: string
   round: string | null
+  scheduled_at: string | null
   status: 'DRAFT' | 'READY' | 'LIVE' | 'PAUSED' | 'FINISHED'
   created_at: string
   team_attack: { id: string; name: string } | null
@@ -33,6 +34,7 @@ export default async function HomePage() {
       id,
       name,
       round,
+      scheduled_at,
       status,
       created_at,
       team_attack:team_attack_id(id, name),
@@ -575,6 +577,18 @@ export default async function HomePage() {
                       <div className="metadata-text" style={{ fontSize: '0.8125rem' }}>
                         {m.team_attack?.name} vs {m.team_defense?.name}
                       </div>
+                      {m.scheduled_at && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, marginTop: '0.2rem' }}>
+                          📅 {new Intl.DateTimeFormat('id-ID', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          }).format(new Date(m.scheduled_at)).replace(/\./g, ':')} WIB
+                        </div>
+                      )}
                     </div>
                     <span
                       style={{
