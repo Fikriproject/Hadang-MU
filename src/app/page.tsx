@@ -685,32 +685,119 @@ export default async function HomePage() {
           style={{
             backgroundColor: 'var(--surface-color)',
             border: '1px solid var(--border-color)',
-            borderRadius: '10px',
+            borderRadius: '12px',
             padding: '2rem',
             boxShadow: 'var(--card-shadow)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.25rem',
           }}
         >
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-primary)' }}>
-            Ketentuan Skor & Permainan Hadang
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6 }}>
-            <div>
-              <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
-                1. Pergantian Posisi Instan (Foul Turnover)
-              </strong>
-              Permainan tidak terikat sistem babak kaku. Setiap kali terjadi pelanggaran (foul), tersentuh penjaga, atau pemain keluar garis, giliran serang langsung berpindah ke tim lawan secara seketika.
+          <div>
+            <span
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                color: 'var(--primary)',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                backgroundColor: 'var(--primary-subtle, rgba(37, 99, 235, 0.1))',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '9999px',
+                display: 'inline-block',
+                marginBottom: '0.5rem',
+              }}
+            >
+              Pedoman Resmi Olahraga Tradisional
+            </span>
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+              Ketentuan Skor & Penentuan Pemenang Hadang
+            </h3>
+            <p className="metadata-text" style={{ marginTop: '0.35rem', fontSize: '0.875rem' }}>
+              Rangkuman aturan resmi pertandingan Hadang sesuai standar modul olahraga tradisional nasional.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            {/* 1. KETENTUAN SKOR */}
+            <div
+              style={{
+                backgroundColor: 'var(--card-inner-bg)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '10px',
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.35rem' }}>🎯</span>
+                <strong style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>1. Ketentuan Skor (Nilai)</strong>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+                <li>
+                  <strong style={{ color: 'var(--text-primary)' }}>+1 Nilai (Depan ke Belakang):</strong> Diberikan jika pemain penyerang berhasil melewati seluruh petak dari garis depan sampai garis belakang.
+                </li>
+                <li>
+                  <strong style={{ color: 'var(--text-primary)' }}>+1 Nilai (Belakang ke Depan):</strong> Diberikan jika pemain berhasil kembali melewati rintangan dari garis belakang sampai garis depan.
+                </li>
+                <li>
+                  <strong style={{ color: 'var(--danger)' }}>-1 Nilai (Penalti Kartu Merah):</strong> Nilai regu dikurangi 1 poin apabila pemain melakukan pelanggaran keras atau kartu merah.
+                </li>
+              </ul>
             </div>
-            <div>
-              <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
-                2. Tim Bertahan & Garis Sodor
-              </strong>
-              Pemain bertahan menjaga di sepanjang garis lintang dan garis sodor (tengah) untuk menyentuh pemain penyerang agar terjadi pergantian posisi serang/bertahan.
+
+            {/* 2. PENENTUAN PEMENANG */}
+            <div
+              style={{
+                backgroundColor: 'var(--card-inner-bg)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '10px',
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.35rem' }}>🏆</span>
+                <strong style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>2. Penentuan Pemenang</strong>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+                <li>
+                  <strong style={{ color: 'var(--text-primary)' }}>Skor Terbanyak:</strong> Pemenang ditentukan dari regu yang memperoleh akumulasi nilai tertinggi setelah waktu pertandingan (2 x 15 menit bersih) berakhir.
+                </li>
+                <li>
+                  <strong style={{ color: 'var(--text-primary)' }}>Kondisi Nilai Sama (Seri):</strong> Apabila kedua regu memperoleh total nilai yang sama, pemenang ditentukan dari regu yang memperoleh <strong style={{ color: 'var(--primary)' }}>jumlah nilai tertinggi di garis depan</strong>.
+                </li>
+              </ul>
             </div>
-            <div>
-              <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
-                3. Sistem Penilaian Scoring
-              </strong>
-              Poin otomatis masuk ke tim yang sedang memegang hak serang. Scoring 1 dan Scoring 2 mencatat poin langsung dari ponsel/tablet saat pemain berhasil menembus petak garis.
+
+            {/* 3. DURASI & ALIH GILIRAN */}
+            <div
+              style={{
+                backgroundColor: 'var(--card-inner-bg)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '10px',
+                padding: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '1.35rem' }}>⏱️</span>
+                <strong style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>3. Durasi & Alih Giliran</strong>
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.2rem', color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+                <li>
+                  <strong style={{ color: 'var(--text-primary)' }}>Waktu Laga:</strong> 2 x 15 menit bersih, istirahat 5 menit antar babak, dan hak 1x time-out (1 menit) per regu.
+                </li>
+                <li>
+                  <strong style={{ color: 'var(--text-primary)' }}>Pergantian Regu (Turnover):</strong> Penyerang bertukar menjadi penjaga jika tersentuh penjaga yang sah, kaki keluar garis samping, menarik/mundur kaki, atau regu penyerang terkunci selama 2 menit.
+                </li>
+              </ul>
             </div>
           </div>
         </section>
