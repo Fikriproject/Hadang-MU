@@ -889,24 +889,31 @@ export default function ControlRoom({
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
           {match.status !== 'LIVE' && (
-            <button
-              onClick={() => handleStatusChange('LIVE')}
-              disabled={isPending}
-              style={{
-                backgroundColor: 'var(--success)',
-                color: 'white',
-                padding: '0.875rem 1.5rem',
-                borderRadius: '6px',
-                fontWeight: 800,
-                fontSize: '1rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}
-            >
-              ▶ {match.status === 'PAUSED' ? 'LANJUTKAN (RESUME)' : 'MULAI PERTANDINGAN (LIVE)'}
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button
+                onClick={() => handleStatusChange('LIVE')}
+                disabled={isPending}
+                style={{
+                  backgroundColor: 'var(--success)',
+                  color: 'white',
+                  padding: '0.875rem 1.5rem',
+                  borderRadius: '6px',
+                  fontWeight: 800,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                ▶ {match.status === 'PAUSED' ? 'LANJUTKAN (RESUME)' : 'MULAI PERTANDINGAN (LIVE)'}
+              </button>
+              {match.status !== 'FINISHED' && (
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '250px' }}>
+                  ⓘ Hanya 1 pertandingan yang boleh berjalan dalam satu waktu.
+                </span>
+              )}
+            </div>
           )}
 
           {match.status === 'LIVE' && (
