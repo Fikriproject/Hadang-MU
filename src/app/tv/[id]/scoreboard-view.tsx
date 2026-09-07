@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import ThemeToggle from '@/components/theme-toggle'
 
 interface Team {
   id: string
   name: string
+  logo?: string | null
 }
 
 interface Profile {
@@ -16,13 +17,12 @@ interface Profile {
 
 interface ScoreEvent {
   id: string
-  match_id: string
   team_id: string
-  jury_id: string | null
   event_type: string
   points: number
   status: 'ACTIVE' | 'CANCELLED'
   created_at: string
+  jury_id: string | null
   jury?: { name: string } | null
 }
 
@@ -33,6 +33,7 @@ interface MatchData {
   status: 'DRAFT' | 'READY' | 'LIVE' | 'PAUSED' | 'FINISHED'
   started_at: string | null
   finished_at: string | null
+  updated_at?: string | null
   team_attack_id: string
   team_defense_id: string
   jury_1_id: string
@@ -48,27 +49,37 @@ interface ScoreboardViewProps {
   initialScoreEvents: ScoreEvent[]
 }
 
-export default function ScoreboardView({
-  initialMatch,
-  initialScoreEvents,
-}: ScoreboardViewProps) {
+export default function ScoreboardView({ initialMatch, initialScoreEvents }: ScoreboardViewProps) {
   const [match, setMatch] = useState<MatchData>(initialMatch)
   const [scoreEvents, setScoreEvents] = useState<ScoreEvent[]>(initialScoreEvents)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [lastScoredTeam, setLastScoredTeam] = useState<string | null>(null)
-  const [realtimeStatus, setRealtimeStatus] = useState<string>('CONNECTING')
+  const [realtimeStatus, setRealtimeStatus] = useState<'SUBSCRIBED' | 'CONNECTING' | 'DISCONNECTED'>('CONNECTING')
 
-  const matchRef = useRef<MatchData>(match)
-  matchRef.current = match
+  // Deterministic Left & Right teams: positions NEVER swap on screen
+  const { teamLeft, teamRight } = useMemo(() => {
+    const tA = initialMatch.team_attack || { id: initialMatch.team_attack_id, name: 'Tim 1' }
+    const tB = initialMatch.team_defense || { id: initialMatch.team_defense_id, name: 'Tim 2' }
 
-  // Persistent Realtime Subscription + Background Sync Fallback
+    if (initialMatch.round === tA.id) return { teamLeft: tA, teamRight: tB }
+    if (initialMatch.round === tB.id) return { teamLeft: tB, teamRight: tA }
+
+    return tA.id < tB.id ? { teamLeft: tA, teamRight: tB } : { teamLeft: tB, teamRight: tA }
+  }, [
+    initialMatch.team_attack,
+    initialMatch.team_defense,
+    initialMatch.team_attack_id,
+    initialMatch.team_defense_id,
+    initialMatch.round,
+  ])
+
+  // Realtime Supabase Subscription
   useEffect(() => {
     const supabase = createClient()
     const matchId = initialMatch.id
 
-    // 1. Setup Single Unified Realtime Channel
     const channel = supabase
-      .channel(`tv-live-${matchId}`)
+      .channel(`tv-scoreboard-${matchId}`)
       .on(
         'postgres_changes',
         {
@@ -79,26 +90,10 @@ export default function ScoreboardView({
         },
         (payload: any) => {
           const updated = payload.new as any
-          setMatch((prev) => {
-            const wasSwapped =
-              prev.team_attack_id !== updated.team_attack_id ||
-              prev.team_defense_id !== updated.team_defense_id
-
-            return {
-              ...prev,
-              ...updated,
-              team_attack: wasSwapped
-                ? updated.team_attack_id === prev.team_defense?.id
-                  ? prev.team_defense
-                  : prev.team_attack
-                : prev.team_attack,
-              team_defense: wasSwapped
-                ? updated.team_defense_id === prev.team_attack?.id
-                  ? prev.team_attack
-                  : prev.team_defense
-                : prev.team_defense,
-            }
-          })
+          setMatch((prev) => ({
+            ...prev,
+            ...updated,
+          }))
         }
       )
       .on(
@@ -112,11 +107,9 @@ export default function ScoreboardView({
         (payload: any) => {
           if (payload.eventType === 'INSERT') {
             const newEvent = payload.new as ScoreEvent
-            // Immediate visual glow on scoring team
             setLastScoredTeam(newEvent.team_id)
             setTimeout(() => setLastScoredTeam(null), 1500)
 
-            // Immediate state update (NO await, instant UI update)
             setScoreEvents((prev) => {
               if (prev.some((e) => e.id === newEvent.id)) return prev
               return [newEvent, ...prev]
@@ -133,70 +126,61 @@ export default function ScoreboardView({
         }
       )
       .subscribe((status: string) => {
-        setRealtimeStatus(status)
+        if (status === 'SUBSCRIBED') {
+          setRealtimeStatus('SUBSCRIBED')
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          setRealtimeStatus('DISCONNECTED')
+        } else {
+          setRealtimeStatus('CONNECTING')
+        }
       })
 
-    // 2. High-reliability Polling Fallback (every 2.5s)
-    // Ensures updates are 100% received even if WebSocket encounters network jitter
+    // Background Polling Fallback every 2.5s
     const pollInterval = setInterval(async () => {
-      // Skip poll when tab is hidden to save battery & CPU
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
 
       try {
-        const { data: latestEvents } = await supabase
-          .from('score_events')
-          .select(`
-            id,
-            match_id,
-            team_id,
-            jury_id,
-            event_type,
-            points,
-            status,
-            created_at,
-            jury:jury_id(name)
-          `)
-          .eq('match_id', matchId)
-          .order('created_at', { ascending: false })
+        const [resMatch, resEvents] = await Promise.all([
+          supabase
+            .from('matches')
+            .select('id, status, started_at, finished_at, updated_at, team_attack_id, team_defense_id, round')
+            .eq('id', matchId)
+            .single(),
+          supabase
+            .from('score_events')
+            .select(`
+              id,
+              team_id,
+              event_type,
+              points,
+              status,
+              created_at,
+              jury_id,
+              jury:jury_id(name)
+            `)
+            .eq('match_id', matchId)
+            .order('created_at', { ascending: false })
+            .limit(30),
+        ])
 
-        if (latestEvents && latestEvents.length > 0) {
+        if (resEvents.data) {
           setScoreEvents((prev) => {
-            // Check if length or top event changed
-            if (
-              prev.length !== latestEvents.length ||
-              (prev[0]?.id !== latestEvents[0]?.id) ||
-              (prev[0]?.status !== latestEvents[0]?.status)
-            ) {
-              return latestEvents as any
-            }
-            return prev
+            const remoteEvents = resEvents.data as any[]
+            const isSame =
+              prev.length === remoteEvents.length &&
+              remoteEvents.every((rem, i) => prev[i] && prev[i].id === rem.id && prev[i].status === rem.status)
+
+            if (isSame) return prev
+            return remoteEvents as ScoreEvent[]
           })
         }
 
-        // Also sync match status & roles
-        const { data: latestMatch } = await supabase
-          .from('matches')
-          .select('status, round, team_attack_id, team_defense_id')
-          .eq('id', matchId)
-          .single()
-
-        if (latestMatch) {
-          setMatch((prev) => {
-            if (
-              prev.status !== latestMatch.status ||
-              prev.round !== latestMatch.round ||
-              prev.team_attack_id !== latestMatch.team_attack_id
-            ) {
-              const wasSwapped = prev.team_attack_id !== latestMatch.team_attack_id
-              return {
-                ...prev,
-                ...latestMatch,
-                team_attack: wasSwapped ? prev.team_defense : prev.team_attack,
-                team_defense: wasSwapped ? prev.team_attack : prev.team_defense,
-              }
-            }
-            return prev
-          })
+        if (resMatch.data) {
+          const latestMatch = resMatch.data
+          setMatch((prev) => ({
+            ...prev,
+            ...latestMatch,
+          }))
         }
       } catch (err) {
         // Silent poll error
@@ -209,17 +193,21 @@ export default function ScoreboardView({
     }
   }, [initialMatch.id])
 
-  // Memoized score calculation for rendering efficiency
-  const { attackScore, defenseScore, activeEvents } = useMemo(() => {
+  // Active attacking state
+  const isLeftAttacking = match.team_attack_id === teamLeft.id
+  const isRightAttacking = match.team_attack_id === teamRight.id
+
+  // Memoized score calculation for static Left & Right teams
+  const { scoreLeft, scoreRight, activeEvents } = useMemo(() => {
     const active = scoreEvents.filter((e) => e.status === 'ACTIVE')
-    const attack = active
-      .filter((e) => e.team_id === match.team_attack_id)
+    const sLeft = active
+      .filter((e) => e.team_id === teamLeft.id)
       .reduce((sum, e) => sum + e.points, 0)
-    const defense = active
-      .filter((e) => e.team_id === match.team_defense_id)
+    const sRight = active
+      .filter((e) => e.team_id === teamRight.id)
       .reduce((sum, e) => sum + e.points, 0)
-    return { attackScore: attack, defenseScore: defense, activeEvents: active }
-  }, [scoreEvents, match.team_attack_id, match.team_defense_id])
+    return { scoreLeft: sLeft, scoreRight: sRight, activeEvents: active }
+  }, [scoreEvents, teamLeft.id, teamRight.id])
 
   // Fullscreen toggle handler
   const toggleFullscreen = () => {
@@ -232,6 +220,39 @@ export default function ScoreboardView({
 
   const isLive = match.status === 'LIVE'
 
+  // Match Timer calculation
+  const [matchDuration, setMatchDuration] = useState<string>('00:00')
+  useEffect(() => {
+    if (!match.started_at) {
+      setMatchDuration('00:00')
+      return
+    }
+
+    const calculateTime = () => {
+      const start = new Date(match.started_at!).getTime()
+      const end = match.finished_at
+        ? new Date(match.finished_at).getTime()
+        : match.status === 'PAUSED' && match.updated_at
+        ? new Date(match.updated_at).getTime()
+        : Date.now()
+      const diffSecs = Math.max(0, Math.floor((end - start) / 1000))
+      const hours = Math.floor(diffSecs / 3600)
+      const mins = Math.floor((diffSecs % 3600) / 60)
+      const secs = diffSecs % 60
+      if (hours > 0) {
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      }
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+
+    setMatchDuration(calculateTime())
+
+    if (match.status === 'LIVE') {
+      const timer = setInterval(() => setMatchDuration(calculateTime()), 1000)
+      return () => clearInterval(timer)
+    }
+  }, [match.started_at, match.finished_at, match.updated_at, match.status])
+
   return (
     <div
       style={{
@@ -241,41 +262,28 @@ export default function ScoreboardView({
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '2vw 4vw',
-        position: 'relative',
+        padding: '2.5vw 3.5vw',
+        boxSizing: 'border-box',
         overflow: 'hidden',
-        fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        position: 'relative',
       }}
     >
-      {/* Background Atmosphere Glow */}
+      {/* Background Ambient Glow */}
       <div
         style={{
           position: 'absolute',
-          top: '-20%',
-          left: '10%',
-          width: '40vw',
-          height: '40vw',
-          backgroundColor: 'rgba(37, 99, 235, 0.08)',
-          borderRadius: '50%',
-          filter: 'blur(120px)',
+          top: '-10%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '70vw',
+          height: '50vh',
+          background: 'radial-gradient(ellipse at center, rgba(37, 99, 235, 0.12) 0%, rgba(11, 18, 32, 0) 70%)',
           pointerEvents: 'none',
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '-20%',
-          right: '10%',
-          width: '40vw',
-          height: '40vw',
-          backgroundColor: 'rgba(22, 163, 74, 0.08)',
-          borderRadius: '50%',
-          filter: 'blur(120px)',
-          pointerEvents: 'none',
+          zIndex: 1,
         }}
       />
 
-      {/* TOP BAR */}
+      {/* HEADER SECTION */}
       <header
         style={{
           display: 'flex',
@@ -286,45 +294,58 @@ export default function ScoreboardView({
           zIndex: 10,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5vw' }}>
           <div
             style={{
               fontWeight: 900,
-              fontSize: 'clamp(1rem, 2vw, 1.5rem)',
-              letterSpacing: '0.1em',
-              background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              fontSize: 'clamp(1.25rem, 2.5vw, 2rem)',
+              letterSpacing: '0.05em',
+              color: 'var(--primary)',
             }}
           >
-            HADANG LIVE SCORE
+            HADANGMU
           </div>
-          <span style={{ color: 'var(--text-muted)' }}>|</span>
-          <span
-            style={{
-              fontSize: 'clamp(0.9rem, 1.6vw, 1.25rem)',
-              fontWeight: 800,
-              color: 'var(--text-primary)',
-            }}
-          >
-            {match.name}
-          </span>
+          <div style={{ height: '1.8rem', width: '2px', backgroundColor: 'var(--border-color)' }} />
+          <div>
+            <h1
+              style={{
+                fontSize: 'clamp(1rem, 2vw, 1.6rem)',
+                fontWeight: 800,
+                margin: 0,
+                color: 'var(--text-primary)',
+              }}
+            >
+              {match.name}
+            </h1>
+          </div>
         </div>
 
+        {/* Status, Timer, & Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span
+          {/* Match Duration Clock */}
+          <div
             style={{
-              backgroundColor: 'var(--badge-neutral-bg)',
+              backgroundColor: 'var(--surface-color)',
               border: '1px solid var(--border-color)',
-              color: 'var(--badge-neutral-text)',
-              fontSize: 'clamp(0.8rem, 1.4vw, 1.1rem)',
-              fontWeight: 700,
-              padding: '0.4em 1em',
-              borderRadius: '6px',
+              padding: '0.4em 0.85em',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
             }}
           >
-            {match.round || 'Babak 1'}
-          </span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>⏱</span>
+            <span
+              style={{
+                fontSize: 'clamp(0.9rem, 1.5vw, 1.25rem)',
+                fontWeight: 800,
+                fontFamily: 'monospace',
+                color: isLive ? 'var(--success)' : 'var(--text-primary)',
+              }}
+            >
+              {matchDuration}
+            </span>
+          </div>
 
           <span
             style={{
@@ -373,7 +394,7 @@ export default function ScoreboardView({
         </div>
       </header>
 
-      {/* MAIN ARENA SCORE BOARD */}
+      {/* MAIN ARENA SCORE BOARD WITH STATIC LEFT & RIGHT POSITIONS */}
       <main
         style={{
           display: 'grid',
@@ -385,7 +406,7 @@ export default function ScoreboardView({
           zIndex: 10,
         }}
       >
-        {/* TEAM ATTACK (LEFT) */}
+        {/* TIM 1 (LEFT) CARD */}
         <div
           style={{
             display: 'flex',
@@ -393,38 +414,64 @@ export default function ScoreboardView({
             alignItems: 'center',
             textAlign: 'center',
             backgroundColor:
-              lastScoredTeam === match.team_attack_id
+              lastScoredTeam === teamLeft.id
                 ? 'var(--success-subtle)'
+                : isLeftAttacking
+                ? 'rgba(34, 197, 94, 0.06)'
                 : 'var(--surface-color)',
             border:
-              lastScoredTeam === match.team_attack_id
+              lastScoredTeam === teamLeft.id
+                ? '3px solid var(--success)'
+                : isLeftAttacking
                 ? '3px solid var(--success)'
                 : '2px solid var(--border-color)',
             borderRadius: '20px',
             padding: '3vw 2vw',
             boxShadow:
-              lastScoredTeam === match.team_attack_id
+              lastScoredTeam === teamLeft.id
                 ? '0 0 60px rgba(34, 197, 94, 0.5)'
+                : isLeftAttacking
+                ? '0 0 30px rgba(34, 197, 94, 0.2)'
                 : 'var(--card-shadow)',
-            transform: lastScoredTeam === match.team_attack_id ? 'scale(1.02)' : 'scale(1)',
+            transform: lastScoredTeam === teamLeft.id ? 'scale(1.02)' : 'scale(1)',
             transition: 'all 0.25s ease',
             backdropFilter: 'blur(10px)',
           }}
         >
-          <span
-            style={{
-              backgroundColor: 'var(--success)',
-              color: 'white',
-              fontWeight: 900,
-              fontSize: 'clamp(0.85rem, 1.6vw, 1.35rem)',
-              padding: '0.4em 1.2em',
-              borderRadius: '9999px',
-              letterSpacing: '0.1em',
-              boxShadow: '0 4px 14px rgba(22, 163, 74, 0.4)',
-            }}
-          >
-            ATTACK (PENYERANG)
-          </span>
+          {isLeftAttacking ? (
+            <span
+              style={{
+                backgroundColor: 'var(--success)',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: 'clamp(0.85rem, 1.5vw, 1.25rem)',
+                padding: '0.4em 1.2em',
+                borderRadius: '9999px',
+                letterSpacing: '0.08em',
+                boxShadow: '0 4px 14px rgba(34, 197, 94, 0.45)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+              }}
+            >
+              ⚡ GILIRAN SERANG
+            </span>
+          ) : (
+            <span
+              style={{
+                backgroundColor: 'var(--surface-subtle)',
+                color: 'var(--text-muted)',
+                fontWeight: 700,
+                fontSize: 'clamp(0.75rem, 1.2vw, 1rem)',
+                padding: '0.35em 1em',
+                borderRadius: '9999px',
+                letterSpacing: '0.08em',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              BERTAHAN
+            </span>
+          )}
 
           <h2
             style={{
@@ -437,19 +484,19 @@ export default function ScoreboardView({
               color: 'var(--text-primary)',
             }}
           >
-            {match.team_attack?.name || 'Tim Serang'}
+            {teamLeft.name}
           </h2>
 
           <div
             className="tv-score"
             style={{
-              color: 'var(--success)',
-              textShadow: '0 0 30px rgba(34, 197, 94, 0.4)',
+              color: isLeftAttacking ? 'var(--success)' : 'var(--text-primary)',
+              textShadow: isLeftAttacking ? '0 0 30px rgba(34, 197, 94, 0.4)' : 'none',
               margin: '1vh 0',
               fontFamily: "'Plus Jakarta Sans', monospace",
             }}
           >
-            {attackScore}
+            {scoreLeft}
           </div>
 
           <span style={{ fontSize: 'clamp(0.75rem, 1.2vw, 1rem)', color: 'var(--text-secondary)', fontWeight: 600 }}>
@@ -489,11 +536,11 @@ export default function ScoreboardView({
               letterSpacing: '0.05em',
             }}
           >
-            GROBAK SODOR
+            HADANG
           </div>
         </div>
 
-        {/* TEAM DEFENSE (RIGHT) */}
+        {/* TIM 2 (RIGHT) CARD */}
         <div
           style={{
             display: 'flex',
@@ -501,38 +548,64 @@ export default function ScoreboardView({
             alignItems: 'center',
             textAlign: 'center',
             backgroundColor:
-              lastScoredTeam === match.team_defense_id
-                ? 'var(--danger-subtle)'
+              lastScoredTeam === teamRight.id
+                ? 'var(--success-subtle)'
+                : isRightAttacking
+                ? 'rgba(34, 197, 94, 0.06)'
                 : 'var(--surface-color)',
             border:
-              lastScoredTeam === match.team_defense_id
-                ? '3px solid var(--danger)'
+              lastScoredTeam === teamRight.id
+                ? '3px solid var(--success)'
+                : isRightAttacking
+                ? '3px solid var(--success)'
                 : '2px solid var(--border-color)',
             borderRadius: '20px',
             padding: '3vw 2vw',
             boxShadow:
-              lastScoredTeam === match.team_defense_id
-                ? '0 0 60px rgba(239, 68, 68, 0.5)'
+              lastScoredTeam === teamRight.id
+                ? '0 0 60px rgba(34, 197, 94, 0.5)'
+                : isRightAttacking
+                ? '0 0 30px rgba(34, 197, 94, 0.2)'
                 : 'var(--card-shadow)',
-            transform: lastScoredTeam === match.team_defense_id ? 'scale(1.02)' : 'scale(1)',
+            transform: lastScoredTeam === teamRight.id ? 'scale(1.02)' : 'scale(1)',
             transition: 'all 0.25s ease',
             backdropFilter: 'blur(10px)',
           }}
         >
-          <span
-            style={{
-              backgroundColor: 'var(--danger)',
-              color: 'white',
-              fontWeight: 900,
-              fontSize: 'clamp(0.85rem, 1.6vw, 1.35rem)',
-              padding: '0.4em 1.2em',
-              borderRadius: '9999px',
-              letterSpacing: '0.1em',
-              boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)',
-            }}
-          >
-            DEFENSE (BERTAHAN)
-          </span>
+          {isRightAttacking ? (
+            <span
+              style={{
+                backgroundColor: 'var(--success)',
+                color: 'white',
+                fontWeight: 900,
+                fontSize: 'clamp(0.85rem, 1.5vw, 1.25rem)',
+                padding: '0.4em 1.2em',
+                borderRadius: '9999px',
+                letterSpacing: '0.08em',
+                boxShadow: '0 4px 14px rgba(34, 197, 94, 0.45)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+              }}
+            >
+              ⚡ GILIRAN SERANG
+            </span>
+          ) : (
+            <span
+              style={{
+                backgroundColor: 'var(--surface-subtle)',
+                color: 'var(--text-muted)',
+                fontWeight: 700,
+                fontSize: 'clamp(0.75rem, 1.2vw, 1rem)',
+                padding: '0.35em 1em',
+                borderRadius: '9999px',
+                letterSpacing: '0.08em',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              BERTAHAN
+            </span>
+          )}
 
           <h2
             style={{
@@ -545,19 +618,19 @@ export default function ScoreboardView({
               color: 'var(--text-primary)',
             }}
           >
-            {match.team_defense?.name || 'Tim Bertahan'}
+            {teamRight.name}
           </h2>
 
           <div
             className="tv-score"
             style={{
-              color: 'var(--danger)',
-              textShadow: '0 0 30px rgba(239, 68, 68, 0.4)',
+              color: isRightAttacking ? 'var(--success)' : 'var(--text-primary)',
+              textShadow: isRightAttacking ? '0 0 30px rgba(34, 197, 94, 0.4)' : 'none',
               margin: '1vh 0',
               fontFamily: "'Plus Jakarta Sans', monospace",
             }}
           >
-            {defenseScore}
+            {scoreRight}
           </div>
 
           <span style={{ fontSize: 'clamp(0.75rem, 1.2vw, 1rem)', color: 'var(--text-secondary)', fontWeight: 600 }}>
@@ -574,18 +647,20 @@ export default function ScoreboardView({
           alignItems: 'center',
           backgroundColor: 'var(--surface-color)',
           border: '1px solid var(--border-color)',
+          borderRadius: '12px',
           padding: '1.2vh 2vw',
-          borderRadius: '10px',
           zIndex: 10,
+          flexWrap: 'wrap',
+          gap: '1rem',
           boxShadow: 'var(--card-shadow)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', fontSize: 'clamp(0.75rem, 1.2vw, 0.95rem)' }}>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Juri 1: <strong style={{ color: 'var(--text-primary)' }}>{match.jury_1?.name || '-'}</strong>
+            Scoring 1: <strong style={{ color: 'var(--text-primary)' }}>{match.jury_1?.name || '-'}</strong>
           </span>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Juri 2: <strong style={{ color: 'var(--text-primary)' }}>{match.jury_2?.name || '-'}</strong>
+            Scoring 2: <strong style={{ color: 'var(--text-primary)' }}>{match.jury_2?.name || '-'}</strong>
           </span>
         </div>
 
@@ -598,19 +673,28 @@ export default function ScoreboardView({
               fontWeight: 800,
             }}
           >
-            {realtimeStatus === 'SUBSCRIBED' ? '🟢 REALTIME AKTIF' : '🟡 MENYINKRONKAN...'}
+            {realtimeStatus === 'SUBSCRIBED' ? '● Realtime Live Connected' : '○ Sinkronisasi...'}
           </span>
 
-          <div style={{ color: 'var(--success)', fontWeight: 700 }}>
-            {activeEvents.length > 0 ? (
-              <span>
-                ⚡ Poin Terakhir: {new Date(activeEvents[0].created_at).toLocaleTimeString('id-ID')}
-                {activeEvents[0].jury?.name ? ` (oleh ${activeEvents[0].jury.name})` : ''}
-              </span>
-            ) : (
-              <span style={{ color: 'var(--text-muted)' }}>Menunggu poin pertama...</span>
-            )}
-          </div>
+          {activeEvents.length > 0 && (
+            <div
+              style={{
+                backgroundColor: 'var(--success-subtle)',
+                color: 'var(--success)',
+                border: '1px solid var(--success)',
+                padding: '0.3em 0.8em',
+                borderRadius: '6px',
+                fontWeight: 700,
+                fontSize: 'clamp(0.7rem, 1.1vw, 0.85rem)',
+              }}
+            >
+              Poin Terakhir:{' '}
+              <strong>
+                {activeEvents[0].team_id === teamLeft.id ? teamLeft.name : teamRight.name} (+{activeEvents[0].points})
+              </strong>
+              {activeEvents[0].jury?.name ? ` (oleh ${activeEvents[0].jury.name})` : ''}
+            </div>
+          )}
         </div>
       </footer>
     </div>

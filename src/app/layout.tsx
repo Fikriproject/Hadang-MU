@@ -23,10 +23,10 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: {
     template: "%s | HadangMU",
-    default: "HadangMU - Sistem Penilaian Digital Hadang (Gobak Sodor)",
+    default: "HadangMU - Sistem Penilaian Digital Hadang",
   },
   description:
-    "Platform pencatatan skor realtime, meja juri mobile, dan papan skor TV untuk olahraga tradisional Hadang (Gobak Sodor).",
+    "Platform pencatatan skor realtime, meja scoring mobile, dan papan skor TV untuk olahraga tradisional Hadang.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -41,33 +41,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="id"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      suppressHydrationWarning
-    >
-      <head>
+    <html lang="id" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`} suppressHydrationWarning>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <script
           dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var saved = localStorage.getItem('hadang_theme');
-                  if (saved === 'light' || saved === 'dark') {
-                    document.documentElement.setAttribute('data-theme', saved);
-                  } else {
-                    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-                  }
-                } catch(e) {}
-              })();
-            `,
+            __html: `try{var s=localStorage.getItem('hadang_theme');if(s==='light'||s==='dark'){document.documentElement.setAttribute('data-theme',s)}else{var p=window.matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.setAttribute('data-theme',p?'dark':'light')}}catch(e){}`,
           }}
         />
-      </head>
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <PwaRegister />
         {children}
+        <PwaRegister />
       </body>
     </html>
   );

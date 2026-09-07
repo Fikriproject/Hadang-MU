@@ -19,7 +19,7 @@ export async function generateMetadata({
 
   return {
     title: match ? `${match.name} - TV Scoreboard Hadang` : 'TV Scoreboard Hadang',
-    description: 'Papan skor langsung pertandingan Hadang / Grobak Sodor realtime.',
+    description: 'Papan skor langsung pertandingan Hadang realtime.',
   }
 }
 
@@ -41,6 +41,7 @@ export default async function TVScoreboardPage({
       status,
       started_at,
       finished_at,
+      updated_at,
       team_attack_id,
       team_defense_id,
       jury_1_id,

@@ -1,5 +1,5 @@
 -- ==========================================
--- GROBAK SODOR SCORING SYSTEM SCHEMA
+-- HADANG SCORING SYSTEM SCHEMA
 -- ==========================================
 
 -- ENUMS
@@ -19,9 +19,12 @@ CREATE TABLE profiles (
 );
 
 -- 2. TEAMS TABLE
+-- Note migrasi jika tabel sudah ada:
+-- ALTER TABLE teams ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'PUTRA';
 CREATE TABLE teams (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
+  category TEXT DEFAULT 'PUTRA', -- 'PUTRA' atau 'PUTRI'
   logo TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

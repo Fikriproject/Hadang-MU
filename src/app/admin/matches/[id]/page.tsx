@@ -9,6 +9,12 @@ export default async function MatchDetailPage({
 }) {
   const { id } = await params
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { data: profile } = user
+    ? await supabase.from('profiles').select('role').eq('id', user.id).single()
+    : { data: null }
+  const isJury = profile?.role === 'JURY'
 
   // Fetch match details with relations
   const { data: rawMatch, error } = await supabase
@@ -20,6 +26,7 @@ export default async function MatchDetailPage({
       status,
       started_at,
       finished_at,
+      updated_at,
       team_attack_id,
       team_defense_id,
       jury_1_id,
@@ -33,7 +40,7 @@ export default async function MatchDetailPage({
     .single()
 
   if (error || !rawMatch) {
-    redirect('/admin')
+    redirect(isJury ? '/jury' : '/admin')
   }
 
   // Fetch score events
@@ -59,6 +66,7 @@ export default async function MatchDetailPage({
     <ControlRoom
       initialMatch={rawMatch as any}
       initialScoreEvents={(rawEvents || []) as any}
+      currentUserRole={profile?.role || 'ADMIN'}
     />
   )
 }

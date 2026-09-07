@@ -1,7 +1,7 @@
 {
   "name": "HadangMU - Sistem Penilaian Hadang",
   "short_name": "HadangMU",
-  "description": "Sistem Penilaian Realtime & Meja Juri Olahraga Tradisional Hadang (Gobak Sodor)",
+  "description": "Sistem Penilaian Realtime & Meja Scoring Olahraga Tradisional Hadang",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0B1220",

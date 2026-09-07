@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
-export async function addJuryScore(matchId: string) {
+export async function addJuryScore(matchId: string, explicitTeamId?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -14,7 +14,7 @@ export async function addJuryScore(matchId: string) {
   // Fetch current match to get team_attack_id and verify status
   const { data: match, error: matchError } = await supabase
     .from('matches')
-    .select('id, status, team_attack_id, jury_1_id, jury_2_id')
+    .select('id, status, team_attack_id, team_defense_id, jury_1_id, jury_2_id')
     .eq('id', matchId)
     .single()
 
@@ -26,7 +26,13 @@ export async function addJuryScore(matchId: string) {
     return { error: 'Pertandingan tidak sedang berlangsung (status: ' + match.status + ').' }
   }
 
-  if (!match.team_attack_id) {
+  // Use explicitly passed teamId if valid, otherwise fallback to team_attack_id
+  let targetTeamId = match.team_attack_id
+  if (explicitTeamId && (explicitTeamId === match.team_attack_id || explicitTeamId === match.team_defense_id)) {
+    targetTeamId = explicitTeamId
+  }
+
+  if (!targetTeamId) {
     return { error: 'Tim penyerang belum ditentukan.' }
   }
 
@@ -35,7 +41,7 @@ export async function addJuryScore(matchId: string) {
     .from('score_events')
     .insert({
       match_id: matchId,
-      team_id: match.team_attack_id,
+      team_id: targetTeamId,
       jury_id: user.id,
       event_type: 'HADANG_POINT',
       points: 1,
@@ -48,10 +54,9 @@ export async function addJuryScore(matchId: string) {
     return { error: insertError.message }
   }
 
-  revalidatePath(`/jury/matches/${matchId}`)
-  revalidatePath(`/admin/matches/${matchId}`)
-  revalidatePath(`/tv/${matchId}`)
-
+  // Note: We deliberately avoid heavy revalidatePath here because all clients
+  // (Jury, Admin, TV) are connected via instant Supabase Realtime WebSockets.
+  // Omitting revalidatePath avoids Next.js RSC flight payload network waterfalls.
   return { success: true, eventId: newEvent.id }
 }
 
@@ -92,10 +97,6 @@ export async function cancelRecentScore(matchId: string, reason?: string) {
   if (updateError) {
     return { error: updateError.message }
   }
-
-  revalidatePath(`/jury/matches/${matchId}`)
-  revalidatePath(`/admin/matches/${matchId}`)
-  revalidatePath(`/tv/${matchId}`)
 
   return { success: true }
 }

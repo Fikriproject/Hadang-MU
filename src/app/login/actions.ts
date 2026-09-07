@@ -9,6 +9,7 @@ export async function login(formData: FormData) {
 
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  const redirectTarget = (formData.get('redirect') as string)?.trim()
 
   const { error, data } = await supabase.auth.signInWithPassword({
     email,
@@ -16,8 +17,13 @@ export async function login(formData: FormData) {
   })
 
   if (error) {
-    // redirect to login with error
-    return redirect('/login?error=' + encodeURIComponent(error.message))
+    const errorUrl =
+      '/login?error=' +
+      encodeURIComponent(error.message) +
+      (redirectTarget && redirectTarget.startsWith('/')
+        ? '&redirect=' + encodeURIComponent(redirectTarget)
+        : '')
+    return redirect(errorUrl)
   }
 
   // Check role
@@ -29,7 +35,17 @@ export async function login(formData: FormData) {
 
   revalidatePath('/', 'layout')
 
-  if (profile?.role === 'ADMIN') {
+  const isAdmin = profile?.role === 'ADMIN'
+
+  if (redirectTarget && redirectTarget.startsWith('/') && !redirectTarget.startsWith('//')) {
+    if (redirectTarget.startsWith('/admin') && !isAdmin) {
+      redirect('/jury')
+    } else {
+      redirect(redirectTarget)
+    }
+  }
+
+  if (isAdmin) {
     redirect('/admin')
   } else {
     redirect('/jury')

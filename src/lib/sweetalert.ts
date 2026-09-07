@@ -61,7 +61,7 @@ export async function promptUndoScoreReason(): Promise<string | null> {
               <strong style="font-size: 0.95rem; color: #DC2626;">Alasan 2 : Pelanggaran (Skor tidak sah)</strong>
             </div>
             <span style="font-size: 0.8rem; color: ${subtextColor}; margin-left: 1.75rem;">
-              Pemain melanggar aturan garis hadang / poin dianulir oleh juri.
+              Pemain melanggar aturan garis hadang / poin dianulir oleh scoring.
             </span>
           </button>
         </div>
@@ -109,6 +109,36 @@ export async function promptUndoScoreReason(): Promise<string | null> {
       }
     })
   })
+}
+
+/**
+ * Prompts user with a theme-aware SweetAlert2 confirmation modal before deleting a team.
+ */
+export async function promptConfirmDeleteTeam(teamName: string): Promise<boolean> {
+  const isLight =
+    typeof document !== 'undefined' &&
+    document.documentElement.getAttribute('data-theme') === 'light'
+
+  const bgColor = isLight ? '#FFFFFF' : '#131E32'
+  const textColor = isLight ? '#0F172A' : '#F8FAFC'
+
+  const result = await Swal.fire({
+    title: 'Hapus Tim?',
+    text: `Apakah Anda yakin ingin menghapus tim "${teamName}"? Data pertandingan yang menggunakan tim ini mungkin terpengaruh.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#DC2626',
+    cancelButtonColor: '#64748B',
+    confirmButtonText: 'Ya, Hapus Tim',
+    cancelButtonText: 'Batal',
+    background: bgColor,
+    color: textColor,
+    customClass: {
+      popup: 'swal2-hadang-popup',
+    },
+  })
+
+  return result.isConfirmed
 }
 
 export function showScoreAlert(title: string, icon: 'success' | 'error' | 'info' = 'success', text?: string) {

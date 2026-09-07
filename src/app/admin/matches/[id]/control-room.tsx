@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useTransition, useMemo } from 'react'
+import React, { useState, useEffect, useTransition, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
   updateMatchStatus,
-  swapTeams,
+  toggleAttackingTeam,
   cancelScoreEvent,
   manualAddScore,
 } from './actions'
@@ -23,15 +23,14 @@ interface Profile {
 
 interface ScoreEvent {
   id: string
-  match_id: string
   team_id: string
-  jury_id: string | null
   event_type: string
   points: number
   status: 'ACTIVE' | 'CANCELLED'
   created_at: string
   cancelled_at?: string | null
   cancel_reason?: string | null
+  jury_id?: string | null
   jury?: { name: string } | null
 }
 
@@ -42,6 +41,7 @@ interface MatchData {
   status: 'DRAFT' | 'READY' | 'LIVE' | 'PAUSED' | 'FINISHED'
   started_at: string | null
   finished_at: string | null
+  updated_at?: string | null
   team_attack_id: string
   team_defense_id: string
   jury_1_id: string
@@ -55,17 +55,37 @@ interface MatchData {
 interface ControlRoomProps {
   initialMatch: MatchData
   initialScoreEvents: ScoreEvent[]
+  currentUserRole?: 'ADMIN' | 'JURY' | string
 }
 
-export default function ControlRoom({ initialMatch, initialScoreEvents }: ControlRoomProps) {
+export default function ControlRoom({
+  initialMatch,
+  initialScoreEvents,
+  currentUserRole = 'ADMIN',
+}: ControlRoomProps) {
   const [match, setMatch] = useState<MatchData>(initialMatch)
   const [scoreEvents, setScoreEvents] = useState<ScoreEvent[]>(initialScoreEvents)
   const [isPending, startTransition] = useTransition()
   const [actionError, setActionError] = useState<string | null>(null)
-  const [showSwapModal, setShowSwapModal] = useState(false)
-  const [newRoundName, setNewRoundName] = useState(initialMatch.round === 'Babak 1' ? 'Babak 2' : 'Babak 2')
 
-  // Realtime Supabase Subscription + Background Fallback
+  // Deterministic Left & Right teams: positions NEVER swap or flip on screen
+  const { teamLeft, teamRight } = useMemo(() => {
+    const tA = initialMatch.team_attack || { id: initialMatch.team_attack_id, name: 'Tim 1' }
+    const tB = initialMatch.team_defense || { id: initialMatch.team_defense_id, name: 'Tim 2' }
+
+    if (initialMatch.round === tA.id) return { teamLeft: tA, teamRight: tB }
+    if (initialMatch.round === tB.id) return { teamLeft: tB, teamRight: tA }
+
+    return tA.id < tB.id ? { teamLeft: tA, teamRight: tB } : { teamLeft: tB, teamRight: tA }
+  }, [
+    initialMatch.team_attack,
+    initialMatch.team_defense,
+    initialMatch.team_attack_id,
+    initialMatch.team_defense_id,
+    initialMatch.round,
+  ])
+
+  // Realtime Supabase Subscription + Background Polling Fallback
   useEffect(() => {
     const supabase = createClient()
     const matchId = initialMatch.id
@@ -82,26 +102,10 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
         },
         (payload: any) => {
           const updated = payload.new as any
-          setMatch((prev) => {
-            const wasSwapped =
-              prev.team_attack_id !== updated.team_attack_id ||
-              prev.team_defense_id !== updated.team_defense_id
-
-            return {
-              ...prev,
-              ...updated,
-              team_attack: wasSwapped
-                ? updated.team_attack_id === prev.team_defense?.id
-                  ? prev.team_defense
-                  : prev.team_attack
-                : prev.team_attack,
-              team_defense: wasSwapped
-                ? updated.team_defense_id === prev.team_attack?.id
-                  ? prev.team_attack
-                  : prev.team_defense
-                : prev.team_defense,
-            }
-          })
+          setMatch((prev) => ({
+            ...prev,
+            ...updated,
+          }))
         }
       )
       .on(
@@ -139,63 +143,52 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
     const pollInterval = setInterval(async () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
 
-      try {
-        const { data: latestEvents } = await supabase
+      const [resMatch, resEvents] = await Promise.all([
+        supabase
+          .from('matches')
+          .select('id, status, started_at, finished_at, updated_at, team_attack_id, team_defense_id, round')
+          .eq('id', matchId)
+          .single(),
+        supabase
           .from('score_events')
-          .select(`
-            id,
-            match_id,
-            team_id,
-            jury_id,
-            event_type,
-            points,
-            status,
-            created_at,
-            cancelled_at,
-            cancel_reason,
-            jury:jury_id(name)
-          `)
+          .select('id, team_id, event_type, points, status, created_at, cancelled_at, cancel_reason, jury_id')
           .eq('match_id', matchId)
           .order('created_at', { ascending: false })
+          .limit(50),
+      ])
 
-        if (latestEvents && latestEvents.length > 0) {
-          setScoreEvents((prev) => {
-            if (
-              prev.length !== latestEvents.length ||
-              prev[0]?.id !== latestEvents[0]?.id ||
-              prev[0]?.status !== latestEvents[0]?.status
-            ) {
-              return latestEvents as any
+      if (resMatch.data) {
+        setMatch((prev) => ({
+          ...prev,
+          status: resMatch.data.status,
+          started_at: resMatch.data.started_at,
+          finished_at: resMatch.data.finished_at,
+          updated_at: resMatch.data.updated_at,
+          team_attack_id: resMatch.data.team_attack_id,
+          team_defense_id: resMatch.data.team_defense_id,
+        }))
+      }
+
+      if (resEvents.data) {
+        setScoreEvents((prev) => {
+          const remoteEvents = resEvents.data as any[]
+          const isSame =
+            prev.length === remoteEvents.length &&
+            remoteEvents.every((rem, i) => prev[i] && prev[i].id === rem.id && prev[i].status === rem.status)
+
+          if (isSame) return prev
+
+          return remoteEvents.map((rem) => {
+            let juryName: string | undefined
+            if (rem.jury_id === initialMatch.jury_1_id) juryName = initialMatch.jury_1?.name
+            else if (rem.jury_id === initialMatch.jury_2_id) juryName = initialMatch.jury_2?.name
+            return {
+              ...rem,
+              jury: juryName ? { name: juryName } : null,
             }
-            return prev
           })
-        }
-
-        const { data: latestMatch } = await supabase
-          .from('matches')
-          .select('status, round, team_attack_id, team_defense_id')
-          .eq('id', matchId)
-          .single()
-
-        if (latestMatch) {
-          setMatch((prev) => {
-            if (
-              prev.status !== latestMatch.status ||
-              prev.round !== latestMatch.round ||
-              prev.team_attack_id !== latestMatch.team_attack_id
-            ) {
-              const wasSwapped = prev.team_attack_id !== latestMatch.team_attack_id
-              return {
-                ...prev,
-                ...latestMatch,
-                team_attack: wasSwapped ? prev.team_defense : prev.team_attack,
-                team_defense: wasSwapped ? prev.team_attack : prev.team_defense,
-              }
-            }
-            return prev
-          })
-        }
-      } catch (err) {}
+        })
+      }
     }, 2500)
 
     return () => {
@@ -204,17 +197,21 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
     }
   }, [initialMatch.id, initialMatch.jury_1?.name, initialMatch.jury_1_id, initialMatch.jury_2?.name, initialMatch.jury_2_id])
 
-  // Memoized score calculation
-  const { attackScore, defenseScore, activeEvents } = useMemo(() => {
+  // Active attacking team state
+  const isLeftAttacking = match.team_attack_id === teamLeft.id
+  const isRightAttacking = match.team_attack_id === teamRight.id
+
+  // Memoized score calculation for static Left & Right teams
+  const { scoreLeft, scoreRight, activeEvents } = useMemo(() => {
     const active = scoreEvents.filter((e) => e.status === 'ACTIVE')
-    const attack = active
-      .filter((e) => e.team_id === match.team_attack_id)
+    const sLeft = active
+      .filter((e) => e.team_id === teamLeft.id)
       .reduce((sum, e) => sum + e.points, 0)
-    const defense = active
-      .filter((e) => e.team_id === match.team_defense_id)
+    const sRight = active
+      .filter((e) => e.team_id === teamRight.id)
       .reduce((sum, e) => sum + e.points, 0)
-    return { attackScore: attack, defenseScore: defense, activeEvents: active }
-  }, [scoreEvents, match.team_attack_id, match.team_defense_id])
+    return { scoreLeft: sLeft, scoreRight: sRight, activeEvents: active }
+  }, [scoreEvents, teamLeft.id, teamRight.id])
 
   // Status handlers
   const handleStatusChange = (newStatus: string) => {
@@ -226,29 +223,30 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
     })
   }
 
-  const handleSwap = () => {
+  // Toggle attacker (on foul or turnover)
+  const handleToggleAttacker = (targetTeamId?: string) => {
     setActionError(null)
+    const nextAttackId = targetTeamId || (isLeftAttacking ? teamRight.id : teamLeft.id)
+    const nextDefenseId = nextAttackId === teamLeft.id ? teamRight.id : teamLeft.id
+
+    // Optimistic update
+    setMatch((prev) => ({
+      ...prev,
+      team_attack_id: nextAttackId,
+      team_defense_id: nextDefenseId,
+    }))
+
     startTransition(async () => {
-      const res = await swapTeams(match.id, newRoundName)
+      const res = await toggleAttackingTeam(match.id, nextAttackId)
       if (res?.error) {
         setActionError(res.error)
-      } else {
-        setShowSwapModal(false)
-        setMatch((prev) => ({
-          ...prev,
-          round: newRoundName,
-          team_attack_id: prev.team_defense_id,
-          team_defense_id: prev.team_attack_id,
-          team_attack: prev.team_defense,
-          team_defense: prev.team_attack,
-        }))
       }
     })
   }
 
   const handleCancelScore = async (eventId: string) => {
     const reason = await promptUndoScoreReason()
-    if (!reason) return // User cancelled
+    if (!reason) return
 
     startTransition(async () => {
       const res = await cancelScoreEvent(eventId, match.id, reason)
@@ -262,41 +260,97 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
   }
 
   const handleManualAddScore = (teamId: string) => {
+    setActionError(null)
     startTransition(async () => {
-      const res = await manualAddScore(match.id, teamId, 1)
-      if (res?.error) setActionError(res.error)
+      const res = await manualAddScore(match.id, teamId)
+      if (res?.error) {
+        setActionError(res.error)
+      }
     })
   }
 
+  // Real-time Stopwatch calculation
+  const [elapsed, setElapsed] = useState<string>('00:00')
+  useEffect(() => {
+    if (!match.started_at) {
+      setElapsed('00:00')
+      return
+    }
+
+    const calcElapsed = () => {
+      const start = new Date(match.started_at!).getTime()
+      const end = match.finished_at
+        ? new Date(match.finished_at).getTime()
+        : match.status === 'PAUSED' && match.updated_at
+        ? new Date(match.updated_at).getTime()
+        : Date.now()
+      const diffSecs = Math.max(0, Math.floor((end - start) / 1000))
+      const hours = Math.floor(diffSecs / 3600)
+      const mins = Math.floor((diffSecs % 3600) / 60)
+      const secs = diffSecs % 60
+      if (hours > 0) {
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      }
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+
+    setElapsed(calcElapsed())
+
+    if (match.status === 'LIVE') {
+      const timer = setInterval(() => setElapsed(calcElapsed()), 1000)
+      return () => clearInterval(timer)
+    }
+  }, [match.started_at, match.finished_at, match.updated_at, match.status])
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1200px' }}>
-      {/* Top Header & Quick Links */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      {/* Top Header & Breadcrumbs */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-            <Link href="/admin" className="metadata-text" style={{ textDecoration: 'underline' }}>
-              ← Kembali ke Dashboard
-            </Link>
-            <span className="metadata-text">•</span>
-            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>ID: {match.id.slice(0, 8)}...</span>
-          </div>
-          <h1 className="heading" style={{ fontSize: '2rem' }}>
-            {match.name}
-          </h1>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem' }}>
-            <span
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
+            <Link
+              href={currentUserRole === 'JURY' ? '/jury' : '/admin'}
               style={{
-                backgroundColor: 'var(--badge-neutral-bg)',
-                color: 'var(--badge-neutral-text)',
-                border: '1px solid var(--border-color)',
+                color: 'var(--text-secondary)',
+                textDecoration: 'none',
+                fontSize: '0.85rem',
                 fontWeight: 700,
-                fontSize: '0.8125rem',
-                padding: '0.2rem 0.5rem',
-                borderRadius: '4px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.25rem 0.6rem',
+                borderRadius: '6px',
+                backgroundColor: 'var(--surface-subtle)',
+                border: '1px solid var(--border-color)',
               }}
             >
-              {match.round || 'Babak 1'}
-            </span>
+              ← {currentUserRole === 'JURY' ? 'Ke Meja Scoring' : 'Dashboard Admin'}
+            </Link>
+
+            <Link
+              href="/admin/bracket"
+              style={{
+                color: '#CA8A04',
+                textDecoration: 'none',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.25rem 0.6rem',
+                borderRadius: '6px',
+                backgroundColor: 'rgba(234, 179, 8, 0.12)',
+                border: '1px solid rgba(234, 179, 8, 0.3)',
+              }}
+            >
+              <span>🏆</span>
+              <span>Bagan Turnamen</span>
+            </Link>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <h1 className="heading" style={{ fontSize: '1.75rem', margin: 0 }}>
+              {match.name}
+            </h1>
             <span
               style={{
                 backgroundColor:
@@ -313,23 +367,115 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
                     : 'var(--badge-neutral-text)',
                 border:
                   match.status === 'LIVE'
-                    ? '1px solid var(--success)'
+                    ? '1.5px solid var(--success)'
                     : match.status === 'PAUSED'
-                    ? '1px solid var(--warning)'
+                    ? '1.5px solid var(--warning)'
                     : '1px solid var(--border-color)',
                 fontWeight: 800,
                 fontSize: '0.8125rem',
-                padding: '0.2rem 0.6rem',
+                padding: '0.25rem 0.65rem',
                 borderRadius: '9999px',
                 letterSpacing: '0.05em',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
               }}
             >
-              {match.status === 'LIVE' ? '● LIVE' : match.status}
+              {match.status === 'LIVE' && (
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--success)',
+                  }}
+                />
+              )}
+              {match.status === 'PAUSED' && (
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--warning)',
+                  }}
+                />
+              )}
+              {match.status === 'LIVE' ? 'LIVE' : match.status}
             </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        {/* Dedicated Live Stopwatch & TV / Scoring Shortcuts */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {/* Running Stopwatch Card */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              backgroundColor: 'var(--surface-color)',
+              border: match.status === 'LIVE' ? '2px solid var(--success)' : match.status === 'PAUSED' ? '1.5px solid var(--warning)' : '1px solid var(--border-color)',
+              padding: '0.5rem 1rem',
+              borderRadius: '10px',
+              boxShadow: match.status === 'LIVE' ? '0 0 16px rgba(34, 197, 94, 0.25)' : 'var(--card-shadow)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <span style={{ fontSize: '1.4rem' }}>⏱</span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span
+                style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  color: match.status === 'LIVE' ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-secondary)',
+                }}
+              >
+                {match.status === 'LIVE'
+                  ? '● STOPWATCH JALAN'
+                  : match.status === 'PAUSED'
+                  ? '⏸ JEDA'
+                  : match.status === 'FINISHED'
+                  ? '⏹ WAKTU SELESAI'
+                  : 'STOPWATCH'}
+              </span>
+              <span
+                style={{
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  fontSize: '1.45rem',
+                  fontWeight: 900,
+                  color: match.status === 'LIVE' ? 'var(--success)' : 'var(--text-primary)',
+                  letterSpacing: '0.05em',
+                  lineHeight: 1.1,
+                }}
+              >
+                {elapsed}
+              </span>
+            </div>
+          </div>
+
+          <Link
+            href={`/jury/matches/${match.id}`}
+            style={{
+              backgroundColor: 'var(--surface-color)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              padding: '0.65rem 1rem',
+              borderRadius: '8px',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              textDecoration: 'none',
+              boxShadow: 'var(--card-shadow)',
+            }}
+          >
+            📱 Meja Scoring
+          </Link>
+
           <Link
             href={`/tv/${match.id}`}
             target="_blank"
@@ -337,17 +483,18 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
             style={{
               backgroundColor: 'var(--primary)',
               color: 'white',
-              padding: '0.75rem 1.25rem',
-              borderRadius: '6px',
+              padding: '0.65rem 1.15rem',
+              borderRadius: '8px',
               fontWeight: 700,
-              fontSize: '0.9375rem',
+              fontSize: '0.875rem',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.5rem',
+              gap: '0.4rem',
               boxShadow: '0 4px 14px rgba(37, 99, 235, 0.3)',
+              textDecoration: 'none',
             }}
           >
-            📺 Buka TV Scoreboard
+            📺 TV Scoreboard
           </Link>
         </div>
       </div>
@@ -368,8 +515,9 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
         </div>
       )}
 
-      {/* Main Scoreboard Arena */}
+      {/* Main Scoreboard Arena with Static Left & Right Positions */}
       <div
+        className="admin-control-arena"
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr auto 1fr',
@@ -382,130 +530,275 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
           boxShadow: 'var(--card-shadow)',
         }}
       >
-        {/* Team Attack Card */}
+        {/* TIM 1 (LEFT) CARD */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             textAlign: 'center',
-            backgroundColor: 'var(--success-subtle)',
-            border: '2px solid var(--success)',
+            backgroundColor: isLeftAttacking ? 'rgba(34, 197, 94, 0.08)' : 'var(--surface-subtle)',
+            border: isLeftAttacking ? '2.5px solid var(--success)' : '1px solid var(--border-color)',
+            boxShadow: isLeftAttacking ? '0 0 24px rgba(34, 197, 94, 0.25)' : 'none',
             borderRadius: '10px',
             padding: '1.5rem',
+            transition: 'all 0.2s ease',
           }}
         >
-          <span
+          {isLeftAttacking ? (
+            <span
+              style={{
+                backgroundColor: 'var(--success)',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                padding: '0.3rem 0.85rem',
+                borderRadius: '9999px',
+                letterSpacing: '0.05em',
+                marginBottom: '0.5rem',
+                boxShadow: '0 2px 8px rgba(34, 197, 94, 0.4)',
+              }}
+            >
+              ⚡ GILIRAN SERANG
+            </span>
+          ) : (
+            <span
+              style={{
+                backgroundColor: 'var(--surface-color)',
+                color: 'var(--text-muted)',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                padding: '0.3rem 0.85rem',
+                borderRadius: '9999px',
+                letterSpacing: '0.05em',
+                marginBottom: '0.5rem',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              BERTAHAN
+            </span>
+          )}
+
+          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+            {teamLeft.name}
+          </h2>
+
+          <div
+            className="tv-score"
             style={{
-              backgroundColor: 'var(--success)',
-              color: 'white',
-              fontWeight: 800,
-              fontSize: '0.75rem',
-              padding: '0.25rem 0.75rem',
-              borderRadius: '9999px',
-              letterSpacing: '0.05em',
-              marginBottom: '0.5rem',
+              color: isLeftAttacking ? 'var(--success)' : 'var(--text-primary)',
+              margin: '0.5rem 0',
+              textShadow: isLeftAttacking ? '0 0 20px rgba(34, 197, 94, 0.3)' : 'none',
             }}
           >
-            ATTACK (PENYERANG)
-          </span>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-            {match.team_attack?.name || 'Tim Serang'}
-          </h2>
-          <div className="tv-score" style={{ color: 'var(--success)', margin: '0.5rem 0' }}>
-            {attackScore}
+            {scoreLeft}
           </div>
+
           <button
-            onClick={() => handleManualAddScore(match.team_attack_id)}
+            onClick={() => handleManualAddScore(teamLeft.id)}
             disabled={isPending}
             style={{
-              backgroundColor: 'var(--success)',
+              backgroundColor: isLeftAttacking ? 'var(--success)' : 'var(--primary)',
               color: 'white',
               border: 'none',
               padding: '0.5rem 1rem',
               borderRadius: '6px',
               fontWeight: 700,
-              fontSize: '0.875rem',
+              fontSize: '0.85rem',
               cursor: 'pointer',
               marginTop: '0.5rem',
-              boxShadow: '0 2px 8px rgba(22, 163, 74, 0.3)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
             }}
           >
             +1 Poin Manual
           </button>
         </div>
 
-        {/* Center Divider & Controls */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+        {/* CENTER DIVIDER & ATTACK/FOUL TOGGLE CONTROLS */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', minWidth: '220px' }}>
           <span style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-muted)' }}>VS</span>
-          <button
-            onClick={() => setShowSwapModal(true)}
-            disabled={isPending}
+
+          <div
             style={{
-              backgroundColor: 'var(--btn-secondary-bg)',
-              color: 'var(--btn-secondary-text)',
-              border: '1px solid var(--border-color)',
-              padding: '0.625rem 1rem',
-              borderRadius: '6px',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              display: 'inline-flex',
+              display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
-              gap: '0.4rem',
-              cursor: 'pointer',
+              gap: '0.6rem',
+              backgroundColor: 'var(--surface-subtle)',
+              border: '1px solid var(--border-color)',
+              padding: '0.85rem 1rem',
+              borderRadius: '10px',
+              width: '100%',
+              boxSizing: 'border-box',
             }}
           >
-            ⇄ Tukar Posisi (Ganti Babak)
-          </button>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
+              PENGINPUTAN SKOR / FOUL
+            </div>
+
+            {/* Main Foul / Toggle Button */}
+            <button
+              type="button"
+              onClick={() => handleToggleAttacker()}
+              disabled={isPending}
+              style={{
+                backgroundColor: 'var(--primary)',
+                color: 'white',
+                border: 'none',
+                padding: '0.65rem 1rem',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                cursor: isPending ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
+                width: '100%',
+                justifyContent: 'center',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span>⇄</span>
+              <span>Tukar Giliran Serang (Foul)</span>
+            </button>
+
+            {/* Direct selector segmented pills */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '0.35rem',
+                width: '100%',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => handleToggleAttacker(teamLeft.id)}
+                disabled={isPending}
+                style={{
+                  padding: '0.45rem 0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  borderRadius: '6px',
+                  border: isLeftAttacking ? '1.5px solid var(--success)' : '1px solid var(--border-color)',
+                  backgroundColor: isLeftAttacking ? 'var(--success-subtle)' : 'var(--surface-color)',
+                  color: isLeftAttacking ? 'var(--success)' : 'var(--text-muted)',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {isLeftAttacking ? '⚡ ' : ''}{teamLeft.name}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleToggleAttacker(teamRight.id)}
+                disabled={isPending}
+                style={{
+                  padding: '0.45rem 0.5rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  borderRadius: '6px',
+                  border: isRightAttacking ? '1.5px solid var(--success)' : '1px solid var(--border-color)',
+                  backgroundColor: isRightAttacking ? 'var(--success-subtle)' : 'var(--surface-color)',
+                  color: isRightAttacking ? 'var(--success)' : 'var(--text-muted)',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {isRightAttacking ? '⚡ ' : ''}{teamRight.name}
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Team Defense Card */}
+        {/* TIM 2 (RIGHT) CARD */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             textAlign: 'center',
-            backgroundColor: 'var(--danger-subtle)',
-            border: '2px solid var(--danger)',
+            backgroundColor: isRightAttacking ? 'rgba(34, 197, 94, 0.08)' : 'var(--surface-subtle)',
+            border: isRightAttacking ? '2.5px solid var(--success)' : '1px solid var(--border-color)',
+            boxShadow: isRightAttacking ? '0 0 24px rgba(34, 197, 94, 0.25)' : 'none',
             borderRadius: '10px',
             padding: '1.5rem',
+            transition: 'all 0.2s ease',
           }}
         >
-          <span
+          {isRightAttacking ? (
+            <span
+              style={{
+                backgroundColor: 'var(--success)',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '0.75rem',
+                padding: '0.3rem 0.85rem',
+                borderRadius: '9999px',
+                letterSpacing: '0.05em',
+                marginBottom: '0.5rem',
+                boxShadow: '0 2px 8px rgba(34, 197, 94, 0.4)',
+              }}
+            >
+              ⚡ GILIRAN SERANG
+            </span>
+          ) : (
+            <span
+              style={{
+                backgroundColor: 'var(--surface-color)',
+                color: 'var(--text-muted)',
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                padding: '0.3rem 0.85rem',
+                borderRadius: '9999px',
+                letterSpacing: '0.05em',
+                marginBottom: '0.5rem',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              BERTAHAN
+            </span>
+          )}
+
+          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+            {teamRight.name}
+          </h2>
+
+          <div
+            className="tv-score"
             style={{
-              backgroundColor: 'var(--danger)',
-              color: 'white',
-              fontWeight: 800,
-              fontSize: '0.75rem',
-              padding: '0.25rem 0.75rem',
-              borderRadius: '9999px',
-              letterSpacing: '0.05em',
-              marginBottom: '0.5rem',
+              color: isRightAttacking ? 'var(--success)' : 'var(--text-primary)',
+              margin: '0.5rem 0',
+              textShadow: isRightAttacking ? '0 0 20px rgba(34, 197, 94, 0.3)' : 'none',
             }}
           >
-            DEFENSE (BERTAHAN)
-          </span>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-            {match.team_defense?.name || 'Tim Bertahan'}
-          </h2>
-          <div className="tv-score" style={{ color: 'var(--danger)', margin: '0.5rem 0' }}>
-            {defenseScore}
+            {scoreRight}
           </div>
+
           <button
-            onClick={() => handleManualAddScore(match.team_defense_id)}
+            onClick={() => handleManualAddScore(teamRight.id)}
             disabled={isPending}
             style={{
-              backgroundColor: 'var(--danger)',
+              backgroundColor: isRightAttacking ? 'var(--success)' : 'var(--primary)',
               color: 'white',
               border: 'none',
               padding: '0.5rem 1rem',
               borderRadius: '6px',
               fontWeight: 700,
-              fontSize: '0.875rem',
+              fontSize: '0.85rem',
               cursor: 'pointer',
               marginTop: '0.5rem',
-              boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
             }}
           >
             +1 Poin Manual
@@ -518,14 +811,65 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
         style={{
           backgroundColor: 'var(--surface-color)',
           border: '1px solid var(--border-color)',
-          borderRadius: '8px',
+          borderRadius: '12px',
           padding: '1.5rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '1rem',
+          gap: '1.25rem',
+          boxShadow: 'var(--card-shadow)',
         }}
       >
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>Kontrol Status Pertandingan</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+              Kontrol Status & Waktu Pertandingan
+            </h3>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+              Mulai, jeda, atau selesaikan pertandingan. Stopwatch berjalan otomatis saat status LIVE.
+            </p>
+          </div>
+
+          {/* Realtime Stopwatch badge in control panel */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.6rem',
+              backgroundColor:
+                match.status === 'LIVE'
+                  ? 'var(--success-subtle)'
+                  : match.status === 'PAUSED'
+                  ? 'var(--warning-subtle)'
+                  : 'var(--surface-subtle)',
+              border:
+                match.status === 'LIVE'
+                  ? '1.5px solid var(--success)'
+                  : match.status === 'PAUSED'
+                  ? '1.5px solid var(--warning)'
+                  : '1px solid var(--border-color)',
+              padding: '0.4rem 0.85rem',
+              borderRadius: '8px',
+            }}
+          >
+            <span style={{ fontSize: '1.1rem' }}>⏱</span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                Lama Pertandingan
+              </span>
+              <span
+                style={{
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  fontSize: '1.25rem',
+                  fontWeight: 900,
+                  lineHeight: 1.1,
+                  color: match.status === 'LIVE' ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-primary)',
+                }}
+              >
+                {elapsed}
+              </span>
+            </div>
+          </div>
+        </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
           {match.status !== 'LIVE' && (
@@ -599,9 +943,8 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
                 onClick={() => handleStatusChange('LIVE')}
                 disabled={isPending}
                 style={{
-                  backgroundColor: 'var(--btn-secondary-bg)',
-                  color: 'var(--btn-secondary-text)',
-                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--primary)',
+                  color: 'white',
                   padding: '0.5rem 1rem',
                   borderRadius: '6px',
                   fontWeight: 600,
@@ -609,20 +952,35 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
                   cursor: 'pointer',
                 }}
               >
-                Buka Kembali (Set LIVE)
+                Buka Kembali Match
               </button>
             </div>
           )}
+
+          {/* Timer Display */}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span className="metadata-text">Durasi Pertandingan:</span>
+            <span
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 800,
+                fontFamily: 'monospace',
+                color: match.status === 'LIVE' ? 'var(--success)' : 'var(--text-secondary)',
+              }}
+            >
+              {elapsed}
+            </span>
+          </div>
         </div>
 
-        {/* Assigned Juries bar */}
+        {/* Assigned Scoring bar */}
         <div style={{ display: 'flex', gap: '2rem', fontSize: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
           <div>
-            <span style={{ color: 'var(--text-secondary)' }}>Juri 1 (Depan): </span>
+            <span style={{ color: 'var(--text-secondary)' }}>Scoring 1 (Depan): </span>
             <strong style={{ color: 'var(--text-primary)' }}>{match.jury_1?.name || 'Belum ditugaskan'}</strong>
           </div>
           <div>
-            <span style={{ color: 'var(--text-secondary)' }}>Juri 2 (Belakang): </span>
+            <span style={{ color: 'var(--text-secondary)' }}>Scoring 2 (Belakang): </span>
             <strong style={{ color: 'var(--text-primary)' }}>{match.jury_2?.name || 'Belum ditugaskan'}</strong>
           </div>
         </div>
@@ -639,33 +997,25 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Riwayat Kejadian Skor ({scoreEvents.length})
-          </h3>
-          <span className="metadata-text">Diperbarui secara realtime</span>
+          <div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>Audit Feed Skor Realtime</h3>
+            <p className="metadata-text">Riwayat kejadian poin skor yang dicatat oleh Meja Scoring & Admin.</p>
+          </div>
+          <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            Total {activeEvents.length} Poin Aktif
+          </span>
         </div>
 
         {scoreEvents.length === 0 ? (
-          <p className="metadata-text" style={{ padding: '1rem 0' }}>
-            Belum ada poin yang tercatat pada pertandingan ini.
-          </p>
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+            Belum ada kejadian skor yang dicatat.
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '400px', overflowY: 'auto' }}>
             {scoreEvents.map((evt) => {
-              const teamName =
-                evt.team_id === match.team_attack_id
-                  ? match.team_attack?.name
-                  : evt.team_id === match.team_defense_id
-                  ? match.team_defense?.name
-                  : 'Tim'
-
-              const timeStr = new Date(evt.created_at).toLocaleTimeString('id-ID', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              })
-
               const isCancelled = evt.status === 'CANCELLED'
+              const teamName = evt.team_id === teamLeft.id ? teamLeft.name : teamRight.name
+              const timeStr = new Date(evt.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
               return (
                 <div
@@ -674,8 +1024,8 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    backgroundColor: isCancelled ? 'var(--surface-subtle)' : 'var(--card-inner-bg)',
-                    padding: '0.875rem 1rem',
+                    padding: '0.75rem 1rem',
+                    backgroundColor: isCancelled ? 'var(--surface-subtle)' : 'var(--surface-color)',
                     borderRadius: '6px',
                     border: isCancelled ? '1px dashed var(--border-color)' : '1px solid var(--border-color)',
                     opacity: isCancelled ? 0.65 : 1,
@@ -736,99 +1086,6 @@ export default function ControlRoom({ initialMatch, initialScoreEvents }: Contro
           </div>
         )}
       </div>
-
-      {/* Swap Sides Modal */}
-      {showSwapModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.65)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 50,
-            padding: '1rem',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'var(--surface-color)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '10px',
-              padding: '2rem',
-              maxWidth: '450px',
-              width: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.25rem',
-              boxShadow: 'var(--card-shadow)',
-            }}
-          >
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>Tukar Posisi Serang / Bertahan</h3>
-            <p className="metadata-text">
-              Aksi ini akan menukar posisi tim: <strong style={{ color: 'var(--text-primary)' }}>{match.team_defense?.name}</strong> menjadi Tim Penyerang
-              (Attack), dan <strong style={{ color: 'var(--text-primary)' }}>{match.team_attack?.name}</strong> menjadi Tim Bertahan (Defense).
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label htmlFor="roundName" className="metadata-text" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                Perbarui Nama Babak / Ronde:
-              </label>
-              <input
-                type="text"
-                id="roundName"
-                value={newRoundName}
-                onChange={(e) => setNewRoundName(e.target.value)}
-                placeholder="Contoh: Babak 2"
-                style={{
-                  padding: '0.75rem',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--input-bg)',
-                  color: 'var(--text-primary)',
-                  fontSize: '1rem',
-                }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-              <button
-                type="button"
-                onClick={() => setShowSwapModal(false)}
-                disabled={isPending}
-                style={{
-                  padding: '0.75rem 1.25rem',
-                  borderRadius: '6px',
-                  backgroundColor: 'var(--btn-secondary-bg)',
-                  color: 'var(--btn-secondary-text)',
-                  border: '1px solid var(--border-color)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleSwap}
-                disabled={isPending}
-                style={{
-                  padding: '0.75rem 1.25rem',
-                  borderRadius: '6px',
-                  backgroundColor: 'var(--primary)',
-                  color: 'white',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {isPending ? 'Menukar...' : 'Ya, Tukar Posisi'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

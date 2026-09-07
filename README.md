@@ -1,23 +1,23 @@
-# HadangMU — Grobak Sodor Scoring System
+# HadangMU — Hadang Scoring System
 
-Platform sistem penilaian (scoring) digital terintegrasi dan realtime untuk olahraga tradisional **Hadang (Gobak Sodor)**. Dibangun menggunakan **Next.js 16 (App Router)**, **React 19**, **Supabase (Auth, Postgres, Realtime)**, dan **Vanilla CSS**.
+Platform sistem penilaian (scoring) digital terintegrasi dan realtime untuk olahraga tradisional **Hadang**. Dibangun menggunakan **Next.js 16 (App Router)**, **React 19**, **Supabase (Auth, Postgres, Realtime)**, dan **Vanilla CSS**.
 
 ---
 
 ## 🌟 Fitur Utama
 
 1. **Dashboard & Ruang Kontrol Admin (`/admin`, `/admin/matches/[id]`)**:
-   - **Manajemen Pertandingan**: Buat pertandingan, tentukan tim penyerang (Attack) & tim bertahan (Defense), serta penugasan Juri 1 & Juri 2.
+   - **Manajemen Pertandingan**: Buat pertandingan, tentukan tim penyerang (Attack) & tim bertahan (Defense), serta penugasan Scoring 1 & Scoring 2.
    - **Kontrol Status Live**: Mulai (`LIVE`), Jeda (`PAUSED`), Lanjutkan, dan Selesai (`FINISHED`).
    - **Tukar Posisi (Swap Sides)**: Pergantian babak otomatis menukar tim penyerang & bertahan seketika.
    - **Injeksi Poin Darurat**: Tombol manual penambahan poin oleh admin.
    - **Audit Log & Anulir Skor**: Riwayat lengkap kejadian skor dengan tombol pembatalan skor (Admin Override).
    - **Kelola Tim (`/admin/teams`)**: Tambah dan hapus tim peserta turnamen.
 
-2. **Meja Juri Mobile-First (`/jury`, `/jury/matches/[id]`)**:
-   - Khusus juri pertandingan dengan proteksi otentikasi.
+2. **Meja Scoring Mobile-First (`/jury`, `/jury/matches/[id]`)**:
+   - Khusus scoring pertandingan dengan proteksi otentikasi.
    - **Tombol Sentuh Raksasa "+1 POIN HADANG"**: Memasukkan skor untuk Tim Attack dengan haptic feedback getar (`navigator.vibrate`) dan animasi sentuh.
-   - **Tombol "BATALKAN POIN TERAKHIR" (Undo)**: Pembatalan poin jika juri tidak sengaja menekan tombol.
+   - **Tombol "BATALKAN POIN TERAKHIR" (Undo)**: Pembatalan poin jika scoring tidak sengaja menekan tombol.
    - **Kunci Otomatis**: Tombol dinonaktifkan otomatis saat pertandingan dijeda (`PAUSED`) atau selesai.
    - **Sinkronisasi Otomatis**: Menyesuaikan tim penyerang secara otomatis saat admin menukar posisi babak.
 
@@ -30,7 +30,7 @@ Platform sistem penilaian (scoring) digital terintegrasi dan realtime untuk olah
 4. **Portal Publik (`/`)**:
    - Pemantauan pertandingan yang sedang berlangsung secara langsung.
    - Rekap hasil pertandingan dan jadwal pertandingan mendatang.
-   - Panduan aturan main Gobak Sodor.
+   - Panduan aturan main Hadang.
 
 ---
 
@@ -54,7 +54,7 @@ Buka **SQL Editor** pada dashboard Supabase Anda, lalu jalankan seluruh skrip SQ
 
 Skrip ini akan membuat tabel `profiles`, `teams`, `matches`, `score_events`, mengaktifkan Row Level Security (RLS), triggers, serta publikasi Supabase Realtime.
 
-### 3. Membuat Akun Admin & Juri
+### 3. Membuat Akun Admin & Scoring
 1. Daftarkan akun baru melalui halaman login atau Supabase Auth Dashboard.
 2. Secara bawaan, akun baru akan memiliki role `JURY`.
 3. Untuk mengubah akun menjadi `ADMIN`, jalankan perintah SQL berikut di Supabase SQL Editor:
@@ -88,8 +88,8 @@ src/
 │   │   │   ├── [id]/        # Control Room (Live Score, Swap, Void Score)
 │   │   │   └── create/      # Form Pembuatan Pertandingan
 │   │   └── teams/           # Kelola Data Tim
-│   ├── jury/                # Antarmuka Juri (Mobile scoring controller)
-│   │   └── matches/[id]/    # Meja Juri (+1 Poin, Undo)
+│   ├── jury/                # Antarmuka Scoring (Mobile scoring controller)
+│   │   └── matches/[id]/    # Meja Scoring (+1 Poin, Undo)
 │   ├── tv/[id]/             # Papan Skor TV Layar Penuh Realtime
 │   ├── login/               # Halaman Login Petugas
 │   ├── globals.css          # Desain sistem dan token tipografi Hadang

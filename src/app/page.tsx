@@ -16,6 +16,16 @@ interface MatchWithRelations {
 export default async function HomePage() {
   const supabase = await createClient()
 
+  // Check auth session for adaptive navigation
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: profile } = user
+    ? await supabase.from('profiles').select('role, name').eq('id', user.id).single()
+    : { data: null }
+
+  const isAdmin = profile?.role === 'ADMIN'
+  const userDashboardUrl = isAdmin ? '/admin' : '/jury'
+  const userDashboardLabel = isAdmin ? 'Dashboard Admin' : 'Meja Scoring'
+
   // Fetch matches
   const { data: rawMatches } = await supabase
     .from('matches')
@@ -56,52 +66,139 @@ export default async function HomePage() {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '1rem',
+            padding: '0.85rem 1rem',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px',
-                backgroundColor: 'var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 900,
-                fontSize: '1.2rem',
-                color: 'white',
-                boxShadow: '0 0 15px rgba(37, 99, 235, 0.4)',
-              }}
-            >
-              H
-            </div>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: '1.125rem', letterSpacing: '0.05em' }}>HADANGMU</div>
-              <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
-                GROBAK SODOR SCORING
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit' }}>
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  fontSize: '1.2rem',
+                  color: 'white',
+                  boxShadow: '0 0 15px rgba(37, 99, 235, 0.4)',
+                }}
+              >
+                H
               </div>
-            </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '1.125rem', letterSpacing: '0.04em' }}>HADANG-MU</div>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
+                  Sistem Skor Digital Olahraga Tradisional
+                </div>
+              </div>
+            </Link>
+
+            {/* Navigation links for larger screens */}
+            <nav className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '0.5rem' }}>
+              <a
+                href="#live-matches"
+                style={{
+                  fontSize: '0.825rem',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  textDecoration: 'none',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '6px',
+                }}
+              >
+                ● Pertandingan Live
+              </a>
+              <Link
+                href="/bracket"
+                style={{
+                  fontSize: '0.825rem',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  textDecoration: 'none',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '6px',
+                  backgroundColor: 'rgba(234, 179, 8, 0.12)',
+                  border: '1px solid rgba(234, 179, 8, 0.3)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                }}
+              >
+                <span>🏆</span>
+                <span>Bagan Turnamen</span>
+              </Link>
+              <a
+                href="#jadwal-hasil"
+                style={{
+                  fontSize: '0.825rem',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  textDecoration: 'none',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '6px',
+                }}
+              >
+                Jadwal & Hasil
+              </a>
+              <a
+                href="#aturan-permainan"
+                style={{
+                  fontSize: '0.825rem',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  textDecoration: 'none',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '6px',
+                }}
+              >
+                Aturan Main
+              </a>
+            </nav>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <ThemeToggle />
-            <Link
-              href="/login"
-              style={{
-                backgroundColor: 'var(--primary)',
-                color: 'white',
-                padding: '0.5rem 1rem',
-                borderRadius: '6px',
-                fontWeight: 700,
-                fontSize: '0.875rem',
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
-                transition: 'background-color 0.2s',
-              }}
-            >
-              Login Petugas (Admin / Juri) →
-            </Link>
+            {user ? (
+              <Link
+                href={userDashboardUrl}
+                style={{
+                  backgroundColor: isAdmin ? 'var(--primary)' : 'var(--success)',
+                  color: 'white',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '6px',
+                  fontWeight: 800,
+                  fontSize: '0.875rem',
+                  boxShadow: isAdmin ? '0 4px 12px rgba(37, 99, 235, 0.3)' : '0 4px 12px rgba(22, 163, 74, 0.3)',
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                }}
+              >
+                <span>{isAdmin ? '⚙️' : '📋'}</span>
+                <span>{userDashboardLabel}</span>
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                style={{
+                  backgroundColor: 'var(--primary)',
+                  color: 'white',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '6px',
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
+                  transition: 'background-color 0.2s',
+                  textDecoration: 'none',
+                }}
+              >
+                Login Petugas
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -109,7 +206,7 @@ export default async function HomePage() {
       {/* Hero Section */}
       <section
         style={{
-          padding: '4rem 1rem',
+          padding: '3.5rem 1rem 3rem',
           textAlign: 'center',
           background: 'radial-gradient(ellipse at top, rgba(37, 99, 235, 0.15) 0%, rgba(11, 18, 32, 0) 70%)',
           borderBottom: '1px solid var(--border-color)',
@@ -133,16 +230,16 @@ export default async function HomePage() {
             SISTEM SKOR DIGITAL OLAHRAGA TRADISIONAL
           </span>
           <h1 className="heading" style={{ marginBottom: '1rem', fontSize: 'clamp(2.2rem, 5vw, 3.5rem)' }}>
-            Turnamen Hadang & Gobak Sodor
+            Turnamen Hadang
           </h1>
           <p
             className="body-text"
             style={{ color: 'var(--text-secondary)', fontSize: '1.125rem', maxWidth: '650px', margin: '0 auto 2rem' }}
           >
-            Pencatatan skor terpadu dengan integrasi meja juri mobile, ruang kontrol admin, dan papan skor TV layar penuh secara realtime.
+            Pencatatan skor terpadu dengan integrasi meja scoring mobile, ruang kontrol admin, bagan kejuaraan otomatis, dan papan skor TV layar penuh realtime.
           </p>
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
             <a
               href="#live-matches"
               style={{
@@ -151,27 +248,69 @@ export default async function HomePage() {
                 padding: '0.875rem 1.5rem',
                 borderRadius: '8px',
                 fontWeight: 800,
-                fontSize: '1rem',
+                fontSize: '0.95rem',
                 boxShadow: '0 4px 16px rgba(22, 163, 74, 0.4)',
+                textDecoration: 'none',
               }}
             >
               ● Pantau Pertandingan Live
             </a>
+
             <Link
-              href="/login"
+              href="/bracket"
               style={{
-                backgroundColor: 'var(--surface-color)',
-                border: '1px solid var(--border-color)',
-                color: 'var(--text-primary)',
+                backgroundColor: '#EAB308',
+                color: '#000',
                 padding: '0.875rem 1.5rem',
                 borderRadius: '8px',
-                fontWeight: 700,
-                fontSize: '1rem',
-                boxShadow: 'var(--card-shadow)',
+                fontWeight: 800,
+                fontSize: '0.95rem',
+                boxShadow: '0 4px 16px rgba(234, 179, 8, 0.35)',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
               }}
             >
-              Masuk ke Panel Petugas
+              <span>🏆</span>
+              <span>Bagan Turnamen (Putra & Putri)</span>
             </Link>
+
+            {user ? (
+              <Link
+                href={userDashboardUrl}
+                style={{
+                  backgroundColor: 'var(--surface-color)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  padding: '0.875rem 1.5rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  boxShadow: 'var(--card-shadow)',
+                  textDecoration: 'none',
+                }}
+              >
+                Buka {userDashboardLabel} →
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                style={{
+                  backgroundColor: 'var(--surface-color)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-primary)',
+                  padding: '0.875rem 1.5rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  boxShadow: 'var(--card-shadow)',
+                  textDecoration: 'none',
+                }}
+              >
+                Masuk ke Panel Petugas
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -209,31 +348,31 @@ export default async function HomePage() {
                 Belum Ada Pertandingan yang Sedang Berlangsung
               </h3>
               <p className="metadata-text">
-                Pertandingan yang dimulai oleh admin akan otomatis tampil di sini dengan pembaruan skor langsung.
+                Pertandingan yang dimulai akan otomatis tampil di sini dengan pembaruan skor langsung.
               </p>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
               {liveMatches.map((m) => {
                 const activeEvents = m.score_events?.filter((e) => e.status === 'ACTIVE') || []
-                const attackScore = activeEvents
-                  .filter((e) => e.team_id === m.team_attack?.id)
-                  .reduce((sum, e) => sum + e.points, 0)
-                const defenseScore = activeEvents
-                  .filter((e) => e.team_id === m.team_defense?.id)
-                  .reduce((sum, e) => sum + e.points, 0)
+                const tA = m.team_attack || { id: 'team-a', name: 'Tim 1' }
+                const tB = m.team_defense || { id: 'team-b', name: 'Tim 2' }
+                const [teamLeft, teamRight] = (m.round === tA.id || (m.round !== tB.id && tA.id < tB.id)) ? [tA, tB] : [tB, tA]
+                const isLeftAttacking = m.team_attack?.id === teamLeft.id
+                const scoreLeft = activeEvents.filter((e) => e.team_id === teamLeft.id).reduce((sum, e) => sum + e.points, 0)
+                const scoreRight = activeEvents.filter((e) => e.team_id === teamRight.id).reduce((sum, e) => sum + e.points, 0)
 
                 return (
                   <div
                     key={m.id}
                     style={{
                       backgroundColor: 'var(--surface-color)',
-                      border: '2px solid var(--success)',
-                      borderRadius: '12px',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '10px',
                       padding: '1.5rem',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '1.25rem',
+                      gap: '1rem',
                       boxShadow: 'var(--card-shadow)',
                     }}
                   >
@@ -252,14 +391,11 @@ export default async function HomePage() {
                       >
                         {m.status === 'LIVE' ? '● LIVE' : 'PAUSED'}
                       </span>
-                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                        {m.round || 'Babak 1'}
-                      </span>
                     </div>
 
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>{m.name}</h3>
 
-                    {/* Score preview */}
+                    {/* Score preview with static Left & Right */}
                     <div
                       style={{
                         display: 'grid',
@@ -274,24 +410,40 @@ export default async function HomePage() {
                       }}
                     >
                       <div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--success)', fontWeight: 800 }}>ATTACK</span>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.2rem', color: 'var(--text-primary)' }}>
-                          {m.team_attack?.name}
+                        {isLeftAttacking ? (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--success)', fontWeight: 800, backgroundColor: 'var(--success-subtle)', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                            ⚡ SERANG
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            BERTAHAN
+                          </span>
+                        )}
+                        <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.3rem', color: 'var(--text-primary)' }}>
+                          {teamLeft.name}
                         </div>
-                        <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--success)' }}>
-                          {attackScore}
+                        <div style={{ fontSize: '2rem', fontWeight: 900, color: isLeftAttacking ? 'var(--success)' : 'var(--text-primary)' }}>
+                          {scoreLeft}
                         </div>
                       </div>
 
                       <div style={{ fontWeight: 800, color: 'var(--text-muted)', fontSize: '1.25rem' }}>VS</div>
 
                       <div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--danger)', fontWeight: 800 }}>DEFENSE</span>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.2rem', color: 'var(--text-primary)' }}>
-                          {m.team_defense?.name}
+                        {!isLeftAttacking ? (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--success)', fontWeight: 800, backgroundColor: 'var(--success-subtle)', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                            ⚡ SERANG
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            BERTAHAN
+                          </span>
+                        )}
+                        <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.3rem', color: 'var(--text-primary)' }}>
+                          {teamRight.name}
                         </div>
-                        <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--danger)' }}>
-                          {defenseScore}
+                        <div style={{ fontSize: '2rem', fontWeight: 900, color: !isLeftAttacking ? 'var(--success)' : 'var(--text-primary)' }}>
+                          {scoreRight}
                         </div>
                       </div>
                     </div>
@@ -324,8 +476,71 @@ export default async function HomePage() {
           )}
         </section>
 
+        {/* TOURNAMENT BRACKET PROMO BANNER */}
+        <section
+          style={{
+            backgroundColor: 'var(--surface-color)',
+            border: '1.5px solid rgba(234, 179, 8, 0.4)',
+            borderRadius: '12px',
+            padding: '1.75rem',
+            background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(37, 99, 235, 0.05) 100%)',
+            boxShadow: 'var(--card-shadow)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '1.25rem',
+          }}
+        >
+          <div style={{ maxWidth: '600px' }}>
+            <span
+              style={{
+                fontSize: '0.725rem',
+                fontWeight: 800,
+                color: '#CA8A04',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
+                backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                padding: '0.2rem 0.55rem',
+                borderRadius: '9999px',
+                display: 'inline-block',
+                marginBottom: '0.5rem',
+              }}
+            >
+              🏆 SISTEM GUGUR TURNAMEN
+            </span>
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 900, margin: '0 0 0.35rem', color: 'var(--text-primary)' }}>
+              Bagan Pertandingan Kategori Putra & Putri
+            </h3>
+            <p className="metadata-text" style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.5 }}>
+              Pantau seluruh bagan turnamen secara transparan: susunan tim, babak penyisihan, semifinal, perebutan juara 3, hingga partai final penentuan juara!
+            </p>
+          </div>
+
+          <Link
+            href="/bracket"
+            style={{
+              backgroundColor: '#EAB308',
+              color: '#000',
+              padding: '0.85rem 1.35rem',
+              borderRadius: '8px',
+              fontWeight: 800,
+              fontSize: '0.95rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              textDecoration: 'none',
+              boxShadow: '0 4px 14px rgba(234, 179, 8, 0.35)',
+              flexShrink: 0,
+            }}
+          >
+            <span>Buka Bagan Turnamen</span>
+            <span>→</span>
+          </Link>
+        </section>
+
         {/* UPCOMING & PAST MATCHES */}
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+        <section id="jadwal-hasil" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
           {/* Upcoming */}
           <div
             style={{
@@ -452,6 +667,7 @@ export default async function HomePage() {
 
         {/* Rules & Guide Section */}
         <section
+          id="aturan-permainan"
           style={{
             backgroundColor: 'var(--surface-color)',
             border: '1px solid var(--border-color)',
@@ -461,26 +677,26 @@ export default async function HomePage() {
           }}
         >
           <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-primary)' }}>
-            Ketentuan Skor & Permainan Hadang (Gobak Sodor)
+            Ketentuan Skor & Permainan Hadang
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6 }}>
             <div>
               <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
-                1. Tim Penyerang (Attack)
+                1. Pergantian Posisi Instan (Foul Turnover)
               </strong>
-              Pemain tim penyerang berusaha meloloskan diri melewati garis-garis petak penjagaan dari garis awal hingga garis belakang, lalu kembali ke garis awal.
+              Permainan tidak terikat sistem babak kaku. Setiap kali terjadi pelanggaran (foul), tersentuh penjaga, atau pemain keluar garis, giliran serang langsung berpindah ke tim lawan secara seketika.
             </div>
             <div>
               <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
-                2. Tim Bertahan (Defense)
+                2. Tim Bertahan & Garis Sodor
               </strong>
               Pemain bertahan menjaga di sepanjang garis lintang dan garis sodor (tengah) untuk menyentuh pemain penyerang agar terjadi pergantian posisi serang/bertahan.
             </div>
             <div>
               <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
-                3. Sistem Penilaian Juri
+                3. Sistem Penilaian Scoring
               </strong>
-              Juri 1 (Area Depan) dan Juri 2 (Area Belakang) mencatat poin langsung dari ponsel/tablet saat pemain berhasil menembus garis. Skor otomatis tersinkronisasi ke layar TV.
+              Poin otomatis masuk ke tim yang sedang memegang hak serang. Scoring 1 dan Scoring 2 mencatat poin langsung dari ponsel/tablet saat pemain berhasil menembus petak garis.
             </div>
           </div>
         </section>
