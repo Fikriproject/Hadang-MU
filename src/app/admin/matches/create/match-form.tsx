@@ -3,7 +3,13 @@
 import React, { useState, useActionState } from 'react'
 import Link from 'next/link'
 import { createMatch, type CreateMatchState } from './actions'
-import { detectTeamCategory } from '@/lib/categories'
+import { detectTeamCategory, formatJuryDisplayName } from '@/lib/categories'
+import {
+  getNextMatchNumber,
+  getDefaultMatchName,
+  getMatchNamePresets,
+  type MatchSummary,
+} from '@/lib/match-number'
 
 interface OptionItem {
   id: string
@@ -14,30 +20,44 @@ interface OptionItem {
 interface MatchFormProps {
   teams: OptionItem[]
   juries: OptionItem[]
+  existingMatches?: MatchSummary[]
 }
 
 const initialState: CreateMatchState = {}
 
-export default function MatchForm({ teams, juries }: MatchFormProps) {
+export default function MatchForm({ teams, juries, existingMatches = [] }: MatchFormProps) {
   const [state, formAction, isPending] = useActionState(createMatch, initialState)
   const [selectedCategory, setSelectedCategory] = useState<'PUTRA' | 'PUTRI'>('PUTRA')
   const [team1Id, setTeam1Id] = useState('')
   const [team2Id, setTeam2Id] = useState('')
+
+  // Calculate dynamic next match numbers per category
+  const nextNumberPutra = getNextMatchNumber(existingMatches, 'PUTRA')
+  const nextNumberPutri = getNextMatchNumber(existingMatches, 'PUTRI')
+
+  const isPutra = selectedCategory === 'PUTRA'
+  const currentNextNumber = isPutra ? nextNumberPutra : nextNumberPutri
+
+  const defaultName = getDefaultMatchName(selectedCategory, currentNextNumber)
+  const [customName, setCustomName] = useState(defaultName)
 
   // Separate teams strictly by category
   const putraTeams = teams.filter((t) => detectTeamCategory(t) === 'PUTRA')
   const putriTeams = teams.filter((t) => detectTeamCategory(t) === 'PUTRI')
 
   const activeTeams = selectedCategory === 'PUTRA' ? putraTeams : putriTeams
-  const isPutra = selectedCategory === 'PUTRA'
   const activeColor = isPutra ? '#2563EB' : '#E11D48'
   const activeBgSubtle = isPutra ? 'rgba(37, 99, 235, 0.08)' : 'rgba(225, 29, 72, 0.08)'
   const activeBorder = isPutra ? 'rgba(37, 99, 235, 0.35)' : 'rgba(225, 29, 72, 0.35)'
+
+  const presets = getMatchNamePresets(selectedCategory, currentNextNumber)
 
   const handleCategoryChange = (cat: 'PUTRA' | 'PUTRI') => {
     setSelectedCategory(cat)
     setTeam1Id('')
     setTeam2Id('')
+    const nextNum = cat === 'PUTRA' ? nextNumberPutra : nextNumberPutri
+    setCustomName(getDefaultMatchName(cat, nextNum))
   }
 
   return (
@@ -195,17 +215,37 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
 
       {/* 2. NAMA PERTANDINGAN */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <label htmlFor="name" className="metadata-text" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-          Nama Pertandingan <span style={{ color: 'var(--danger)' }}>*</span>
-        </label>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <label htmlFor="name" className="metadata-text" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+            Nama Pertandingan <span style={{ color: 'var(--danger)' }}>*</span>
+          </label>
+          <span
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              backgroundColor: activeBgSubtle,
+              color: activeColor,
+              border: `1px solid ${activeBorder}`,
+              padding: '0.2rem 0.6rem',
+              borderRadius: '9999px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+            }}
+          >
+            <span>🔢</span>
+            <span>Urutan Otomatis: Match {currentNextNumber} ({isPutra ? 'Putra' : 'Putri'})</span>
+          </span>
+        </div>
+
         <input
           type="text"
           id="name"
           name="name"
           required
-          key={`name-${selectedCategory}`}
-          defaultValue={`Babak Penyisihan ${isPutra ? 'Putra' : 'Putri'} - Match 1`}
-          placeholder={`Contoh: Babak Penyisihan ${isPutra ? 'Putra' : 'Putri'} - Match 1`}
+          value={customName}
+          onChange={(e) => setCustomName(e.target.value)}
+          placeholder={`Contoh: Babak Penyisihan ${isPutra ? 'Putra' : 'Putri'} - Match ${currentNextNumber}`}
           style={{
             padding: '0.75rem',
             borderRadius: '6px',
@@ -216,6 +256,38 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
             fontWeight: 600,
           }}
         />
+
+        {/* Quick Presets / Template Pilihan Nama */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.2rem' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+            Pilihan Cepat Format Nama (Klik untuk menerapkan):
+          </span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+            {presets.map((preset) => {
+              const isSelected = customName === preset
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setCustomName(preset)}
+                  style={{
+                    fontSize: '0.75rem',
+                    padding: '0.25rem 0.6rem',
+                    borderRadius: '6px',
+                    border: isSelected ? `1.5px solid ${activeColor}` : '1px solid var(--border-color)',
+                    backgroundColor: isSelected ? activeBgSubtle : 'var(--surface-color)',
+                    color: isSelected ? activeColor : 'var(--text-secondary)',
+                    fontWeight: isSelected ? 800 : 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {preset}
+                </button>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       {/* 2.5 JADWAL PERTANDINGAN */}
@@ -399,7 +471,7 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
             <option value="">Pilih Scoring...</option>
             {juries.map((j) => (
               <option key={j.id} value={j.id}>
-                {j.name}
+                {formatJuryDisplayName(j.name)}
               </option>
             ))}
           </select>
@@ -425,7 +497,7 @@ export default function MatchForm({ teams, juries }: MatchFormProps) {
             <option value="">Pilih Scoring...</option>
             {juries.map((j) => (
               <option key={j.id} value={j.id}>
-                {j.name}
+                {formatJuryDisplayName(j.name)}
               </option>
             ))}
           </select>

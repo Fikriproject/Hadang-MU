@@ -10,6 +10,7 @@ import {
   manualAddScore,
 } from './actions'
 import { promptUndoScoreReason } from '@/lib/sweetalert'
+import { formatJuryDisplayName } from '@/lib/categories'
 
 interface Team {
   id: string
@@ -121,8 +122,8 @@ export default function ControlRoom({
           if (payload.eventType === 'INSERT') {
             const newEvent = payload.new as ScoreEvent
             let juryName: string | undefined
-            if (newEvent.jury_id === initialMatch.jury_1_id) juryName = initialMatch.jury_1?.name
-            else if (newEvent.jury_id === initialMatch.jury_2_id) juryName = initialMatch.jury_2?.name
+            if (newEvent.jury_id === initialMatch.jury_1_id) juryName = formatJuryDisplayName(initialMatch.jury_1?.name)
+            else if (newEvent.jury_id === initialMatch.jury_2_id) juryName = formatJuryDisplayName(initialMatch.jury_2?.name)
 
             setScoreEvents((prev) => {
               if (prev.some((e) => e.id === newEvent.id)) return prev
@@ -182,8 +183,8 @@ export default function ControlRoom({
 
           return remoteEvents.map((rem) => {
             let juryName: string | undefined
-            if (rem.jury_id === initialMatch.jury_1_id) juryName = initialMatch.jury_1?.name
-            else if (rem.jury_id === initialMatch.jury_2_id) juryName = initialMatch.jury_2?.name
+            if (rem.jury_id === initialMatch.jury_1_id) juryName = formatJuryDisplayName(initialMatch.jury_1?.name)
+            else if (rem.jury_id === initialMatch.jury_2_id) juryName = formatJuryDisplayName(initialMatch.jury_2?.name)
             return {
               ...rem,
               jury: juryName ? { name: juryName } : null,
@@ -203,8 +204,8 @@ export default function ControlRoom({
   const isLeftAttacking = match.team_attack_id === teamLeft.id
   const isRightAttacking = match.team_attack_id === teamRight.id
 
-  // Memoized score calculation for static Left & Right teams
-  const { scoreLeft, scoreRight, activeEvents } = useMemo(() => {
+  // Memoized score calculation for static Left & Right teams and per-jury totals
+  const { scoreLeft, scoreRight, activeEvents, pointsJury1, pointsJury2 } = useMemo(() => {
     const active = scoreEvents.filter((e) => e.status === 'ACTIVE')
     const sLeft = active
       .filter((e) => e.team_id === teamLeft.id)
@@ -212,8 +213,22 @@ export default function ControlRoom({
     const sRight = active
       .filter((e) => e.team_id === teamRight.id)
       .reduce((sum, e) => sum + e.points, 0)
-    return { scoreLeft: sLeft, scoreRight: sRight, activeEvents: active }
-  }, [scoreEvents, teamLeft.id, teamRight.id])
+
+    const pJ1 = active
+      .filter((e) => e.jury_id === match.jury_1_id)
+      .reduce((sum, e) => sum + e.points, 0)
+    const pJ2 = active
+      .filter((e) => e.jury_id === match.jury_2_id)
+      .reduce((sum, e) => sum + e.points, 0)
+
+    return {
+      scoreLeft: sLeft,
+      scoreRight: sRight,
+      activeEvents: active,
+      pointsJury1: pJ1,
+      pointsJury2: pJ2,
+    }
+  }, [scoreEvents, teamLeft.id, teamRight.id, match.jury_1_id, match.jury_2_id])
 
   // Status handlers
   const handleStatusChange = (newStatus: string) => {
@@ -575,7 +590,7 @@ export default function ControlRoom({
                 boxShadow: '0 2px 8px rgba(34, 197, 94, 0.4)',
               }}
             >
-              ⚡ GILIRAN SERANG
+              PENYERANG
             </span>
           ) : (
             <span
@@ -708,7 +723,7 @@ export default function ControlRoom({
                   transition: 'all 0.15s',
                 }}
               >
-                {isLeftAttacking ? '⚡ ' : ''}{teamLeft.name}
+                {teamLeft.name}
               </button>
 
               <button
@@ -731,7 +746,7 @@ export default function ControlRoom({
                   transition: 'all 0.15s',
                 }}
               >
-                {isRightAttacking ? '⚡ ' : ''}{teamRight.name}
+                {teamRight.name}
               </button>
             </div>
           </div>
@@ -766,7 +781,7 @@ export default function ControlRoom({
                 boxShadow: '0 2px 8px rgba(34, 197, 94, 0.4)',
               }}
             >
-              ⚡ GILIRAN SERANG
+              PENYERANG
             </span>
           ) : (
             <span
@@ -996,15 +1011,82 @@ export default function ControlRoom({
           </div>
         </div>
 
-        {/* Assigned Scoring bar */}
-        <div style={{ display: 'flex', gap: '2rem', fontSize: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
-          <div>
-            <span style={{ color: 'var(--text-secondary)' }}>Scoring 1 (Depan): </span>
-            <strong style={{ color: 'var(--text-primary)' }}>{match.jury_1?.name || 'Belum ditugaskan'}</strong>
+        {/* Assigned Scoring & Total Input Score Cards */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '0.85rem',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--border-color)',
+          }}
+        >
+          {/* Scoring 1 (Depan) Card */}
+          <div
+            style={{
+              backgroundColor: 'var(--surface-subtle)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              padding: '0.75rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                Scoring 1 (Depan):{' '}
+                <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+                  {formatJuryDisplayName(match.jury_1?.name) || 'Belum ditugaskan'}
+                </strong>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                Petugas Meja Scoring Depan/Awal
+              </div>
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Total Input Skor
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: 'monospace', color: 'var(--primary)', lineHeight: 1.1, marginTop: '0.1rem' }}>
+                {pointsJury1} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Poin</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <span style={{ color: 'var(--text-secondary)' }}>Scoring 2 (Belakang): </span>
-            <strong style={{ color: 'var(--text-primary)' }}>{match.jury_2?.name || 'Belum ditugaskan'}</strong>
+
+          {/* Scoring 2 (Belakang) Card */}
+          <div
+            style={{
+              backgroundColor: 'var(--surface-subtle)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              padding: '0.75rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+            }}
+          >
+            <div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                Scoring 2 (Belakang):{' '}
+                <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+                  {formatJuryDisplayName(match.jury_2?.name) || 'Belum ditugaskan'}
+                </strong>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                Petugas Meja Scoring Belakang/Akhir
+              </div>
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Total Input Skor
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: 'monospace', color: '#E11D48', lineHeight: 1.1, marginTop: '0.1rem' }}>
+                {pointsJury2} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Poin</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

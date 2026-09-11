@@ -18,6 +18,19 @@ export default async function CreateMatchPage() {
     .eq('role', 'JURY')
     .order('name')
 
+  // Fetch existing matches for sequential numbering
+  const { data: matches } = await supabase
+    .from('matches')
+    .select(`
+      id,
+      name,
+      round,
+      created_at,
+      team_attack:team_attack_id(id, name),
+      team_defense:team_defense_id(id, name)
+    `)
+    .order('created_at', { ascending: true })
+
   return (
     <div style={{ maxWidth: '640px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* Top Breadcrumb Back Navigation */}
@@ -61,7 +74,7 @@ export default async function CreateMatchPage() {
           border: '1px solid var(--border-color)',
         }}
       >
-        <MatchForm teams={teams || []} juries={juries || []} />
+        <MatchForm teams={teams || []} juries={juries || []} existingMatches={matches || []} />
       </div>
     </div>
   )

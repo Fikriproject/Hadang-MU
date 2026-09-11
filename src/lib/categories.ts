@@ -18,12 +18,14 @@ export function detectTeamCategory(team?: { name: string; category?: string | nu
 
 export function detectMatchCategory(match?: {
   name?: string
-  team_attack?: { name: string; category?: string | null } | null
-  team_defense?: { name: string; category?: string | null } | null
+  team_attack?: any
+  team_defense?: any
 } | null): Category {
   if (!match) return 'PUTRA'
-  if (match.team_attack && detectTeamCategory(match.team_attack) === 'PUTRI') return 'PUTRI'
-  if (match.team_defense && detectTeamCategory(match.team_defense) === 'PUTRI') return 'PUTRI'
+  const tAttack = Array.isArray(match.team_attack) ? match.team_attack[0] : match.team_attack
+  const tDefense = Array.isArray(match.team_defense) ? match.team_defense[0] : match.team_defense
+  if (tAttack && detectTeamCategory(tAttack) === 'PUTRI') return 'PUTRI'
+  if (tDefense && detectTeamCategory(tDefense) === 'PUTRI') return 'PUTRI'
   if (match.name && match.name.toLowerCase().includes('putri')) return 'PUTRI'
   return 'PUTRA'
 }
@@ -31,3 +33,5 @@ export function detectMatchCategory(match?: {
 export function cleanTeamDisplayName(name: string): string {
   return name.trim()
 }
+
+export { formatJuryDisplayName } from './formatters'

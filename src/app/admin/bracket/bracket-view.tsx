@@ -250,6 +250,14 @@ export default function BracketView({
     const isMatchFinished = bm.status === 'FINISHED'
     const isReadyToPlay = Boolean(bm.team1?.id && bm.team2?.id)
     const canEdit = !isPublic && !isLocked && roundIndex === 0
+    const isFinal = !isBronze && roundIndex === (bracket?.rounds.length ? bracket.rounds.length - 1 : 0)
+
+    const matchNum = bm.matchNumber || parseInt(bm.id.replace(/\D/g, ''), 10)
+    const matchBadgeText = isBronze
+      ? (matchNum ? `MATCH ${matchNum} 🥉` : 'JUARA 3 🥉')
+      : isFinal
+      ? (matchNum ? `MATCH ${matchNum} 🏆` : 'FINAL 🏆')
+      : `MATCH ${matchNum || bm.id.replace(/\D/g, '')}`
 
     return (
       <div
@@ -272,28 +280,45 @@ export default function BracketView({
           position: 'relative',
         }}
       >
-        {/* Match Header: Title & Status */}
+        {/* Match Header: Clear Match Number Badge & Status (No truncated text) */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            fontSize: '0.725rem',
+            gap: '0.5rem',
           }}
         >
+          {/* BADGE NOMOR MATCH MENCORONG & TEBAL */}
           <span
             style={{
-              fontWeight: 800,
-              color: isBronze ? '#D97706' : 'var(--text-muted)',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.25rem',
+              gap: '0.3rem',
+              padding: '0.22rem 0.65rem',
+              borderRadius: '6px',
+              fontSize: '0.8rem',
+              fontWeight: 900,
+              letterSpacing: '0.04em',
+              backgroundColor: isBronze
+                ? '#D97706'
+                : isFinal
+                ? primaryColor
+                : 'var(--text-primary)',
+              color: 'var(--surface-color, #ffffff)',
+              boxShadow: isBronze
+                ? '0 2px 8px rgba(217, 119, 6, 0.35)'
+                : isFinal
+                ? `0 2px 8px ${primaryColor}40`
+                : '0 1px 3px rgba(0,0,0,0.2)',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
-            {isBronze && <span>🥉</span>}
-            <span>{bm.title}</span>
+            {matchBadgeText}
           </span>
 
+          {/* STATUS BADGE */}
           <span
             style={{
               padding: '0.15rem 0.5rem',
@@ -315,6 +340,8 @@ export default function BracketView({
                 ? 'var(--primary)'
                 : 'var(--text-muted)',
               border: '1px solid var(--border-color)',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             {bm.status === 'LIVE'

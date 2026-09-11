@@ -8,10 +8,10 @@
         "name": "Babak 16 Besar",
         "matches": [
           {
-            "id": "M1",
+            "id": "M8",
             "roundIndex": 0,
             "matchIndex": 0,
-            "title": "Babak 16 Besar 1",
+            "title": "Match 8 • Babak 16 Besar (Kiri)",
             "team1": null,
             "team2": null,
             "score1": null,
@@ -19,74 +19,95 @@
             "matchId": null,
             "status": "WAITING",
             "winnerTeamId": null,
-            "nextMatchId": "M9",
-            "nextSlot": "team1"
-          },
-          {
-            "id": "M2",
-            "roundIndex": 0,
-            "matchIndex": 1,
-            "title": "Babak 16 Besar 2",
-            "team1": null,
-            "team2": null,
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "nextMatchId": "M9",
-            "nextSlot": "team2"
-          },
-          {
-            "id": "M3",
-            "roundIndex": 0,
-            "matchIndex": 2,
-            "title": "Babak 16 Besar 3",
-            "team1": null,
-            "team2": null,
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "nextMatchId": "M10",
-            "nextSlot": "team1"
-          },
-          {
-            "id": "M4",
-            "roundIndex": 0,
-            "matchIndex": 3,
-            "title": "Babak 16 Besar 4",
-            "team1": null,
-            "team2": null,
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "nextMatchId": "M10",
-            "nextSlot": "team2"
-          },
-          {
-            "id": "M5",
-            "roundIndex": 0,
-            "matchIndex": 4,
-            "title": "Babak 16 Besar 5",
-            "team1": null,
-            "team2": null,
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "nextMatchId": "M11",
-            "nextSlot": "team1"
+            "nextMatchId": "M12",
+            "nextSlot": "team1",
+            "matchNumber": 8
           },
           {
             "id": "M6",
             "roundIndex": 0,
+            "matchIndex": 1,
+            "title": "Match 6 • Babak 16 Besar (Kiri)",
+            "team1": null,
+            "team2": null,
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "nextMatchId": "M12",
+            "nextSlot": "team2",
+            "matchNumber": 6
+          },
+          {
+            "id": "M4",
+            "roundIndex": 0,
+            "matchIndex": 2,
+            "title": "Match 4 • Babak 16 Besar (Kiri)",
+            "team1": null,
+            "team2": null,
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "nextMatchId": "M10",
+            "nextSlot": "team1",
+            "matchNumber": 4
+          },
+          {
+            "id": "M2",
+            "roundIndex": 0,
+            "matchIndex": 3,
+            "title": "Match 2 • Babak 16 Besar (Kiri)",
+            "team1": null,
+            "team2": null,
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "nextMatchId": "M10",
+            "nextSlot": "team2",
+            "matchNumber": 2
+          },
+          {
+            "id": "M1",
+            "roundIndex": 0,
+            "matchIndex": 4,
+            "title": "Match 1 • Babak 16 Besar (Kanan)",
+            "team1": null,
+            "team2": null,
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "nextMatchId": "M9",
+            "nextSlot": "team1",
+            "matchNumber": 1
+          },
+          {
+            "id": "M3",
+            "roundIndex": 0,
             "matchIndex": 5,
-            "title": "Babak 16 Besar 6",
+            "title": "Match 3 • Babak 16 Besar (Kanan)",
+            "team1": null,
+            "team2": null,
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "nextMatchId": "M9",
+            "nextSlot": "team2",
+            "matchNumber": 3
+          },
+          {
+            "id": "M5",
+            "roundIndex": 0,
+            "matchIndex": 6,
+            "title": "Match 5 • Babak 16 Besar (Kanan)",
             "team1": null,
             "team2": null,
             "score1": null,
@@ -95,28 +116,14 @@
             "status": "WAITING",
             "winnerTeamId": null,
             "nextMatchId": "M11",
-            "nextSlot": "team2"
+            "nextSlot": "team1",
+            "matchNumber": 5
           },
           {
             "id": "M7",
             "roundIndex": 0,
-            "matchIndex": 6,
-            "title": "Babak 16 Besar 7",
-            "team1": null,
-            "team2": null,
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "nextMatchId": "M12",
-            "nextSlot": "team1"
-          },
-          {
-            "id": "M8",
-            "roundIndex": 0,
             "matchIndex": 7,
-            "title": "Babak 16 Besar 8",
+            "title": "Match 7 • Babak 16 Besar (Kanan)",
             "team1": null,
             "team2": null,
             "score1": null,
@@ -124,8 +131,9 @@
             "matchId": null,
             "status": "WAITING",
             "winnerTeamId": null,
-            "nextMatchId": "M12",
-            "nextSlot": "team2"
+            "nextMatchId": "M11",
+            "nextSlot": "team2",
+            "matchNumber": 7
           }
         ]
       },
@@ -133,16 +141,16 @@
         "name": "Perempat Final",
         "matches": [
           {
-            "id": "M9",
+            "id": "M12",
             "roundIndex": 1,
             "matchIndex": 0,
-            "title": "Perempat Final 1",
+            "title": "Match 12 • Perempat Final (Kiri)",
             "team1": {
-              "name": "Pemenang M1",
+              "name": "Pemenang Match 8",
               "isPlaceholder": true
             },
             "team2": {
-              "name": "Pemenang M2",
+              "name": "Pemenang Match 6",
               "isPlaceholder": true
             },
             "score1": null,
@@ -150,20 +158,43 @@
             "matchId": null,
             "status": "WAITING",
             "winnerTeamId": null,
-            "nextMatchId": "M13",
-            "nextSlot": "team1"
+            "nextMatchId": "M14",
+            "nextSlot": "team1",
+            "matchNumber": 12
           },
           {
             "id": "M10",
             "roundIndex": 1,
             "matchIndex": 1,
-            "title": "Perempat Final 2",
+            "title": "Match 10 • Perempat Final (Kiri)",
             "team1": {
-              "name": "Pemenang M3",
+              "name": "Pemenang Match 4",
               "isPlaceholder": true
             },
             "team2": {
-              "name": "Pemenang M4",
+              "name": "Pemenang Match 2",
+              "isPlaceholder": true
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "nextMatchId": "M14",
+            "nextSlot": "team2",
+            "matchNumber": 10
+          },
+          {
+            "id": "M9",
+            "roundIndex": 1,
+            "matchIndex": 2,
+            "title": "Match 9 • Perempat Final (Kanan)",
+            "team1": {
+              "name": "Pemenang Match 1",
+              "isPlaceholder": true
+            },
+            "team2": {
+              "name": "Pemenang Match 3",
               "isPlaceholder": true
             },
             "score1": null,
@@ -172,40 +203,20 @@
             "status": "WAITING",
             "winnerTeamId": null,
             "nextMatchId": "M13",
-            "nextSlot": "team2"
+            "nextSlot": "team1",
+            "matchNumber": 9
           },
           {
             "id": "M11",
             "roundIndex": 1,
-            "matchIndex": 2,
-            "title": "Perempat Final 3",
-            "team1": {
-              "name": "Pemenang M5",
-              "isPlaceholder": true
-            },
-            "team2": {
-              "name": "Pemenang M6",
-              "isPlaceholder": true
-            },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "nextMatchId": "M14",
-            "nextSlot": "team1"
-          },
-          {
-            "id": "M12",
-            "roundIndex": 1,
             "matchIndex": 3,
-            "title": "Perempat Final 4",
+            "title": "Match 11 • Perempat Final (Kanan)",
             "team1": {
-              "name": "Pemenang M7",
+              "name": "Pemenang Match 5",
               "isPlaceholder": true
             },
             "team2": {
-              "name": "Pemenang M8",
+              "name": "Pemenang Match 7",
               "isPlaceholder": true
             },
             "score1": null,
@@ -213,8 +224,9 @@
             "matchId": null,
             "status": "WAITING",
             "winnerTeamId": null,
-            "nextMatchId": "M14",
-            "nextSlot": "team2"
+            "nextMatchId": "M13",
+            "nextSlot": "team2",
+            "matchNumber": 11
           }
         ]
       },
@@ -222,37 +234,16 @@
         "name": "Semifinal",
         "matches": [
           {
-            "id": "M13",
-            "roundIndex": 2,
-            "matchIndex": 0,
-            "title": "Semifinal 1",
-            "team1": {
-              "name": "Pemenang M9",
-              "isPlaceholder": true
-            },
-            "team2": {
-              "name": "Pemenang M10",
-              "isPlaceholder": true
-            },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "nextMatchId": "M15",
-            "nextSlot": "team1"
-          },
-          {
             "id": "M14",
             "roundIndex": 2,
-            "matchIndex": 1,
-            "title": "Semifinal 2",
+            "matchIndex": 0,
+            "title": "Match 14 • Semifinal 1 (Kiri)",
             "team1": {
-              "name": "Pemenang M11",
+              "name": "Pemenang Match 12",
               "isPlaceholder": true
             },
             "team2": {
-              "name": "Pemenang M12",
+              "name": "Pemenang Match 10",
               "isPlaceholder": true
             },
             "score1": null,
@@ -260,8 +251,31 @@
             "matchId": null,
             "status": "WAITING",
             "winnerTeamId": null,
-            "nextMatchId": "M15",
-            "nextSlot": "team2"
+            "nextMatchId": "M16",
+            "nextSlot": "team1",
+            "matchNumber": 14
+          },
+          {
+            "id": "M13",
+            "roundIndex": 2,
+            "matchIndex": 1,
+            "title": "Match 13 • Semifinal 2 (Kanan)",
+            "team1": {
+              "name": "Pemenang Match 9",
+              "isPlaceholder": true
+            },
+            "team2": {
+              "name": "Pemenang Match 11",
+              "isPlaceholder": true
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "nextMatchId": "M16",
+            "nextSlot": "team2",
+            "matchNumber": 13
           }
         ]
       },
@@ -269,16 +283,16 @@
         "name": "Final",
         "matches": [
           {
-            "id": "M15",
+            "id": "M16",
             "roundIndex": 3,
             "matchIndex": 0,
-            "title": "Final",
+            "title": "Match 16 • FINAL",
             "team1": {
-              "name": "Pemenang M13",
+              "name": "Pemenang Match 14",
               "isPlaceholder": true
             },
             "team2": {
-              "name": "Pemenang M14",
+              "name": "Pemenang Match 13",
               "isPlaceholder": true
             },
             "score1": null,
@@ -286,26 +300,27 @@
             "matchId": null,
             "status": "WAITING",
             "winnerTeamId": null,
-            "nextMatchId": null
+            "nextMatchId": null,
+            "matchNumber": 16
           }
         ]
       }
     ],
     "champion": null,
-    "updatedAt": "2026-09-06T14:20:18.692Z",
+    "updatedAt": "2026-09-10T23:59:41.042Z",
     "layoutMode": "CENTER_SPLIT",
     "includeThirdPlace": true,
     "thirdPlaceMatch": {
-      "id": "M-BRONZE",
+      "id": "M15",
       "roundIndex": 3,
       "matchIndex": 1,
-      "title": "Perebutan Juara 3 (Bronze Match)",
+      "title": "Match 15 • Perebutan Juara 3",
       "team1": {
-        "name": "Kalah Semifinal 1",
+        "name": "Kalah Match 14",
         "isPlaceholder": true
       },
       "team2": {
-        "name": "Kalah Semifinal 2",
+        "name": "Kalah Match 13",
         "isPlaceholder": true
       },
       "score1": null,
@@ -314,7 +329,8 @@
       "status": "WAITING",
       "winnerTeamId": null,
       "loserTeamId": null,
-      "nextMatchId": null
+      "nextMatchId": null,
+      "matchNumber": 15
     },
     "thirdPlaceWinner": null
   },
@@ -329,10 +345,10 @@
         "name": "Semifinal",
         "matches": [
           {
-            "id": "M1",
+            "id": "M2",
             "roundIndex": 0,
             "matchIndex": 0,
-            "title": "Semifinal 1",
+            "title": "Match 2 • Semifinal 1 (Kiri)",
             "team1": {
               "id": "d18e93c7-206f-461d-adb2-60053cb4ddfb",
               "name": "TIM UMC PUTRI"
@@ -347,14 +363,15 @@
             "status": "READY",
             "winnerTeamId": null,
             "loserTeamId": null,
-            "nextMatchId": "M3",
-            "nextSlot": "team1"
+            "nextMatchId": "M4",
+            "nextSlot": "team1",
+            "matchNumber": 2
           },
           {
-            "id": "M2",
+            "id": "M1",
             "roundIndex": 0,
             "matchIndex": 1,
-            "title": "Semifinal 2",
+            "title": "Match 1 • Semifinal 2 (Kanan)",
             "team1": {
               "id": "5a246336-dad8-43ef-af37-0c5a8b89115d",
               "name": "TIM MEDUSA (Putri)"
@@ -369,8 +386,9 @@
             "status": "READY",
             "winnerTeamId": null,
             "loserTeamId": null,
-            "nextMatchId": "M3",
-            "nextSlot": "team2"
+            "nextMatchId": "M4",
+            "nextSlot": "team2",
+            "matchNumber": 1
           }
         ]
       },
@@ -378,16 +396,16 @@
         "name": "Final",
         "matches": [
           {
-            "id": "M3",
+            "id": "M4",
             "roundIndex": 1,
             "matchIndex": 0,
-            "title": "Final",
+            "title": "Match 4 • FINAL",
             "team1": {
-              "name": "Pemenang M1",
+              "name": "Pemenang Match 2",
               "isPlaceholder": true
             },
             "team2": {
-              "name": "Pemenang M2",
+              "name": "Pemenang Match 1",
               "isPlaceholder": true
             },
             "score1": null,
@@ -396,22 +414,23 @@
             "status": "WAITING",
             "winnerTeamId": null,
             "loserTeamId": null,
-            "nextMatchId": null
+            "nextMatchId": null,
+            "matchNumber": 4
           }
         ]
       }
     ],
     "thirdPlaceMatch": {
-      "id": "M-BRONZE",
+      "id": "M3",
       "roundIndex": 1,
       "matchIndex": 1,
-      "title": "Perebutan Juara 3 (Bronze Match)",
+      "title": "Match 3 • Perebutan Juara 3",
       "team1": {
-        "name": "Kalah Semifinal 1",
+        "name": "Kalah Match 2",
         "isPlaceholder": true
       },
       "team2": {
-        "name": "Kalah Semifinal 2",
+        "name": "Kalah Match 1",
         "isPlaceholder": true
       },
       "score1": null,
@@ -420,11 +439,12 @@
       "status": "WAITING",
       "winnerTeamId": null,
       "loserTeamId": null,
-      "nextMatchId": null
+      "nextMatchId": null,
+      "matchNumber": 3
     },
     "champion": null,
     "runnerUp": null,
     "thirdPlaceWinner": null,
-    "updatedAt": "2026-09-06T14:20:51.493Z"
+    "updatedAt": "2026-09-10T23:59:41.044Z"
   }
 }

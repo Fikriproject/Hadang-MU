@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { detectTeamCategory, type Category } from '@/lib/categories'
+import { getNextMatchNumber, getDefaultMatchName } from '@/lib/match-number'
 
 export type CreateMatchState = {
   error?: string
@@ -14,7 +16,7 @@ export async function createMatch(
 ): Promise<CreateMatchState> {
   const supabase = await createClient()
   
-  const name = (formData.get('name') as string)?.trim()
+  let name = (formData.get('name') as string)?.trim()
   const team_1_id = ((formData.get('team_1_id') || formData.get('team_attack_id')) as string)?.trim()
   const team_2_id = ((formData.get('team_2_id') || formData.get('team_defense_id')) as string)?.trim()
   const first_attacker = formData.get('first_attacker') as string
@@ -24,7 +26,7 @@ export async function createMatch(
   const scheduled_time = formData.get('scheduled_time') as string
 
   // Simple validation
-  if (!name || !team_1_id || !team_2_id || !jury_1_id || !jury_2_id || !scheduled_date || !scheduled_time) {
+  if (!team_1_id || !team_2_id || !jury_1_id || !jury_2_id || !scheduled_date || !scheduled_time) {
     return { error: 'Semua kolom wajib diisi.' }
   }
 
@@ -43,11 +45,32 @@ export async function createMatch(
     .in('id', [team_1_id, team_2_id])
 
   if (selectedTeams && selectedTeams.length === 2) {
-    const isPutri1 = selectedTeams[0].name.toLowerCase().includes('putri')
-    const isPutri2 = selectedTeams[1].name.toLowerCase().includes('putri')
+    const isPutri1 = detectTeamCategory(selectedTeams[0]) === 'PUTRI'
+    const isPutri2 = detectTeamCategory(selectedTeams[1]) === 'PUTRI'
     if (isPutri1 !== isPutri2) {
       return { error: 'Tidak dapat membuat pertandingan silang antara Tim Putra dan Tim Putri. Pilih tim dalam kategori yang sama.' }
     }
+
+    // Auto-generate name if empty
+    if (!name) {
+      const matchCategory: Category = isPutri1 ? 'PUTRI' : 'PUTRA'
+      const { data: existingMatches } = await supabase
+        .from('matches')
+        .select(`
+          id,
+          name,
+          round,
+          created_at,
+          team_attack:team_attack_id(id, name),
+          team_defense:team_defense_id(id, name)
+        `)
+      const nextNum = getNextMatchNumber(existingMatches || [], matchCategory)
+      name = getDefaultMatchName(matchCategory, nextNum)
+    }
+  }
+
+  if (!name) {
+    return { error: 'Nama pertandingan wajib diisi.' }
   }
 
   const team_attack_id = first_attacker === 'team_2' ? team_2_id : team_1_id

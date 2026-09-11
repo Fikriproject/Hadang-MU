@@ -11,6 +11,7 @@ import {
   generateBracketStructure,
   shuffleArray,
   reconcileBracketWithDb,
+  applyBracketMatchNumbering,
 } from '@/lib/bracket'
 import { detectTeamCategory } from '@/lib/categories'
 
@@ -78,6 +79,10 @@ export async function getBracket(category: BracketCategory) {
 
     if (matchesErr) {
       console.warn('Warning: Gagal fetch matches untuk bracket:', matchesErr.message)
+    }
+
+    if (bracket) {
+      bracket = applyBracketMatchNumbering(bracket)
     }
 
     if (bracket && rawMatches) {
@@ -187,11 +192,12 @@ export async function updateBracketLayout(
   layoutMode: BracketLayoutMode
 ): Promise<BracketActionResult> {
   const store = await readBracketsStore()
-  const bracket = store[category]
+  let bracket = store[category]
 
   if (!bracket) return { error: 'Bagan belum dibuat.' }
 
   bracket.layoutMode = layoutMode
+  bracket = applyBracketMatchNumbering(bracket)
   bracket.updatedAt = new Date().toISOString()
   store[category] = bracket
   await writeBracketsStore(store)
@@ -208,7 +214,7 @@ export async function updateIncludeThirdPlace(
   includeThirdPlace: boolean
 ): Promise<BracketActionResult> {
   const store = await readBracketsStore()
-  const bracket = store[category]
+  let bracket = store[category]
 
   if (!bracket) return { error: 'Bagan belum dibuat.' }
 
@@ -234,6 +240,7 @@ export async function updateIncludeThirdPlace(
     }
   }
 
+  bracket = applyBracketMatchNumbering(bracket)
   bracket.updatedAt = new Date().toISOString()
   store[category] = bracket
   await writeBracketsStore(store)

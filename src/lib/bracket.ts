@@ -11,6 +11,7 @@ export interface BracketMatch {
   id: string // e.g. "M1", "M2", "M-BRONZE"
   roundIndex: number
   matchIndex: number
+  matchNumber?: number // Urutan pertandingan turnamen (1, 2, 3, ...)
   title: string
   team1: TeamSlot | null
   team2: TeamSlot | null
@@ -180,7 +181,7 @@ export function generateBracketStructure(
     }
   }
 
-  return {
+  const bracketData: BracketData = {
     category,
     teamCount,
     layoutMode,
@@ -193,6 +194,149 @@ export function generateBracketStructure(
     thirdPlaceWinner: null,
     updatedAt: new Date().toISOString(),
   }
+
+  return applyBracketMatchNumbering(bracketData)
+}
+
+/**
+ * Mengisi/memperbarui penomoran pertandingan (matchNumber), ID, dan Title:
+ * Khusus layout CENTER_SPLIT (Kanan-Kiri ke Tengah Silang):
+ * - Jika Match 1 di Kanan Atas, maka Match 2 di Kiri Bawah, Match 3 di Kanan Bawah/berikutnya, Match 4 di Kiri Atas/berikutnya, dst.
+ * - Semifinal Kanan: Match berikutnya
+ * - Semifinal Kiri: Match berikutnya
+ * - Perebutan Juara 3 (Bronze): Match sebelum Final (jika ada)
+ * - Final: Match terakhir puncak turnamen
+ */
+export function applyBracketMatchNumbering(bracket: BracketData): BracketData {
+  if (!bracket || !bracket.rounds || bracket.rounds.length === 0) return bracket
+
+  const numRounds = bracket.rounds.length
+  const finalRoundIndex = numRounds - 1
+  let currentMatchNumber = 1
+
+  if (bracket.layoutMode === 'CENTER_SPLIT') {
+    // 1. Ronde-ronde sebelum Final (Round 0 s/d Semifinal)
+    for (let r = 0; r < finalRoundIndex; r++) {
+      const round = bracket.rounds[r]
+      const matches = round.matches
+      const count = matches.length
+      const half = Math.ceil(count / 2)
+
+      // Silang: Kanan (atas ke bawah) & Kiri (bawah ke atas)
+      for (let i = 0; i < half; i++) {
+        // Kanan: index half + i
+        const rightMatchIndex = half + i
+        if (rightMatchIndex < count) {
+          const mRight = matches[rightMatchIndex]
+          const mNum = currentMatchNumber++
+          mRight.matchNumber = mNum
+          mRight.id = `M${mNum}`
+          const isSemi = r === finalRoundIndex - 1
+          const stageName = isSemi ? 'Semifinal 2 (Kanan)' : `${round.name} (Kanan)`
+          mRight.title = `Match ${mNum} • ${stageName}`
+        }
+
+        // Kiri: index (half - 1) - i
+        const leftMatchIndex = half - 1 - i
+        if (leftMatchIndex >= 0) {
+          const mLeft = matches[leftMatchIndex]
+          const mNum = currentMatchNumber++
+          mLeft.matchNumber = mNum
+          mLeft.id = `M${mNum}`
+          const isSemi = r === finalRoundIndex - 1
+          const stageName = isSemi ? 'Semifinal 1 (Kiri)' : `${round.name} (Kiri)`
+          mLeft.title = `Match ${mNum} • ${stageName}`
+        }
+      }
+    }
+
+    // 2. Perebutan Juara 3 (Bronze Match) jika diikutsertakan
+    if (bracket.includeThirdPlace && bracket.thirdPlaceMatch) {
+      const bronzeNum = currentMatchNumber++
+      bracket.thirdPlaceMatch.matchNumber = bronzeNum
+      bracket.thirdPlaceMatch.id = `M${bronzeNum}`
+      bracket.thirdPlaceMatch.title = `Match ${bronzeNum} • Perebutan Juara 3`
+    }
+
+    // 3. Final Match
+    const finalRound = bracket.rounds[finalRoundIndex]
+    if (finalRound && finalRound.matches.length > 0) {
+      const finalMatch = finalRound.matches[0]
+      const finalNum = currentMatchNumber++
+      finalMatch.matchNumber = finalNum
+      finalMatch.id = `M${finalNum}`
+      finalMatch.title = `Match ${finalNum} • FINAL`
+    }
+  } else {
+    // Layout LEFT_TO_RIGHT: Penomoran lurus berurutan dari atas ke bawah
+    for (let r = 0; r < finalRoundIndex; r++) {
+      const round = bracket.rounds[r]
+      for (let m = 0; m < round.matches.length; m++) {
+        const match = round.matches[m]
+        const mNum = currentMatchNumber++
+        match.matchNumber = mNum
+        match.id = `M${mNum}`
+        match.title = `Match ${mNum} • ${round.name} ${round.matches.length > 1 ? m + 1 : ''}`.trim()
+      }
+    }
+
+    if (bracket.includeThirdPlace && bracket.thirdPlaceMatch) {
+      const bronzeNum = currentMatchNumber++
+      bracket.thirdPlaceMatch.matchNumber = bronzeNum
+      bracket.thirdPlaceMatch.id = `M${bronzeNum}`
+      bracket.thirdPlaceMatch.title = `Match ${bronzeNum} • Perebutan Juara 3`
+    }
+
+    const finalRound = bracket.rounds[finalRoundIndex]
+    if (finalRound && finalRound.matches.length > 0) {
+      const finalMatch = finalRound.matches[0]
+      const finalNum = currentMatchNumber++
+      finalMatch.matchNumber = finalNum
+      finalMatch.id = `M${finalNum}`
+      finalMatch.title = `Match ${finalNum} • FINAL`
+    }
+  }
+
+  // 4. Perbarui koneksi parent (nextMatchId dan nama placeholder)
+  for (let r = 0; r < numRounds - 1; r++) {
+    const currentRound = bracket.rounds[r]
+    const nextRound = bracket.rounds[r + 1]
+
+    for (let m = 0; m < currentRound.matches.length; m++) {
+      const nextMatchIndex = Math.floor(m / 2)
+      const nextSlot = m % 2 === 0 ? 'team1' : 'team2'
+      const nextMatch = nextRound.matches[nextMatchIndex]
+
+      if (nextMatch) {
+        currentRound.matches[m].nextMatchId = nextMatch.id
+        currentRound.matches[m].nextSlot = nextSlot
+
+        const winPlaceholder = `Pemenang Match ${currentRound.matches[m].matchNumber || currentRound.matches[m].id}`
+        if (nextSlot === 'team1' && nextMatch.team1?.isPlaceholder) {
+          nextMatch.team1.name = winPlaceholder
+        } else if (nextSlot === 'team2' && nextMatch.team2?.isPlaceholder) {
+          nextMatch.team2.name = winPlaceholder
+        }
+      }
+    }
+  }
+
+  // 5. Update nama placeholder di Perebutan Juara 3
+  if (bracket.includeThirdPlace && bracket.thirdPlaceMatch && numRounds >= 2) {
+    const semiRound = bracket.rounds[numRounds - 2]
+    if (semiRound && semiRound.matches.length >= 2) {
+      const semi1Match = semiRound.matches[0]
+      const semi2Match = semiRound.matches[1]
+      if (bracket.thirdPlaceMatch.team1?.isPlaceholder) {
+        bracket.thirdPlaceMatch.team1.name = `Kalah Match ${semi1Match.matchNumber || 'Semi 1'}`
+      }
+      if (bracket.thirdPlaceMatch.team2?.isPlaceholder) {
+        bracket.thirdPlaceMatch.team2.name = `Kalah Match ${semi2Match.matchNumber || 'Semi 2'}`
+      }
+    }
+  }
+
+  return bracket
 }
 
 /**
@@ -212,11 +356,15 @@ export function reconcileBracketWithDb(
   }[]
 ): BracketData {
   const updatedBracket: BracketData = JSON.parse(JSON.stringify(bracket))
-  const matchMap = new Map<string, BracketMatch>()
 
   // Ensure layoutMode & includeThirdPlace have defaults if missing in old json
   if (!updatedBracket.layoutMode) updatedBracket.layoutMode = 'CENTER_SPLIT'
   if (updatedBracket.includeThirdPlace === undefined) updatedBracket.includeThirdPlace = true
+
+  // Pastikan penomoran silang matchNumber & title terbaru diaplikasikan
+  applyBracketMatchNumbering(updatedBracket)
+
+  const matchMap = new Map<string, BracketMatch>()
 
   // Index all bracket matches
   for (const round of updatedBracket.rounds) {

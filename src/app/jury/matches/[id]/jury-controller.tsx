@@ -4,8 +4,9 @@ import React, { useState, useEffect, useTransition, useMemo, useRef } from 'reac
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { addJuryScore, cancelRecentScore } from './actions'
-import { updateMatchStatus, toggleAttackingTeam } from '@/app/admin/matches/[id]/actions'
+import { toggleAttackingTeam } from '@/app/admin/matches/[id]/actions'
 import { promptUndoScoreReason } from '@/lib/sweetalert'
+import { formatJuryDisplayName } from '@/lib/formatters'
 
 interface Team {
   id: string
@@ -445,7 +446,7 @@ export default function JuryController({
       team_attack_id: nextAttackId,
       team_defense_id: nextDefenseId,
     }))
-    setToastMessage({ text: `Posisi ditukar! Giliran serang: ${nextAttackName}`, type: 'success' })
+    setToastMessage({ text: `Posisi ditukar! Penyerang: ${nextAttackName}`, type: 'success' })
 
     toggleAttackingTeam(match.id, nextAttackId).then((res) => {
       if (res?.error) {
@@ -456,27 +457,6 @@ export default function JuryController({
     })
   }
 
-  // Action: Change Match Status (Mulai / Jeda / Lanjutkan / Selesai)
-  const handleStatusChange = (newStatus: string) => {
-    if (isFinished || isPending) return
-    startTransition(async () => {
-      const res = await updateMatchStatus(match.id, newStatus)
-      if (res?.error) {
-        setToastMessage({ text: res.error, type: 'error' })
-      } else {
-        setMatch((prev) => ({ ...prev, status: newStatus as any }))
-        setToastMessage({
-          text:
-            newStatus === 'LIVE'
-              ? 'Pertandingan dimulai (LIVE)!'
-              : newStatus === 'PAUSED'
-              ? 'Pertandingan dijeda (PAUSED).'
-              : 'Pertandingan telah diselesaikan.',
-          type: 'success',
-        })
-      }
-    })
-  }
 
   // Count Card Component for Jury Points (1 row, 2 columns)
   const renderJuryCountCards = (isAtTop = false) => (
@@ -525,7 +505,7 @@ export default function JuryController({
               textOverflow: 'ellipsis',
             }}
           >
-            {match.jury_1?.name || 'Scoring 1'}
+            {formatJuryDisplayName(match.jury_1?.name) || 'Scoring 1'}
           </div>
         </div>
         <div
@@ -577,7 +557,7 @@ export default function JuryController({
               textOverflow: 'ellipsis',
             }}
           >
-            {match.jury_2?.name || 'Scoring 2'}
+            {formatJuryDisplayName(match.jury_2?.name) || 'Scoring 2'}
           </div>
         </div>
         <div
@@ -775,7 +755,7 @@ export default function JuryController({
             ? '⏸ Pertandingan dijeda Admin. Tombol input dinonaktifkan.'
             : match.status === 'FINISHED'
             ? '🏁 Pertandingan telah selesai.'
-            : '⏳ Pertandingan belum LIVE (Status: ' + match.status + ').'}
+            : '⏳ Pertandingan belum LIVE (Status: ' + match.status + '). Menunggu Admin memulai pertandingan.'}
         </div>
       )}
 
@@ -820,7 +800,7 @@ export default function JuryController({
                   display: 'inline-block',
                 }}
               >
-                ⚡ SERANG
+                PENYERANG
               </span>
             ) : (
               <span
@@ -901,7 +881,7 @@ export default function JuryController({
                   display: 'inline-block',
                 }}
               >
-                ⚡ SERANG
+                PENYERANG
               </span>
             ) : (
               <span
@@ -1130,194 +1110,6 @@ export default function JuryController({
           <span>BATALKAN POIN TERAKHIR (UNDO)</span>
         </button>
 
-        {/* 3. ROW: 2 BUTTONS DALAM 1 BARIS (MULAI/SELESAI & JEDA/LANJUTKAN) */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.45rem', width: '100%' }}>
-          {/* Button Mulai / Selesai */}
-          {isFinished ? (
-            <button
-              type="button"
-              disabled
-              className="touch-manipulation"
-              style={{
-                height: '44px',
-                borderRadius: '10px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--surface-subtle)',
-                color: 'var(--text-muted)',
-                fontWeight: 800,
-                fontSize: '0.875rem',
-                cursor: 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                opacity: 0.4,
-              }}
-            >
-              <span>🏁</span>
-              <span>SELESAI</span>
-            </button>
-          ) : match.status !== 'LIVE' && match.status !== 'PAUSED' ? (
-            <button
-              type="button"
-              onClick={() => handleStatusChange('LIVE')}
-              disabled={isPending}
-              className="touch-manipulation"
-              style={{
-                height: '44px',
-                borderRadius: '10px',
-                border: '2px solid #15803D',
-                backgroundColor: '#16A34A',
-                color: 'white',
-                fontWeight: 800,
-                fontSize: '0.875rem',
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                boxShadow: '0 2px 8px rgba(22, 163, 74, 0.3)',
-                transition: 'all 0.12s ease',
-              }}
-            >
-              <span>▶</span>
-              <span>MULAI</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm('Apakah Anda yakin ingin menyelesaikan pertandingan ini?')) {
-                  handleStatusChange('FINISHED')
-                }
-              }}
-              disabled={isPending}
-              className="touch-manipulation"
-              style={{
-                height: '44px',
-                borderRadius: '10px',
-                border: '2px solid #B91C1C',
-                backgroundColor: '#DC2626',
-                color: 'white',
-                fontWeight: 800,
-                fontSize: '0.875rem',
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)',
-                transition: 'all 0.12s ease',
-              }}
-            >
-              <span>⏹</span>
-              <span>SELESAI</span>
-            </button>
-          )}
-
-          {/* Button Jeda / Lanjutkan */}
-          {isFinished ? (
-            <button
-              type="button"
-              disabled
-              className="touch-manipulation"
-              style={{
-                height: '44px',
-                borderRadius: '10px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--surface-subtle)',
-                color: 'var(--text-muted)',
-                fontWeight: 800,
-                fontSize: '0.875rem',
-                cursor: 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                opacity: 0.4,
-              }}
-            >
-              <span>⏸</span>
-              <span>JEDA</span>
-            </button>
-          ) : match.status === 'LIVE' ? (
-            <button
-              type="button"
-              onClick={() => handleStatusChange('PAUSED')}
-              disabled={isPending}
-              className="touch-manipulation"
-              style={{
-                height: '44px',
-                borderRadius: '10px',
-                border: '2px solid #CA8A04',
-                backgroundColor: '#EAB308',
-                color: '#000',
-                fontWeight: 800,
-                fontSize: '0.875rem',
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                boxShadow: '0 2px 8px rgba(234, 179, 8, 0.3)',
-                transition: 'all 0.12s ease',
-              }}
-            >
-              <span>⏸</span>
-              <span>JEDA</span>
-            </button>
-          ) : match.status === 'PAUSED' ? (
-            <button
-              type="button"
-              onClick={() => handleStatusChange('LIVE')}
-              disabled={isPending}
-              className="touch-manipulation"
-              style={{
-                height: '44px',
-                borderRadius: '10px',
-                border: '2px solid #15803D',
-                backgroundColor: '#16A34A',
-                color: 'white',
-                fontWeight: 800,
-                fontSize: '0.875rem',
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                boxShadow: '0 2px 8px rgba(22, 163, 74, 0.3)',
-                transition: 'all 0.12s ease',
-              }}
-            >
-              <span>▶</span>
-              <span>LANJUTKAN</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="touch-manipulation"
-              style={{
-                height: '44px',
-                borderRadius: '10px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--surface-subtle)',
-                color: 'var(--text-muted)',
-                fontWeight: 800,
-                fontSize: '0.875rem',
-                cursor: 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.35rem',
-                opacity: 0.5,
-              }}
-            >
-              <span>⏸</span>
-              <span>JEDA</span>
-            </button>
-          )}
-        </div>
       </div>
 
       {/* When NOT finished: Keep Count Cards at the BOTTOM */}

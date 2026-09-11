@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import ThemeToggle from '@/components/theme-toggle'
+import { formatJuryDisplayName } from '@/lib/categories'
 
 interface Team {
   id: string
@@ -454,7 +455,7 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
                 gap: '0.4rem',
               }}
             >
-              ⚡ GILIRAN SERANG
+              PENYERANG
             </span>
           ) : (
             <span
@@ -588,7 +589,7 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
                 gap: '0.4rem',
               }}
             >
-              ⚡ GILIRAN SERANG
+              PENYERANG
             </span>
           ) : (
             <span
@@ -657,10 +658,10 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', fontSize: 'clamp(0.75rem, 1.2vw, 0.95rem)' }}>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Scoring 1: <strong style={{ color: 'var(--text-primary)' }}>{match.jury_1?.name || '-'}</strong>
+            Scoring 1: <strong style={{ color: 'var(--text-primary)' }}>{formatJuryDisplayName(match.jury_1?.name) || '-'}</strong>
           </span>
           <span style={{ color: 'var(--text-secondary)' }}>
-            Scoring 2: <strong style={{ color: 'var(--text-primary)' }}>{match.jury_2?.name || '-'}</strong>
+            Scoring 2: <strong style={{ color: 'var(--text-primary)' }}>{formatJuryDisplayName(match.jury_2?.name) || '-'}</strong>
           </span>
         </div>
 

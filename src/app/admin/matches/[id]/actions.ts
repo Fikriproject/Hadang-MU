@@ -12,6 +12,17 @@ export async function updateMatchStatus(matchId: string, status: string) {
     return { error: 'Sesi login tidak valid. Silakan login kembali.' }
   }
 
+  // Check admin role permission
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.role !== 'ADMIN') {
+    return { error: 'Hanya Admin yang berwenang mengubah status pertandingan (Mulai, Jeda, Selesai).' }
+  }
+
   const adminClient = createAdminClient()
   const updateData: Record<string, any> = { status, updated_at: new Date().toISOString() }
 
