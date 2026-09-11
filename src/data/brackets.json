@@ -12,12 +12,20 @@
             "roundIndex": 0,
             "matchIndex": 0,
             "title": "Match 8 • Babak 16 Besar (Kiri)",
-            "team1": null,
-            "team2": null,
+            "team1": {
+              "id": "f6e3be58-266b-4616-b658-484f118e9684",
+              "name": "Garuda Perkasa",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "id": "d67ea9f3-8046-4b85-a513-142aadd84765",
+              "name": "TIM OR (Putra)",
+              "isPlaceholder": false
+            },
             "score1": null,
             "score2": null,
             "matchId": null,
-            "status": "WAITING",
+            "status": "READY",
             "winnerTeamId": null,
             "nextMatchId": "M12",
             "nextSlot": "team1",
@@ -307,7 +315,7 @@
       }
     ],
     "champion": null,
-    "updatedAt": "2026-09-10T23:59:41.042Z",
+    "updatedAt": "2026-09-11T06:43:35.385Z",
     "layoutMode": "CENTER_SPLIT",
     "includeThirdPlace": true,
     "thirdPlaceMatch": {
