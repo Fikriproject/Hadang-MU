@@ -43,7 +43,7 @@ export async function addJuryScore(matchId: string, explicitTeamId?: string) {
       match_id: matchId,
       team_id: targetTeamId,
       jury_id: user.id,
-      event_type: 'HADANG_POINT',
+      event_type: targetTeamId === match.team_attack_id ? 'ATTACK_POINT' : 'DEFENSE_POINT',
       points: 1,
       status: 'ACTIVE',
     })

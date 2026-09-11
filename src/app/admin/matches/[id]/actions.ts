@@ -170,11 +170,21 @@ export async function manualAddScore(matchId: string, teamId: string, points: nu
   }
 
   const adminClient = createAdminClient()
+
+  // Fetch current match to determine attacking team
+  const { data: match } = await adminClient
+    .from('matches')
+    .select('team_attack_id')
+    .eq('id', matchId)
+    .single()
+
+  const isAttacking = match?.team_attack_id === teamId
+
   const { error } = await adminClient.from('score_events').insert({
     match_id: matchId,
     team_id: teamId,
     jury_id: user.id,
-    event_type: 'MANUAL_CONTROL',
+    event_type: isAttacking ? 'MANUAL_ATTACK_POINT' : 'MANUAL_DEFENSE_POINT',
     points: points,
     status: 'ACTIVE',
   })

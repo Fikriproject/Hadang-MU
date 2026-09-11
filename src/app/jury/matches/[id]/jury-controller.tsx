@@ -377,7 +377,7 @@ export default function JuryController({
       match_id: match.id,
       team_id: attackingId,
       jury_id: currentUserId,
-      event_type: 'HADANG_POINT',
+      event_type: 'ATTACK_POINT',
       points: 1,
       status: 'ACTIVE',
       created_at: new Date().toISOString(),
@@ -651,8 +651,9 @@ export default function JuryController({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0, marginLeft: '0.35rem' }}>
-          {/* Running Stopwatch Badge */}
+          {/* Running Stopwatch Badge (Hidden on mobile because mobile uses the prominent arena timer) */}
           <div
+            className="hide-on-mobile"
             style={{
               backgroundColor: isLive ? 'var(--success-subtle)' : match.status === 'PAUSED' ? 'var(--warning-subtle)' : 'var(--surface-subtle)',
               border: isLive ? '1.5px solid var(--success)' : match.status === 'PAUSED' ? '1.5px solid var(--warning)' : '1px solid var(--border-color)',
@@ -759,29 +760,59 @@ export default function JuryController({
         </div>
       )}
 
-      {/* Score Board: Compact & Highly Readable in bright sunlight */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr',
-          backgroundColor: 'var(--surface-color)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '12px',
-          padding: '0.75rem 0.5rem',
-          alignItems: 'center',
-          gap: '0.4rem',
-          boxShadow: 'var(--card-shadow)',
-          flexShrink: 0,
-        }}
-      >
+      {/* Score Board: Compact & Highly Readable in bright sunlight with Responsive Grid */}
+      <div className="scoring-scoreboard-arena">
+        {/* Prominent Live Timer Card (Spans full width on mobile) */}
+        <div className={`scoring-timer-card ${isLive ? 'is-live' : match.status === 'PAUSED' ? 'is-paused' : ''}`}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <span style={{ fontSize: '1.25rem' }}>⏱</span>
+            <span
+              className="scoring-timer-digits"
+              style={{
+                color: isLive ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-primary)',
+              }}
+            >
+              {elapsed}
+            </span>
+          </div>
+          <span
+            style={{
+              fontSize: '0.7rem',
+              fontWeight: 800,
+              padding: '0.2rem 0.65rem',
+              borderRadius: '9999px',
+              backgroundColor: isLive ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--badge-neutral-bg)',
+              color: isLive ? 'white' : match.status === 'PAUSED' ? 'black' : 'var(--badge-neutral-text)',
+              letterSpacing: '0.05em',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+            }}
+          >
+            {isLive && (
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: 'white',
+                  display: 'inline-block',
+                }}
+              />
+            )}
+            {isLive ? 'LIVE' : match.status === 'PAUSED' ? 'DIJEDA' : match.status}
+          </span>
+        </div>
+
         {/* TIM 1 (LEFT) */}
         <div
+          className="scoring-team-left"
           style={{
             textAlign: 'center',
-            padding: '0.4rem 0.25rem',
-            borderRadius: '8px',
+            padding: '0.5rem 0.35rem',
+            borderRadius: '10px',
             backgroundColor: isLeftAttacking ? 'rgba(34, 197, 94, 0.08)' : 'transparent',
-            border: isLeftAttacking ? '1.5px solid var(--success)' : '1px solid transparent',
+            border: isLeftAttacking ? '2px solid var(--success)' : '1px solid var(--border-color)',
             transition: 'all 0.2s',
           }}
         >
@@ -849,20 +880,21 @@ export default function JuryController({
           </div>
         </div>
 
-        {/* CENTER DIVIDER */}
-        <div style={{ textAlign: 'center', padding: '0 0.15rem' }}>
+        {/* CENTER DIVIDER (Hidden on mobile via CSS) */}
+        <div className="scoring-vs-divider">
           <div style={{ fontSize: '1.1rem', fontWeight: 900, color: 'var(--text-muted)' }}>VS</div>
           <div style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', fontWeight: 600 }}>SKOR</div>
         </div>
 
         {/* TIM 2 (RIGHT) */}
         <div
+          className="scoring-team-right"
           style={{
             textAlign: 'center',
-            padding: '0.4rem 0.25rem',
-            borderRadius: '8px',
+            padding: '0.5rem 0.35rem',
+            borderRadius: '10px',
             backgroundColor: isRightAttacking ? 'rgba(34, 197, 94, 0.08)' : 'transparent',
-            border: isRightAttacking ? '1.5px solid var(--success)' : '1px solid transparent',
+            border: isRightAttacking ? '2px solid var(--success)' : '1px solid var(--border-color)',
             transition: 'all 0.2s',
           }}
         >
