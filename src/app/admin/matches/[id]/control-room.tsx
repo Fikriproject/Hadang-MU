@@ -205,7 +205,7 @@ export default function ControlRoom({
   const isRightAttacking = match.team_attack_id === teamRight.id
 
   // Memoized score calculation for static Left & Right teams and per-jury totals
-  const { scoreLeft, scoreRight, activeEvents, pointsJury1, pointsJury2 } = useMemo(() => {
+  const { scoreLeft, scoreRight, activeEvents, pointsJury1, pointsJury2, statsLeft, statsRight } = useMemo(() => {
     const active = scoreEvents.filter((e) => e.status === 'ACTIVE')
     const sLeft = active
       .filter((e) => e.team_id === teamLeft.id)
@@ -221,12 +221,29 @@ export default function ControlRoom({
       .filter((e) => e.jury_id === match.jury_2_id)
       .reduce((sum, e) => sum + e.points, 0)
 
+    const getStats = (teamId: string) => {
+      const teamEvents = active.filter(e => e.team_id === teamId)
+      let attackPoints = 0
+      let defensePoints = 0
+      
+      teamEvents.forEach(e => {
+        if (e.event_type === 'DEFENSE_POINT' || e.event_type === 'MANUAL_DEFENSE_POINT') {
+          defensePoints += e.points
+        } else {
+          attackPoints += e.points
+        }
+      })
+      return { attackPoints, defensePoints }
+    }
+
     return {
       scoreLeft: sLeft,
       scoreRight: sRight,
       activeEvents: active,
       pointsJury1: pJ1,
       pointsJury2: pJ2,
+      statsLeft: getStats(teamLeft.id),
+      statsRight: getStats(teamRight.id),
     }
   }, [scoreEvents, teamLeft.id, teamRight.id, match.jury_1_id, match.jury_2_id])
 
@@ -437,55 +454,8 @@ export default function ControlRoom({
           </div>
         </div>
 
-        {/* Dedicated Live Stopwatch & TV / Scoring Shortcuts */}
+        {/* Dedicated Live TV / Scoring Shortcuts */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {/* Running Stopwatch Card */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              backgroundColor: 'var(--surface-color)',
-              border: match.status === 'LIVE' ? '2px solid var(--success)' : match.status === 'PAUSED' ? '1.5px solid var(--warning)' : '1px solid var(--border-color)',
-              padding: '0.5rem 1rem',
-              borderRadius: '10px',
-              boxShadow: match.status === 'LIVE' ? '0 0 16px rgba(34, 197, 94, 0.25)' : 'var(--card-shadow)',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <span style={{ fontSize: '1.4rem' }}>⏱</span>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span
-                style={{
-                  fontSize: '0.65rem',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
-                  color: match.status === 'LIVE' ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-secondary)',
-                }}
-              >
-                {match.status === 'LIVE'
-                  ? '● STOPWATCH JALAN'
-                  : match.status === 'PAUSED'
-                  ? '⏸ JEDA'
-                  : match.status === 'FINISHED'
-                  ? '⏹ WAKTU SELESAI'
-                  : 'STOPWATCH'}
-              </span>
-              <span
-                style={{
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                  fontSize: '1.45rem',
-                  fontWeight: 900,
-                  color: match.status === 'LIVE' ? 'var(--success)' : 'var(--text-primary)',
-                  letterSpacing: '0.05em',
-                  lineHeight: 1.1,
-                }}
-              >
-                {elapsed}
-              </span>
-            </div>
-          </div>
 
           <Link
             href={`/jury/matches/${match.id}`}
@@ -547,26 +517,12 @@ export default function ControlRoom({
       )}
 
       {/* Main Scoreboard Arena with Static Left & Right Positions */}
-      <div
-        className="admin-control-arena"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr',
-          backgroundColor: 'var(--surface-color)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '12px',
-          padding: '2rem',
-          alignItems: 'center',
-          gap: '1.5rem',
-          boxShadow: 'var(--card-shadow)',
-        }}
-      >
+      {/* Main Scoreboard Arena with Static Left & Right Positions & Dedicated Responsive Grid */}
+      <div className="admin-control-arena">
         {/* TIM 1 (LEFT) CARD */}
         <div
+          className="arena-team-left"
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
             textAlign: 'center',
             backgroundColor: isLeftAttacking ? 'rgba(34, 197, 94, 0.08)' : 'var(--surface-subtle)',
             border: isLeftAttacking ? '2.5px solid var(--success)' : '1px solid var(--border-color)',
@@ -574,6 +530,7 @@ export default function ControlRoom({
             borderRadius: '10px',
             padding: '1.5rem',
             transition: 'all 0.2s ease',
+            boxSizing: 'border-box',
           }}
         >
           {isLeftAttacking ? (
@@ -645,9 +602,59 @@ export default function ControlRoom({
           </button>
         </div>
 
+        {/* ARENA TIMER (Spans full width on mobile) */}
+        <div className="arena-timer">
+          <div
+            className="arena-timer-box"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.65rem',
+              backgroundColor: 'var(--surface-color)',
+              border: match.status === 'LIVE' ? '2px solid var(--success)' : match.status === 'PAUSED' ? '1.5px solid var(--warning)' : '1px solid var(--border-color)',
+              padding: '0.65rem 1.25rem',
+              borderRadius: '10px',
+              boxShadow: match.status === 'LIVE' ? '0 0 16px rgba(34, 197, 94, 0.25)' : 'var(--card-shadow)',
+              transition: 'all 0.2s ease',
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
+            <span style={{ fontSize: '1.35rem' }}>⏱</span>
+            <span
+              className="arena-timer-digits"
+              style={{
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                fontSize: '1.65rem',
+                fontWeight: 900,
+                color: match.status === 'LIVE' ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-primary)',
+                letterSpacing: '0.05em',
+                lineHeight: 1.1,
+              }}
+            >
+              {elapsed}
+            </span>
+            <span
+              style={{
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                padding: '0.2rem 0.6rem',
+                borderRadius: '9999px',
+                backgroundColor: match.status === 'LIVE' ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--badge-neutral-bg)',
+                color: match.status === 'LIVE' ? 'white' : match.status === 'PAUSED' ? 'black' : 'var(--badge-neutral-text)',
+                letterSpacing: '0.04em',
+                marginLeft: '0.25rem',
+              }}
+            >
+              {match.status}
+            </span>
+          </div>
+        </div>
+
         {/* CENTER DIVIDER & ATTACK/FOUL TOGGLE CONTROLS */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', minWidth: '220px' }}>
-          <span style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-muted)' }}>VS</span>
+        <div className="arena-center-controls">
+          <span className="arena-vs-text" style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-muted)' }}>VS</span>
 
           <div
             style={{
@@ -754,10 +761,8 @@ export default function ControlRoom({
 
         {/* TIM 2 (RIGHT) CARD */}
         <div
+          className="arena-team-right"
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
             textAlign: 'center',
             backgroundColor: isRightAttacking ? 'rgba(34, 197, 94, 0.08)' : 'var(--surface-subtle)',
             border: isRightAttacking ? '2.5px solid var(--success)' : '1px solid var(--border-color)',
@@ -765,6 +770,7 @@ export default function ControlRoom({
             borderRadius: '10px',
             padding: '1.5rem',
             transition: 'all 0.2s ease',
+            boxSizing: 'border-box',
           }}
         >
           {isRightAttacking ? (
@@ -1191,6 +1197,61 @@ export default function ControlRoom({
           </div>
         )}
       </div>
+
+      {/* Post-Match Summary (List Penyerang & Bertahan) */}
+      {match.status === 'FINISHED' && (
+        <div
+          style={{
+            backgroundColor: 'var(--surface-color)',
+            border: '2px solid var(--primary)',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            boxShadow: 'var(--card-shadow)',
+            marginTop: '1rem'
+          }}
+        >
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)', margin: '0 0 0.5rem 0' }}>Rekapitulasi Pertandingan</h3>
+            <p className="metadata-text" style={{ margin: 0 }}>Statistik perolehan poin saat menjadi penyerang dan bertahan.</p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+            {/* Tim 1 Summary */}
+            <div style={{ backgroundColor: 'var(--surface-subtle)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              <h4 style={{ fontSize: '1.25rem', fontWeight: 800, textAlign: 'center', marginBottom: '1rem', color: 'var(--text-primary)' }}>{teamLeft.name}</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Poin sebagai Penyerang</span>
+                <span style={{ fontWeight: 800, color: 'var(--success)' }}>{statsLeft.attackPoints}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Poin sebagai Bertahan</span>
+                <span style={{ fontWeight: 800, color: 'var(--success)' }}>{statsLeft.defensePoints}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', marginTop: '0.25rem' }}>
+                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Total Poin</span>
+                <span style={{ fontWeight: 900, fontSize: '1.25rem', color: 'var(--primary)' }}>{scoreLeft}</span>
+              </div>
+            </div>
+
+            {/* Tim 2 Summary */}
+            <div style={{ backgroundColor: 'var(--surface-subtle)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              <h4 style={{ fontSize: '1.25rem', fontWeight: 800, textAlign: 'center', marginBottom: '1rem', color: 'var(--text-primary)' }}>{teamRight.name}</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Poin sebagai Penyerang</span>
+                <span style={{ fontWeight: 800, color: 'var(--success)' }}>{statsRight.attackPoints}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Poin sebagai Bertahan</span>
+                <span style={{ fontWeight: 800, color: 'var(--success)' }}>{statsRight.defensePoints}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', marginTop: '0.25rem' }}>
+                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Total Poin</span>
+                <span style={{ fontWeight: 900, fontSize: '1.25rem', color: 'var(--primary)' }}>{scoreRight}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -258,12 +258,188 @@ div:where(.swal2-popup.swal2-hadang-popup) {
   }
 }
 
-/* Control Room & Admin Mobile Responsive Grid Utilities */
+/* Scoring Arena Desktop & Mobile Responsive Grid */
+.scoring-scoreboard-arena {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas:
+    "timer timer timer"
+    "team-left vs team-right";
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1rem;
+  align-items: center;
+  gap: 0.85rem;
+  box-shadow: var(--card-shadow);
+  flex-shrink: 0;
+}
+
+.scoring-timer-card {
+  grid-area: timer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background-color: var(--surface-subtle);
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.scoring-timer-card.is-live {
+  background-color: rgba(34, 197, 94, 0.08);
+  border-color: var(--success);
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.2);
+}
+
+.scoring-timer-card.is-paused {
+  background-color: rgba(245, 158, 11, 0.08);
+  border-color: var(--warning);
+}
+
+.scoring-timer-digits {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.scoring-team-left {
+  grid-area: team-left;
+}
+
+.scoring-team-right {
+  grid-area: team-right;
+}
+
+.scoring-vs-divider {
+  grid-area: vs;
+  text-align: center;
+  padding: 0 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .scoring-scoreboard-arena {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-areas:
+      "timer timer"
+      "team-left team-right" !important;
+    padding: 0.75rem 0.5rem !important;
+    gap: 0.5rem !important;
+  }
+
+  .scoring-timer-card {
+    padding: 0.6rem 0.75rem !important;
+  }
+
+  .scoring-timer-digits {
+    font-size: 1.85rem !important;
+  }
+
+  .scoring-vs-divider {
+    display: none !important;
+  }
+}
+
+/* Control Room & Admin Desktop & Mobile Responsive Grid */
+.admin-control-arena {
+  display: grid;
+  grid-template-columns: 1fr minmax(240px, 320px) 1fr;
+  grid-template-areas:
+    "team-left timer team-right"
+    "team-left controls team-right";
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.75rem;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: var(--card-shadow);
+}
+
+.arena-timer {
+  grid-area: timer;
+  width: 100%;
+}
+
+.arena-team-left {
+  grid-area: team-left;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.arena-team-right {
+  grid-area: team-right;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.arena-center-controls {
+  grid-area: controls;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 @media (max-width: 768px) {
   .admin-control-arena {
-    grid-template-columns: 1fr !important;
-    padding: 1.25rem 1rem !important;
-    gap: 1.25rem !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-areas:
+      "timer timer"
+      "team-left team-right"
+      "controls controls" !important;
+    gap: 0.75rem !important;
+    padding: 1rem 0.75rem !important;
+  }
+
+  .arena-timer {
+    grid-area: timer !important;
+  }
+
+  .arena-timer-box {
+    padding: 0.65rem 1rem !important;
+  }
+
+  .arena-timer-digits {
+    font-size: 2rem !important;
+  }
+
+  .arena-team-left,
+  .arena-team-right {
+    padding: 1rem 0.5rem !important;
+  }
+
+  .arena-team-left h2,
+  .arena-team-right h2 {
+    font-size: 1.15rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  .arena-team-left .tv-score,
+  .arena-team-right .tv-score {
+    font-size: 2.75rem !important;
+    margin: 0.25rem 0 !important;
+  }
+
+  .arena-center-controls {
+    grid-area: controls !important;
+    width: 100% !important;
+  }
+
+  .arena-vs-text {
+    display: none !important;
   }
 
   .admin-team-manager-grid {
