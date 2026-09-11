@@ -396,8 +396,24 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
         </div>
       </header>
 
-      {/* MAIN ARENA SCORE BOARD WITH STATIC LEFT & RIGHT POSITIONS & CENTER TIMER */}
+      {/* TOP CENTER LIVE TIMER (Diletakkan di tengah atas, di bawah header dan di atas card tim vs tim) */}
+      <div className="tv-arena-timer-container">
+        <div className={`tv-arena-timer-box ${isLive ? 'is-live' : match.status === 'PAUSED' ? 'is-paused' : ''}`}>
+          <span style={{ fontSize: 'clamp(1.2rem, 2.2vw, 1.8rem)' }}>⏱</span>
+          <span
+            className="tv-arena-timer-digits"
+            style={{
+              color: isLive ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-primary)',
+            }}
+          >
+            {matchDuration}
+          </span>
+        </div>
+      </div>
+
+      {/* MAIN ARENA SCORE BOARD WITH STATIC LEFT & RIGHT POSITIONS */}
       <main className="tv-scoreboard-arena">
+        
         {/* TIM 1 (LEFT) CARD */}
         <div
           className="tv-arena-team-left"
@@ -495,21 +511,6 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
           <span style={{ fontSize: 'clamp(0.75rem, 1.2vw, 1rem)', color: 'var(--text-secondary)', fontWeight: 600 }}>
             POIN HADANG
           </span>
-        </div>
-
-        {/* LIVE TIMER IN CENTER TOP */}
-        <div className="tv-arena-timer">
-          <div className={`tv-arena-timer-box ${isLive ? 'is-live' : match.status === 'PAUSED' ? 'is-paused' : ''}`}>
-            <span style={{ fontSize: 'clamp(1.1rem, 2vw, 1.8rem)' }}>⏱</span>
-            <span
-              className="tv-arena-timer-digits"
-              style={{
-                color: isLive ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-primary)',
-              }}
-            >
-              {matchDuration}
-            </span>
-          </div>
         </div>
 
         {/* CENTER VS BADGE */}
