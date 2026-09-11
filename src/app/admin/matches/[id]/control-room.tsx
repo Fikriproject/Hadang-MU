@@ -225,7 +225,7 @@ export default function ControlRoom({
       const teamEvents = active.filter(e => e.team_id === teamId)
       let attackPoints = 0
       let defensePoints = 0
-      
+
       teamEvents.forEach(e => {
         if (e.event_type === 'DEFENSE_POINT' || e.event_type === 'MANUAL_DEFENSE_POINT') {
           defensePoints += e.points
@@ -316,8 +316,8 @@ export default function ControlRoom({
       const end = match.finished_at
         ? new Date(match.finished_at).getTime()
         : match.status === 'PAUSED' && match.updated_at
-        ? new Date(match.updated_at).getTime()
-        : Date.now()
+          ? new Date(match.updated_at).getTime()
+          : Date.now()
       const diffSecs = Math.max(0, Math.floor((end - start) / 1000))
       const hours = Math.floor(diffSecs / 3600)
       const mins = Math.floor((diffSecs % 3600) / 60)
@@ -388,54 +388,54 @@ export default function ControlRoom({
               </h1>
               <span
                 style={{
-                backgroundColor:
-                  match.status === 'LIVE'
-                    ? 'var(--success-subtle)'
-                    : match.status === 'PAUSED'
-                    ? 'var(--warning-subtle)'
-                    : 'var(--badge-neutral-bg)',
-                color:
-                  match.status === 'LIVE'
-                    ? 'var(--success)'
-                    : match.status === 'PAUSED'
-                    ? 'var(--warning)'
-                    : 'var(--badge-neutral-text)',
-                border:
-                  match.status === 'LIVE'
-                    ? '1.5px solid var(--success)'
-                    : match.status === 'PAUSED'
-                    ? '1.5px solid var(--warning)'
-                    : '1px solid var(--border-color)',
-                fontWeight: 800,
-                fontSize: '0.8125rem',
-                padding: '0.25rem 0.65rem',
-                borderRadius: '9999px',
-                letterSpacing: '0.05em',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-              }}
-            >
-              {match.status === 'LIVE' && (
-                <span
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--success)',
-                  }}
-                />
-              )}
-              {match.status === 'PAUSED' && (
-                <span
-                  style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--warning)',
-                  }}
-                />
-              )}
+                  backgroundColor:
+                    match.status === 'LIVE'
+                      ? 'var(--success-subtle)'
+                      : match.status === 'PAUSED'
+                        ? 'var(--warning-subtle)'
+                        : 'var(--badge-neutral-bg)',
+                  color:
+                    match.status === 'LIVE'
+                      ? 'var(--success)'
+                      : match.status === 'PAUSED'
+                        ? 'var(--warning)'
+                        : 'var(--badge-neutral-text)',
+                  border:
+                    match.status === 'LIVE'
+                      ? '1.5px solid var(--success)'
+                      : match.status === 'PAUSED'
+                        ? '1.5px solid var(--warning)'
+                        : '1px solid var(--border-color)',
+                  fontWeight: 800,
+                  fontSize: '0.8125rem',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '9999px',
+                  letterSpacing: '0.05em',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                }}
+              >
+                {match.status === 'LIVE' && (
+                  <span
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--success)',
+                    }}
+                  />
+                )}
+                {match.status === 'PAUSED' && (
+                  <span
+                    style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--warning)',
+                    }}
+                  />
+                )}
                 {match.status === 'LIVE' ? 'LIVE' : match.status}
               </span>
             </div>
@@ -876,14 +876,14 @@ export default function ControlRoom({
                 match.status === 'LIVE'
                   ? 'var(--success-subtle)'
                   : match.status === 'PAUSED'
-                  ? 'var(--warning-subtle)'
-                  : 'var(--surface-subtle)',
+                    ? 'var(--warning-subtle)'
+                    : 'var(--surface-subtle)',
               border:
                 match.status === 'LIVE'
                   ? '1.5px solid var(--success)'
                   : match.status === 'PAUSED'
-                  ? '1.5px solid var(--warning)'
-                  : '1px solid var(--border-color)',
+                    ? '1.5px solid var(--warning)'
+                    : '1px solid var(--border-color)',
               padding: '0.4rem 0.85rem',
               borderRadius: '8px',
             }}
@@ -908,113 +908,118 @@ export default function ControlRoom({
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
-          {match.status !== 'LIVE' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {/* Action Buttons Row */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+            {match.status !== 'LIVE' && match.status !== 'FINISHED' && (
               <button
                 onClick={() => handleStatusChange('LIVE')}
                 disabled={isPending}
                 style={{
                   backgroundColor: 'var(--success)',
                   color: 'white',
-                  padding: '0.875rem 1.5rem',
-                  borderRadius: '6px',
+                  padding: '0.75rem 1.4rem',
+                  borderRadius: '8px',
                   fontWeight: 800,
-                  fontSize: '1rem',
-                  cursor: 'pointer',
+                  fontSize: '0.95rem',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.5rem',
+                  border: 'none',
+                  boxShadow: '0 2px 8px rgba(34, 197, 94, 0.3)',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                ▶ {match.status === 'PAUSED' ? 'LANJUTKAN (RESUME)' : 'MULAI PERTANDINGAN (LIVE)'}
+                <span>▶</span>
+                <span>{match.status === 'PAUSED' ? 'LANJUTKAN (RESUME)' : 'MULAI PERTANDINGAN (LIVE)'}</span>
               </button>
-              {match.status !== 'FINISHED' && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: '250px' }}>
-                  ⓘ Hanya 1 pertandingan yang boleh berjalan dalam satu waktu.
-                </span>
-              )}
-            </div>
-          )}
+            )}
 
-          {match.status === 'LIVE' && (
-            <button
-              onClick={() => handleStatusChange('PAUSED')}
-              disabled={isPending}
-              style={{
-                backgroundColor: 'var(--warning)',
-                color: 'black',
-                padding: '0.875rem 1.5rem',
-                borderRadius: '6px',
-                fontWeight: 800,
-                fontSize: '1rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-              }}
-            >
-              ⏸ JEDA / PAUSE
-            </button>
-          )}
-
-          {match.status !== 'FINISHED' && (
-            <button
-              onClick={() => {
-                if (window.confirm('Apakah Anda yakin ingin menyelesaikan pertandingan ini?')) {
-                  handleStatusChange('FINISHED')
-                }
-              }}
-              disabled={isPending}
-              style={{
-                backgroundColor: 'var(--danger)',
-                color: 'white',
-                padding: '0.875rem 1.5rem',
-                borderRadius: '6px',
-                fontWeight: 700,
-                fontSize: '1rem',
-                cursor: 'pointer',
-              }}
-            >
-              ⏹ SELESAIKAN PERTANDINGAN
-            </button>
-          )}
-
-          {match.status === 'FINISHED' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Pertandingan Selesai</span>
+            {match.status === 'LIVE' && (
               <button
-                onClick={() => handleStatusChange('LIVE')}
+                onClick={() => handleStatusChange('PAUSED')}
                 disabled={isPending}
                 style={{
-                  backgroundColor: 'var(--primary)',
-                  color: 'white',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '6px',
-                  fontWeight: 600,
-                  fontSize: '0.875rem',
-                  cursor: 'pointer',
+                  backgroundColor: 'var(--warning)',
+                  color: '#000',
+                  padding: '0.75rem 1.4rem',
+                  borderRadius: '8px',
+                  fontWeight: 800,
+                  fontSize: '0.95rem',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  border: 'none',
+                  boxShadow: '0 2px 8px rgba(234, 179, 8, 0.3)',
+                  transition: 'all 0.15s ease',
                 }}
               >
-                Buka Kembali Match
+                <span>⏸</span>
+                <span>JEDA / PAUSE</span>
               </button>
-            </div>
-          )}
+            )}
 
-          {/* Timer Display */}
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span className="metadata-text">Durasi Pertandingan:</span>
-            <span
-              style={{
-                fontSize: '1.5rem',
-                fontWeight: 800,
-                fontFamily: 'monospace',
-                color: match.status === 'LIVE' ? 'var(--success)' : 'var(--text-secondary)',
-              }}
-            >
-              {elapsed}
-            </span>
+            {match.status !== 'FINISHED' && (
+              <button
+                onClick={() => {
+                  if (window.confirm('Apakah Anda yakin ingin menyelesaikan pertandingan ini?')) {
+                    handleStatusChange('FINISHED')
+                  }
+                }}
+                disabled={isPending}
+                style={{
+                  backgroundColor: 'var(--danger)',
+                  color: 'white',
+                  padding: '0.75rem 1.4rem',
+                  borderRadius: '8px',
+                  fontWeight: 800,
+                  fontSize: '0.95rem',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  border: 'none',
+                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>⏹</span>
+                <span>SELESAIKAN PERTANDINGAN</span>
+              </button>
+            )}
+
+            {match.status === 'FINISHED' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.9rem' }}>
+                  🏁 Pertandingan Selesai
+                </span>
+                <button
+                  onClick={() => handleStatusChange('LIVE')}
+                  disabled={isPending}
+                  style={{
+                    backgroundColor: 'var(--primary)',
+                    color: 'white',
+                    padding: '0.55rem 1.1rem',
+                    borderRadius: '6px',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    border: 'none',
+                  }}
+                >
+                  Buka Kembali Match
+                </button>
+              </div>
+            )}
           </div>
+
+          {match.status !== 'FINISHED' && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              ⓘ Hanya 1 pertandingan yang boleh berjalan dalam satu waktu.
+            </span>
+          )}
         </div>
 
         {/* Assigned Scoring & Total Input Score Cards */}
@@ -1032,8 +1037,8 @@ export default function ControlRoom({
             style={{
               backgroundColor: 'var(--surface-subtle)',
               border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              padding: '0.75rem 1rem',
+              borderRadius: '10px',
+              padding: '0.85rem 1.15rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -1041,7 +1046,7 @@ export default function ControlRoom({
             }}
           >
             <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 Scoring 1 (Depan):{' '}
                 <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>
                   {formatJuryDisplayName(match.jury_1?.name) || 'Belum ditugaskan'}
@@ -1051,13 +1056,25 @@ export default function ControlRoom({
                 Petugas Meja Scoring Depan/Awal
               </div>
             </div>
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end',
+                justifyContent: 'center',
+                flexShrink: 0,
+                backgroundColor: 'var(--surface-color)',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Total Input Skor
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: 'monospace', color: 'var(--primary)', lineHeight: 1.1, marginTop: '0.1rem' }}>
+              </span>
+              <span style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'ui-monospace, monospace', color: 'var(--primary)', lineHeight: 1.1 }}>
                 {pointsJury1} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Poin</span>
-              </div>
+              </span>
             </div>
           </div>
 
@@ -1066,8 +1083,8 @@ export default function ControlRoom({
             style={{
               backgroundColor: 'var(--surface-subtle)',
               border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              padding: '0.75rem 1rem',
+              borderRadius: '10px',
+              padding: '0.85rem 1.15rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -1075,7 +1092,7 @@ export default function ControlRoom({
             }}
           >
             <div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 Scoring 2 (Belakang):{' '}
                 <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>
                   {formatJuryDisplayName(match.jury_2?.name) || 'Belum ditugaskan'}
@@ -1085,13 +1102,25 @@ export default function ControlRoom({
                 Petugas Meja Scoring Belakang/Akhir
               </div>
             </div>
-            <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end',
+                justifyContent: 'center',
+                flexShrink: 0,
+                backgroundColor: 'var(--surface-color)',
+                padding: '0.35rem 0.75rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Total Input Skor
-              </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 900, fontFamily: 'monospace', color: '#E11D48', lineHeight: 1.1, marginTop: '0.1rem' }}>
+              </span>
+              <span style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'ui-monospace, monospace', color: '#E11D48', lineHeight: 1.1 }}>
                 {pointsJury2} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Poin</span>
-              </div>
+              </span>
             </div>
           </div>
         </div>

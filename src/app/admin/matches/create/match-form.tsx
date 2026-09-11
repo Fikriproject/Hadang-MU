@@ -419,37 +419,7 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
         </div>
       </div>
 
-      {/* 4. GILIRAN MENYERANG PERTAMA KALI */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem',
-          backgroundColor: 'var(--surface-subtle)',
-          padding: '1rem',
-          borderRadius: '8px',
-          border: '1px solid var(--border-color)',
-        }}
-      >
-        <label className="metadata-text" style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
-          Giliran Menyerang Pertama Kali (First Attacker):
-        </label>
-        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          Pilih tim yang akan memegang giliran menyerang di awal pertandingan. Posisi serang dapat ditukar kapan saja saat terjadi pelanggaran (foul).
-        </span>
-        <div style={{ display: 'flex', gap: '2rem', marginTop: '0.25rem' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700 }}>
-            <input type="radio" name="first_attacker" value="team_1" defaultChecked />
-            <span>Tim 1 (Sisi Kiri)</span>
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 700 }}>
-            <input type="radio" name="first_attacker" value="team_2" />
-            <span>Tim 2 (Sisi Kanan)</span>
-          </label>
-        </div>
-      </div>
-
-      {/* 5. PENUGASAN PETUGAS SCORING */}
+      {/* 4. PENUGASAN PETUGAS SCORING */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <label htmlFor="jury_1_id" className="metadata-text" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
