@@ -364,6 +364,7 @@ export default function JuryController({
   const isLive = match.status === 'LIVE'
   const isFinished = match.status === 'FINISHED'
   const isBabak2 = match.round?.includes('BABAK_2') || false
+  const isBabak2Pending = match.round?.includes('BABAK_2_PENDING') || false
 
   // Tukar Babak handler (Menjeda pertandingan & masuk ke Babak 2 tanpa menukar posisi tim)
   const handleTukarBabak = async () => {
@@ -380,7 +381,7 @@ export default function JuryController({
         setMatch((prev) => ({
           ...prev,
           status: 'PAUSED',
-          round: `${anchorId}::BABAK_2`,
+          round: `${anchorId}::BABAK_2_PENDING`,
         }))
         setToastMessage({ text: 'Pertandingan dijeda. Siap untuk Babak 2!', type: 'success' })
       }
@@ -398,9 +399,11 @@ export default function JuryController({
       if (res?.error) {
         setToastMessage({ text: res.error, type: 'error' })
       } else {
+        const anchorId = match.round ? match.round.split('::')[0] : ''
         setMatch((prev) => ({
           ...prev,
           status: 'LIVE',
+          round: `${anchorId}::BABAK_2_STARTED`,
           started_at: new Date().toISOString(),
         }))
         setToastMessage({ text: 'Babak 2 Resmi Dimulai (LIVE)!', type: 'success' })
@@ -1155,7 +1158,7 @@ export default function JuryController({
       {/* Actions Section: Tukar Posisi, Tukar Babak, Undo, and Match Controls */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', flexShrink: 0 }}>
         {/* Tombol Mulai Babak 2 saat Babak 2 Siap (PAUSED) */}
-        {!isFinished && isBabak2 && match.status === 'PAUSED' && (
+        {!isFinished && isBabak2Pending && match.status === 'PAUSED' && (
           <button
             type="button"
             onClick={handleStartBabak2}

@@ -256,6 +256,7 @@ export default function ControlRoom({
   }, [scoreEvents, teamLeft.id, teamRight.id, match.jury_1_id, match.jury_2_id])
 
   const isBabak2 = match.round?.includes('BABAK_2') || false
+  const isBabak2Pending = match.round?.includes('BABAK_2_PENDING') || false
 
   // Status handlers
   const handleStatusChange = (newStatus: string, isStartingBabak2: boolean = false) => {
@@ -264,9 +265,11 @@ export default function ControlRoom({
       const res = await updateMatchStatus(match.id, newStatus, isStartingBabak2)
       if (res?.error) setActionError(res.error)
       else {
+        const anchorId = match.round ? match.round.split('::')[0] : ''
         setMatch((prev) => ({
           ...prev,
           status: newStatus as any,
+          round: isStartingBabak2 ? `${anchorId}::BABAK_2_STARTED` : prev.round,
           started_at: isStartingBabak2 ? new Date().toISOString() : prev.started_at,
         }))
       }
@@ -288,7 +291,7 @@ export default function ControlRoom({
         setMatch((prev) => ({
           ...prev,
           status: 'PAUSED',
-          round: `${anchorId}::BABAK_2`,
+          round: `${anchorId}::BABAK_2_PENDING`,
         }))
       }
     })
@@ -1019,7 +1022,7 @@ export default function ControlRoom({
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
             {match.status !== 'LIVE' && match.status !== 'FINISHED' && (
               <button
-                onClick={isBabak2 ? handleStartBabak2 : () => handleStatusChange('LIVE')}
+                onClick={isBabak2Pending ? handleStartBabak2 : () => handleStatusChange('LIVE')}
                 disabled={isPending}
                 style={{
                   backgroundColor: 'var(--success)',
@@ -1039,7 +1042,7 @@ export default function ControlRoom({
               >
                 <span>▶</span>
                 <span>
-                  {isBabak2
+                  {isBabak2Pending
                     ? 'MULAI PERTANDINGAN (BABAK 2)'
                     : match.status === 'PAUSED'
                     ? 'LANJUTKAN (RESUME)'

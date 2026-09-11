@@ -58,8 +58,10 @@ export async function updateMatchStatus(matchId: string, status: string, isStart
       }
     }
 
-    if (isStartingBabak2) {
-      // Mulai babak 2: Reset stopwatch started_at ke waktu sekarang
+    if (isStartingBabak2 || match.round?.includes('BABAK_2_PENDING')) {
+      // Mulai babak 2: Reset stopwatch started_at ke waktu sekarang dan tandai Babak 2 telah dimulai
+      const anchorId = match.round ? match.round.split('::')[0] : ''
+      updateData.round = `${anchorId}::BABAK_2_STARTED`
       updateData.started_at = new Date().toISOString()
     } else if (!match.started_at) {
       updateData.started_at = new Date().toISOString()
@@ -119,9 +121,9 @@ export async function switchToBabak2(matchId: string) {
     return { error: 'Hanya Admin atau Petugas Meja Scoring yang berwenang menukar babak pertandingan.' }
   }
 
-  // Anchor tim kiri diambil dari round lama
+  // Anchor tim kiri diambil dari round lama, tandai sebagai PENDING sampai tombol Mulai Babak 2 ditekan
   const anchorId = match.round ? match.round.split('::')[0] : ''
-  const newRound = `${anchorId}::BABAK_2`
+  const newRound = `${anchorId}::BABAK_2_PENDING`
 
   const { error } = await adminClient
     .from('matches')
