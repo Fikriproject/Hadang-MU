@@ -157,3 +157,75 @@ export function showScoreAlert(title: string, icon: 'success' | 'error' | 'info'
     color: isLight ? '#0F172A' : '#F8FAFC',
   })
 }
+
+/**
+ * Prompts user with a theme-aware SweetAlert2 confirmation modal before switching half (Tukar Babak).
+ */
+export async function promptConfirmTukarBabak(): Promise<boolean> {
+  const isLight =
+    typeof document !== 'undefined' &&
+    document.documentElement.getAttribute('data-theme') === 'light'
+
+  const bgColor = isLight ? '#FFFFFF' : '#131E32'
+  const textColor = isLight ? '#0F172A' : '#F8FAFC'
+  const subtextColor = isLight ? '#64748B' : '#94A3B8'
+
+  const result = await Swal.fire({
+    title: '<span style="font-size: 1.25rem; font-weight: 800;">Tukar ke Babak 2?</span>',
+    html: `
+      <p style="color: ${subtextColor}; font-size: 0.875rem; margin-top: 0.5rem; line-height: 1.5;">
+        Pertandingan akan <strong>dijeda (PAUSED)</strong> untuk persiapan babak berikutnya.<br/>
+        <span style="color: var(--primary); font-weight: 700;">Posisi tim penyerang & bertahan tidak akan ditukar.</span>
+      </p>
+    `,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#2563EB',
+    cancelButtonColor: '#64748B',
+    confirmButtonText: '🔄 Ya, Tukar ke Babak 2',
+    cancelButtonText: 'Batal',
+    background: bgColor,
+    color: textColor,
+    customClass: {
+      popup: 'swal2-hadang-popup',
+    },
+  })
+
+  return result.isConfirmed
+}
+
+/**
+ * Prompts user with a theme-aware SweetAlert2 confirmation modal before starting Babak 2.
+ */
+export async function promptConfirmStartBabak2(): Promise<boolean> {
+  const isLight =
+    typeof document !== 'undefined' &&
+    document.documentElement.getAttribute('data-theme') === 'light'
+
+  const bgColor = isLight ? '#FFFFFF' : '#131E32'
+  const textColor = isLight ? '#0F172A' : '#F8FAFC'
+  const subtextColor = isLight ? '#64748B' : '#94A3B8'
+
+  const result = await Swal.fire({
+    title: '<span style="font-size: 1.25rem; font-weight: 800;">Mulai Pertandingan Babak 2?</span>',
+    html: `
+      <p style="color: ${subtextColor}; font-size: 0.875rem; margin-top: 0.5rem; line-height: 1.5;">
+        Pertandingan Babak 2 akan berstatus <strong>LIVE</strong> dan stopwatch Babak 2 akan mulai berjalan.
+      </p>
+    `,
+    icon: 'info',
+    showCancelButton: true,
+    confirmButtonColor: '#16A34A',
+    cancelButtonColor: '#64748B',
+    confirmButtonText: '▶ Mulai Babak 2',
+    cancelButtonText: 'Batal',
+    background: bgColor,
+    color: textColor,
+    customClass: {
+      popup: 'swal2-hadang-popup',
+    },
+  })
+
+  return result.isConfirmed
+}
+

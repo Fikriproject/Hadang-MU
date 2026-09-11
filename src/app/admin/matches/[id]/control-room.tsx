@@ -5,11 +5,18 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
   updateMatchStatus,
+  switchToBabak2,
+  syncTvScoreboard,
   toggleAttackingTeam,
   cancelScoreEvent,
   manualAddScore,
 } from './actions'
-import { promptUndoScoreReason } from '@/lib/sweetalert'
+import {
+  promptUndoScoreReason,
+  promptConfirmTukarBabak,
+  promptConfirmStartBabak2,
+  showScoreAlert,
+} from '@/lib/sweetalert'
 import { formatJuryDisplayName } from '@/lib/categories'
 
 interface Team {
@@ -75,8 +82,9 @@ export default function ControlRoom({
     const tA = initialMatch.team_attack || { id: initialMatch.team_attack_id, name: 'Tim 1' }
     const tB = initialMatch.team_defense || { id: initialMatch.team_defense_id, name: 'Tim 2' }
 
-    if (initialMatch.round === tA.id) return { teamLeft: tA, teamRight: tB }
-    if (initialMatch.round === tB.id) return { teamLeft: tB, teamRight: tA }
+    const anchorId = initialMatch.round ? initialMatch.round.split('::')[0] : ''
+    if (anchorId === tA.id) return { teamLeft: tA, teamRight: tB }
+    if (anchorId === tB.id) return { teamLeft: tB, teamRight: tA }
 
     return tA.id < tB.id ? { teamLeft: tA, teamRight: tB } : { teamLeft: tB, teamRight: tA }
   }, [
@@ -247,14 +255,70 @@ export default function ControlRoom({
     }
   }, [scoreEvents, teamLeft.id, teamRight.id, match.jury_1_id, match.jury_2_id])
 
+  const isBabak2 = match.round?.includes('BABAK_2') || false
+
   // Status handlers
-  const handleStatusChange = (newStatus: string) => {
+  const handleStatusChange = (newStatus: string, isStartingBabak2: boolean = false) => {
     setActionError(null)
     startTransition(async () => {
-      const res = await updateMatchStatus(match.id, newStatus)
+      const res = await updateMatchStatus(match.id, newStatus, isStartingBabak2)
       if (res?.error) setActionError(res.error)
-      else setMatch((prev) => ({ ...prev, status: newStatus as any }))
+      else {
+        setMatch((prev) => ({
+          ...prev,
+          status: newStatus as any,
+          started_at: isStartingBabak2 ? new Date().toISOString() : prev.started_at,
+        }))
+      }
     })
+  }
+
+  // Tukar Babak handler (Menjeda pertandingan & masuk ke Babak 2 tanpa menukar posisi tim)
+  const handleTukarBabak = async () => {
+    setActionError(null)
+    const confirmed = await promptConfirmTukarBabak()
+    if (!confirmed) return
+
+    startTransition(async () => {
+      const res = await switchToBabak2(match.id)
+      if (res?.error) {
+        setActionError(res.error)
+      } else {
+        const anchorId = match.round ? match.round.split('::')[0] : ''
+        setMatch((prev) => ({
+          ...prev,
+          status: 'PAUSED',
+          round: `${anchorId}::BABAK_2`,
+        }))
+      }
+    })
+  }
+
+  // Validasi Mulai Babak 2 handler
+  const handleStartBabak2 = async () => {
+    setActionError(null)
+    const confirmed = await promptConfirmStartBabak2()
+    if (!confirmed) return
+
+    handleStatusChange('LIVE', true)
+  }
+
+  // Sinkronisasi TV & Layar Umum handler
+  const [isSyncing, setIsSyncing] = useState(false)
+  const handleSyncTv = async () => {
+    setIsSyncing(true)
+    try {
+      const res = await syncTvScoreboard(match.id)
+      if (res?.error) {
+        setActionError(res.error)
+      } else {
+        showScoreAlert('TV Umum Disinkronkan', 'success', 'Seluruh skor realtime pada layar TV dan penonton umum telah diselaraskan.')
+      }
+    } catch (err: any) {
+      setActionError(err?.message || 'Gagal menyinkronkan TV')
+    } finally {
+      setTimeout(() => setIsSyncing(false), 600)
+    }
   }
 
   // Toggle attacker (on foul or turnover)
@@ -438,6 +502,23 @@ export default function ControlRoom({
                 )}
                 {match.status === 'LIVE' ? 'LIVE' : match.status}
               </span>
+              <span
+                style={{
+                  backgroundColor: isBabak2 ? 'rgba(59, 130, 246, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                  color: isBabak2 ? '#2563EB' : '#16A34A',
+                  border: isBabak2 ? '1.5px solid #3B82F6' : '1.5px solid #16A34A',
+                  fontWeight: 800,
+                  fontSize: '0.8125rem',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '9999px',
+                  letterSpacing: '0.05em',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                }}
+              >
+                <span>{isBabak2 ? '⏱ BABAK 2' : '⏱ BABAK 1'}</span>
+              </span>
             </div>
             {match.scheduled_at && (
               <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600, marginTop: '0.35rem' }}>
@@ -497,6 +578,31 @@ export default function ControlRoom({
           >
             📺 TV Scoreboard
           </Link>
+
+          <button
+            type="button"
+            onClick={handleSyncTv}
+            disabled={isPending || isSyncing}
+            style={{
+              backgroundColor: 'var(--surface-color)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              padding: '0.65rem 1rem',
+              borderRadius: '8px',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              cursor: isPending || isSyncing ? 'not-allowed' : 'pointer',
+              boxShadow: 'var(--card-shadow)',
+              transition: 'all 0.15s ease',
+            }}
+            title="Sinkronkan dan selaraskan seluruh skor pada TV & Layar Umum"
+          >
+            <span>🔄</span>
+            <span>{isSyncing ? 'Menyelaraskan...' : 'Refresh TV Umum'}</span>
+          </button>
         </div>
       </div>
 
@@ -913,7 +1019,7 @@ export default function ControlRoom({
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
             {match.status !== 'LIVE' && match.status !== 'FINISHED' && (
               <button
-                onClick={() => handleStatusChange('LIVE')}
+                onClick={isBabak2 ? handleStartBabak2 : () => handleStatusChange('LIVE')}
                 disabled={isPending}
                 style={{
                   backgroundColor: 'var(--success)',
@@ -932,7 +1038,13 @@ export default function ControlRoom({
                 }}
               >
                 <span>▶</span>
-                <span>{match.status === 'PAUSED' ? 'LANJUTKAN (RESUME)' : 'MULAI PERTANDINGAN (LIVE)'}</span>
+                <span>
+                  {isBabak2
+                    ? 'MULAI PERTANDINGAN (BABAK 2)'
+                    : match.status === 'PAUSED'
+                    ? 'LANJUTKAN (RESUME)'
+                    : 'MULAI PERTANDINGAN (LIVE)'}
+                </span>
               </button>
             )}
 
@@ -989,6 +1101,61 @@ export default function ControlRoom({
                 <span>SELESAIKAN PERTANDINGAN</span>
               </button>
             )}
+
+            {/* Tombol Tukar Babak di sebelah tombol Selesaikan Pertandingan */}
+            {match.status !== 'FINISHED' && (
+              <button
+                type="button"
+                onClick={handleTukarBabak}
+                disabled={isPending || isBabak2}
+                style={{
+                  backgroundColor: isBabak2 ? 'var(--surface-subtle)' : '#2563EB',
+                  color: isBabak2 ? 'var(--text-muted)' : 'white',
+                  padding: '0.75rem 1.4rem',
+                  borderRadius: '8px',
+                  fontWeight: 800,
+                  fontSize: '0.95rem',
+                  cursor: isPending || isBabak2 ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  border: isBabak2 ? '1px solid var(--border-color)' : 'none',
+                  boxShadow: isBabak2 ? 'none' : '0 2px 8px rgba(37, 99, 235, 0.3)',
+                  transition: 'all 0.15s ease',
+                  opacity: isBabak2 ? 0.65 : 1,
+                }}
+                title={isBabak2 ? 'Sudah berada di Babak 2' : 'Tukar ke Babak 2 (Menjeda pertandingan untuk babak baru)'}
+              >
+                <span>🔄</span>
+                <span>{isBabak2 ? 'BABAK 2 (AKTIF)' : 'TUKAR BABAK'}</span>
+              </button>
+            )}
+
+            {/* Tombol Refresh TV Umum */}
+            <button
+              type="button"
+              onClick={handleSyncTv}
+              disabled={isPending || isSyncing}
+              style={{
+                backgroundColor: 'var(--surface-color)',
+                color: 'var(--text-primary)',
+                padding: '0.75rem 1.25rem',
+                borderRadius: '8px',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: isPending || isSyncing ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                border: '1px solid var(--border-color)',
+                boxShadow: 'var(--card-shadow)',
+                transition: 'all 0.15s ease',
+              }}
+              title="Selaraskan data skor pada TV Scoreboard & Layar Umum"
+            >
+              <span>🔄</span>
+              <span>{isSyncing ? 'Menyelaraskan...' : 'Refresh TV Umum'}</span>
+            </button>
 
             {match.status === 'FINISHED' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

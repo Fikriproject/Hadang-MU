@@ -4,8 +4,16 @@ import React, { useState, useEffect, useTransition, useMemo, useRef } from 'reac
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { addJuryScore, cancelRecentScore } from './actions'
-import { toggleAttackingTeam } from '@/app/admin/matches/[id]/actions'
-import { promptUndoScoreReason } from '@/lib/sweetalert'
+import {
+  toggleAttackingTeam,
+  switchToBabak2,
+  updateMatchStatus,
+} from '@/app/admin/matches/[id]/actions'
+import {
+  promptUndoScoreReason,
+  promptConfirmTukarBabak,
+  promptConfirmStartBabak2,
+} from '@/lib/sweetalert'
 import { formatJuryDisplayName } from '@/lib/formatters'
 
 interface Team {
@@ -51,6 +59,7 @@ interface JuryControllerProps {
   initialMatch: MatchData
   initialScoreEvents: ScoreEvent[]
   currentUserId: string
+  currentUserRole?: string
 }
 
 export default function JuryController({
@@ -74,8 +83,9 @@ export default function JuryController({
     const tA = initialMatch.team_attack || { id: initialMatch.team_attack_id, name: 'Tim 1' }
     const tB = initialMatch.team_defense || { id: initialMatch.team_defense_id, name: 'Tim 2' }
 
-    if (initialMatch.round === tA.id) return { teamLeft: tA, teamRight: tB }
-    if (initialMatch.round === tB.id) return { teamLeft: tB, teamRight: tA }
+    const anchorId = initialMatch.round ? initialMatch.round.split('::')[0] : ''
+    if (anchorId === tA.id) return { teamLeft: tA, teamRight: tB }
+    if (anchorId === tB.id) return { teamLeft: tB, teamRight: tA }
 
     return tA.id < tB.id ? { teamLeft: tA, teamRight: tB } : { teamLeft: tB, teamRight: tA }
   }, [
@@ -353,6 +363,50 @@ export default function JuryController({
 
   const isLive = match.status === 'LIVE'
   const isFinished = match.status === 'FINISHED'
+  const isBabak2 = match.round?.includes('BABAK_2') || false
+
+  // Tukar Babak handler (Menjeda pertandingan & masuk ke Babak 2 tanpa menukar posisi tim)
+  const handleTukarBabak = async () => {
+    if (isFinished || isBabak2) return
+    const confirmed = await promptConfirmTukarBabak()
+    if (!confirmed) return
+
+    startTransition(async () => {
+      const res = await switchToBabak2(match.id)
+      if (res?.error) {
+        setToastMessage({ text: res.error, type: 'error' })
+      } else {
+        const anchorId = match.round ? match.round.split('::')[0] : ''
+        setMatch((prev) => ({
+          ...prev,
+          status: 'PAUSED',
+          round: `${anchorId}::BABAK_2`,
+        }))
+        setToastMessage({ text: 'Pertandingan dijeda. Siap untuk Babak 2!', type: 'success' })
+      }
+    })
+  }
+
+  // Validasi Mulai Babak 2 handler
+  const handleStartBabak2 = async () => {
+    if (isFinished) return
+    const confirmed = await promptConfirmStartBabak2()
+    if (!confirmed) return
+
+    startTransition(async () => {
+      const res = await updateMatchStatus(match.id, 'LIVE', true)
+      if (res?.error) {
+        setToastMessage({ text: res.error, type: 'error' })
+      } else {
+        setMatch((prev) => ({
+          ...prev,
+          status: 'LIVE',
+          started_at: new Date().toISOString(),
+        }))
+        setToastMessage({ text: 'Babak 2 Resmi Dimulai (LIVE)!', type: 'success' })
+      }
+    })
+  }
 
   // Action: Add +1 Score (Instant Optimistic & Zero-Latency)
   const handleScoreClick = () => {
@@ -775,33 +829,49 @@ export default function JuryController({
               {elapsed}
             </span>
           </div>
-          <span
-            style={{
-              fontSize: '0.7rem',
-              fontWeight: 800,
-              padding: '0.2rem 0.65rem',
-              borderRadius: '9999px',
-              backgroundColor: isLive ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--badge-neutral-bg)',
-              color: isLive ? 'white' : match.status === 'PAUSED' ? 'black' : 'var(--badge-neutral-text)',
-              letterSpacing: '0.05em',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-            }}
-          >
-            {isLive && (
-              <span
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  backgroundColor: 'white',
-                  display: 'inline-block',
-                }}
-              />
-            )}
-            {isLive ? 'LIVE' : match.status === 'PAUSED' ? 'DIJEDA' : match.status}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span
+              style={{
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                padding: '0.2rem 0.65rem',
+                borderRadius: '9999px',
+                backgroundColor: isLive ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--badge-neutral-bg)',
+                color: isLive ? 'white' : match.status === 'PAUSED' ? 'black' : 'var(--badge-neutral-text)',
+                letterSpacing: '0.05em',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+              }}
+            >
+              {isLive && (
+                <span
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: 'white',
+                    display: 'inline-block',
+                  }}
+                />
+              )}
+              {isLive ? 'LIVE' : match.status === 'PAUSED' ? 'DIJEDA' : match.status}
+            </span>
+            <span
+              style={{
+                fontSize: '0.7rem',
+                fontWeight: 800,
+                padding: '0.2rem 0.55rem',
+                borderRadius: '9999px',
+                backgroundColor: isBabak2 ? 'rgba(37, 99, 235, 0.15)' : 'rgba(22, 163, 74, 0.15)',
+                color: isBabak2 ? '#2563EB' : '#16A34A',
+                border: isBabak2 ? '1px solid #2563EB' : '1px solid #16A34A',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {isBabak2 ? 'BABAK 2' : 'BABAK 1'}
+            </span>
+          </div>
         </div>
 
         {/* TIM 1 (LEFT) */}
@@ -1082,9 +1152,39 @@ export default function JuryController({
         </button>
       </div>
 
-      {/* Actions Section: Tukar Posisi, Undo, and Match Controls */}
+      {/* Actions Section: Tukar Posisi, Tukar Babak, Undo, and Match Controls */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', flexShrink: 0 }}>
-        {/* 1. BUTTON TUKAR POSISI (FOUL) - DI ATAS BATALKAN POIN */}
+        {/* Tombol Mulai Babak 2 saat Babak 2 Siap (PAUSED) */}
+        {!isFinished && isBabak2 && match.status === 'PAUSED' && (
+          <button
+            type="button"
+            onClick={handleStartBabak2}
+            disabled={isPending}
+            className="touch-manipulation"
+            style={{
+              width: '100%',
+              height: '46px',
+              borderRadius: '10px',
+              border: 'none',
+              backgroundColor: 'var(--success)',
+              color: 'white',
+              fontWeight: 800,
+              fontSize: '0.925rem',
+              cursor: isPending ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.45rem',
+              boxShadow: '0 4px 12px rgba(34, 197, 94, 0.35)',
+              transition: 'all 0.12s ease',
+            }}
+          >
+            <span>▶</span>
+            <span>MULAI PERTANDINGAN (BABAK 2)</span>
+          </button>
+        )}
+
+        {/* 1. BUTTON TUKAR POSISI (FOUL) */}
         <button
           type="button"
           onClick={handleToggleAttacker}
@@ -1113,7 +1213,39 @@ export default function JuryController({
           <span>TUKAR POSISI (FOUL)</span>
         </button>
 
-        {/* 2. BUTTON BATALKAN POIN TERAKHIR (UNDO) */}
+        {/* 2. BUTTON TUKAR BABAK */}
+        {!isFinished && (
+          <button
+            type="button"
+            onClick={handleTukarBabak}
+            disabled={isBabak2 || isPending}
+            className="touch-manipulation"
+            style={{
+              width: '100%',
+              height: '44px',
+              borderRadius: '10px',
+              border: isBabak2 ? '1px solid var(--border-color)' : '2px solid #2563EB',
+              backgroundColor: isBabak2 ? 'var(--surface-subtle)' : '#EFF6FF',
+              color: isBabak2 ? 'var(--text-muted)' : '#2563EB',
+              fontWeight: 800,
+              fontSize: '0.875rem',
+              cursor: isBabak2 || isPending ? 'not-allowed' : 'pointer',
+              opacity: isBabak2 ? 0.5 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.45rem',
+              boxShadow: isBabak2 ? 'none' : '0 2px 6px rgba(37, 99, 235, 0.15)',
+              transition: 'all 0.12s ease',
+            }}
+            title={isBabak2 ? 'Sudah berada di Babak 2' : 'Tukar ke Babak 2'}
+          >
+            <span>🔄</span>
+            <span>{isBabak2 ? 'BABAK 2 (AKTIF)' : 'TUKAR BABAK'}</span>
+          </button>
+        )}
+
+        {/* 3. BUTTON BATALKAN POIN TERAKHIR (UNDO) */}
         <button
           type="button"
           onClick={handleUndoClick}
@@ -1141,7 +1273,6 @@ export default function JuryController({
           <span>↩</span>
           <span>BATALKAN POIN TERAKHIR (UNDO)</span>
         </button>
-
       </div>
 
       {/* When NOT finished: Keep Count Cards at the BOTTOM */}

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
-export async function updateMatchStatus(matchId: string, status: string) {
+export async function updateMatchStatus(matchId: string, status: string, isStartingBabak2: boolean = false) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -12,18 +12,33 @@ export async function updateMatchStatus(matchId: string, status: string) {
     return { error: 'Sesi login tidak valid. Silakan login kembali.' }
   }
 
-  // Check admin role permission
+  const adminClient = createAdminClient()
+
+  // Fetch match details to verify assigned jury or admin
+  const { data: match } = await adminClient
+    .from('matches')
+    .select('id, name, round, started_at, updated_at, status, jury_1_id, jury_2_id')
+    .eq('id', matchId)
+    .single()
+
+  if (!match) {
+    return { error: 'Pertandingan tidak ditemukan.' }
+  }
+
+  // Check admin role permission or assigned jury
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'ADMIN') {
-    return { error: 'Hanya Admin yang berwenang mengubah status pertandingan (Mulai, Jeda, Selesai).' }
+  const isAdmin = profile?.role === 'ADMIN'
+  const isAssignedJury = match.jury_1_id === user.id || match.jury_2_id === user.id
+
+  if (!isAdmin && !isAssignedJury) {
+    return { error: 'Anda tidak memiliki hak akses untuk mengubah status pertandingan ini.' }
   }
 
-  const adminClient = createAdminClient()
   const updateData: Record<string, any> = { status, updated_at: new Date().toISOString() }
 
   if (status === 'LIVE') {
@@ -43,21 +58,16 @@ export async function updateMatchStatus(matchId: string, status: string) {
       }
     }
 
-    const { data: match } = await adminClient
-      .from('matches')
-      .select('started_at, updated_at, status')
-      .eq('id', matchId)
-      .single()
-
-    if (match) {
-      if (!match.started_at) {
-        updateData.started_at = new Date().toISOString()
-      } else if (match.status === 'PAUSED' && match.updated_at) {
-        // Shift started_at forward by the pause duration so active playing clock is preserved
-        const pausedDurationMs = Math.max(0, Date.now() - new Date(match.updated_at).getTime())
-        const newStartTime = new Date(new Date(match.started_at).getTime() + pausedDurationMs)
-        updateData.started_at = newStartTime.toISOString()
-      }
+    if (isStartingBabak2) {
+      // Mulai babak 2: Reset stopwatch started_at ke waktu sekarang
+      updateData.started_at = new Date().toISOString()
+    } else if (!match.started_at) {
+      updateData.started_at = new Date().toISOString()
+    } else if (match.status === 'PAUSED' && match.updated_at) {
+      // Shift started_at forward by the pause duration so active playing clock is preserved
+      const pausedDurationMs = Math.max(0, Date.now() - new Date(match.updated_at).getTime())
+      const newStartTime = new Date(new Date(match.started_at).getTime() + pausedDurationMs)
+      updateData.started_at = newStartTime.toISOString()
     }
   } else if (status === 'FINISHED') {
     updateData.finished_at = new Date().toISOString()
@@ -75,6 +85,94 @@ export async function updateMatchStatus(matchId: string, status: string) {
   revalidatePath(`/jury/matches/${matchId}`)
   revalidatePath(`/tv/${matchId}`)
   return { success: true }
+}
+
+export async function switchToBabak2(matchId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Sesi login tidak valid. Silakan login kembali.' }
+  }
+
+  const adminClient = createAdminClient()
+  const { data: match, error: fetchErr } = await adminClient
+    .from('matches')
+    .select('id, round, jury_1_id, jury_2_id, status')
+    .eq('id', matchId)
+    .single()
+
+  if (fetchErr || !match) {
+    return { error: 'Pertandingan tidak ditemukan.' }
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  const isAdmin = profile?.role === 'ADMIN'
+  const isAssignedJury = match.jury_1_id === user.id || match.jury_2_id === user.id
+
+  if (!isAdmin && !isAssignedJury) {
+    return { error: 'Hanya Admin atau Petugas Meja Scoring yang berwenang menukar babak pertandingan.' }
+  }
+
+  // Anchor tim kiri diambil dari round lama
+  const anchorId = match.round ? match.round.split('::')[0] : ''
+  const newRound = `${anchorId}::BABAK_2`
+
+  const { error } = await adminClient
+    .from('matches')
+    .update({
+      status: 'PAUSED',
+      round: newRound,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', matchId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/admin')
+  revalidatePath(`/admin/matches/${matchId}`)
+  revalidatePath('/jury')
+  revalidatePath(`/jury/matches/${matchId}`)
+  revalidatePath(`/tv/${matchId}`)
+  return { success: true }
+}
+
+export async function syncTvScoreboard(matchId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    return { error: 'Sesi login tidak valid. Silakan login kembali.' }
+  }
+
+  const adminClient = createAdminClient()
+
+  // Update match updated_at to force realtime listener on TV and clients to refetch everything
+  const now = new Date().toISOString()
+  const { error } = await adminClient
+    .from('matches')
+    .update({ updated_at: now })
+    .eq('id', matchId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/admin')
+  revalidatePath(`/admin/matches/${matchId}`)
+  revalidatePath('/jury')
+  revalidatePath(`/jury/matches/${matchId}`)
+  revalidatePath(`/tv/${matchId}`)
+  revalidatePath('/')
+
+  return { success: true, timestamp: now }
 }
 
 export async function toggleAttackingTeam(matchId: string, targetAttackingTeamId?: string) {

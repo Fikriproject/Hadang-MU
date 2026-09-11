@@ -62,8 +62,9 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
     const tA = initialMatch.team_attack || { id: initialMatch.team_attack_id, name: 'Tim 1' }
     const tB = initialMatch.team_defense || { id: initialMatch.team_defense_id, name: 'Tim 2' }
 
-    if (initialMatch.round === tA.id) return { teamLeft: tA, teamRight: tB }
-    if (initialMatch.round === tB.id) return { teamLeft: tB, teamRight: tA }
+    const anchorId = initialMatch.round ? initialMatch.round.split('::')[0] : ''
+    if (anchorId === tA.id) return { teamLeft: tA, teamRight: tB }
+    if (anchorId === tB.id) return { teamLeft: tB, teamRight: tA }
 
     return tA.id < tB.id ? { teamLeft: tA, teamRight: tB } : { teamLeft: tB, teamRight: tA }
   }, [
@@ -78,6 +79,20 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
   useEffect(() => {
     const supabase = createClient()
     const matchId = initialMatch.id
+
+    const fetchAllEvents = async () => {
+      try {
+        const { data: freshEvents } = await supabase
+          .from('score_events')
+          .select('id, team_id, event_type, points, status, created_at, jury_id')
+          .eq('match_id', matchId)
+          .order('created_at', { ascending: false })
+
+        if (freshEvents) {
+          setScoreEvents(freshEvents as ScoreEvent[])
+        }
+      } catch (e) {}
+    }
 
     const channel = supabase
       .channel(`tv-scoreboard-${matchId}`)
@@ -95,6 +110,8 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
             ...prev,
             ...updated,
           }))
+          // Selaraskan seluruh skor seketika saat Admin menekan tombol Refresh / Update Match
+          fetchAllEvents()
         }
       )
       .on(
@@ -129,6 +146,7 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
       .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
           setRealtimeStatus('SUBSCRIBED')
+          fetchAllEvents()
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           setRealtimeStatus('DISCONNECTED')
         } else {
@@ -136,7 +154,7 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
         }
       })
 
-    // Background Polling Fallback every 2.5s
+    // Background Polling Fallback every 2s (menyelaraskan data tanpa limit)
     const pollInterval = setInterval(async () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
 
@@ -149,30 +167,20 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
             .single(),
           supabase
             .from('score_events')
-            .select(`
-              id,
-              team_id,
-              event_type,
-              points,
-              status,
-              created_at,
-              jury_id,
-              jury:jury_id(name)
-            `)
+            .select('id, team_id, event_type, points, status, created_at, jury_id')
             .eq('match_id', matchId)
-            .order('created_at', { ascending: false })
-            .limit(30),
+            .order('created_at', { ascending: false }),
         ])
 
         if (resEvents.data) {
           setScoreEvents((prev) => {
-            const remoteEvents = resEvents.data as any[]
+            const remoteEvents = resEvents.data as ScoreEvent[]
             const isSame =
               prev.length === remoteEvents.length &&
               remoteEvents.every((rem, i) => prev[i] && prev[i].id === rem.id && prev[i].status === rem.status)
 
             if (isSame) return prev
-            return remoteEvents as ScoreEvent[]
+            return remoteEvents
           })
         }
 
@@ -186,7 +194,7 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
       } catch (err) {
         // Silent poll error
       }
-    }, 2500)
+    }, 2000)
 
     return () => {
       supabase.removeChannel(channel)
@@ -348,6 +356,23 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
             }}
           >
             {isLive ? '● LIVE' : match.status}
+          </span>
+
+          <span
+            style={{
+              backgroundColor: match.round?.includes('BABAK_2') ? 'rgba(37, 99, 235, 0.15)' : 'rgba(22, 163, 74, 0.15)',
+              border: match.round?.includes('BABAK_2') ? '1px solid #2563EB' : '1px solid #16A34A',
+              color: match.round?.includes('BABAK_2') ? '#2563EB' : '#16A34A',
+              fontSize: 'clamp(0.8rem, 1.4vw, 1.1rem)',
+              fontWeight: 800,
+              padding: '0.4em 1em',
+              borderRadius: '9999px',
+              letterSpacing: '0.08em',
+              display: 'inline-flex',
+              alignItems: 'center',
+            }}
+          >
+            {match.round?.includes('BABAK_2') ? 'BABAK 2' : 'BABAK 1'}
           </span>
 
           <ThemeToggle />
