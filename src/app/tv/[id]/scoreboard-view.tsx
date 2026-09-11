@@ -321,32 +321,8 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
           </div>
         </div>
 
-        {/* Status, Timer, & Controls */}
+        {/* Status & Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {/* Match Duration Clock */}
-          <div
-            style={{
-              backgroundColor: 'var(--surface-color)',
-              border: '1px solid var(--border-color)',
-              padding: '0.4em 0.85em',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-            }}
-          >
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>⏱</span>
-            <span
-              style={{
-                fontSize: 'clamp(0.9rem, 1.5vw, 1.25rem)',
-                fontWeight: 800,
-                fontFamily: 'monospace',
-                color: isLive ? 'var(--success)' : 'var(--text-primary)',
-              }}
-            >
-              {matchDuration}
-            </span>
-          </div>
 
           <span
             style={{
@@ -395,20 +371,11 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
         </div>
       </header>
 
-      {/* MAIN ARENA SCORE BOARD WITH STATIC LEFT & RIGHT POSITIONS */}
-      <main
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr auto 1fr',
-          alignItems: 'center',
-          gap: '3vw',
-          margin: 'auto 0',
-          padding: '2vh 0',
-          zIndex: 10,
-        }}
-      >
+      {/* MAIN ARENA SCORE BOARD WITH STATIC LEFT & RIGHT POSITIONS & CENTER TIMER */}
+      <main className="tv-scoreboard-arena">
         {/* TIM 1 (LEFT) CARD */}
         <div
+          className="tv-arena-team-left"
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -505,16 +472,23 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
           </span>
         </div>
 
+        {/* LIVE TIMER IN CENTER TOP */}
+        <div className="tv-arena-timer">
+          <div className={`tv-arena-timer-box ${isLive ? 'is-live' : match.status === 'PAUSED' ? 'is-paused' : ''}`}>
+            <span style={{ fontSize: 'clamp(1.1rem, 2vw, 1.8rem)' }}>⏱</span>
+            <span
+              className="tv-arena-timer-digits"
+              style={{
+                color: isLive ? 'var(--success)' : match.status === 'PAUSED' ? 'var(--warning)' : 'var(--text-primary)',
+              }}
+            >
+              {matchDuration}
+            </span>
+          </div>
+        </div>
+
         {/* CENTER VS BADGE */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '1.5vh',
-          }}
-        >
+        <div className="tv-arena-vs">
           <div
             style={{
               fontSize: 'clamp(2.5rem, 6vw, 5.5rem)',
@@ -543,6 +517,7 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
 
         {/* TIM 2 (RIGHT) CARD */}
         <div
+          className="tv-arena-team-right"
           style={{
             display: 'flex',
             flexDirection: 'column',
