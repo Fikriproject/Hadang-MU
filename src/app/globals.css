@@ -453,6 +453,113 @@ div:where(.swal2-popup.swal2-hadang-popup) {
   }
 }
 
+/* Live TV Scoreboard Arena Desktop & Mobile Responsive Grid */
+.tv-scoreboard-arena {
+  display: grid;
+  grid-template-columns: 1fr minmax(180px, auto) 1fr;
+  grid-template-areas:
+    "team-left timer team-right"
+    "team-left vs team-right";
+  align-items: center;
+  gap: 3vw;
+  margin: auto 0;
+  padding: 2vh 0;
+  z-index: 10;
+}
+
+.tv-arena-team-left {
+  grid-area: team-left;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.tv-arena-timer {
+  grid-area: timer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.tv-arena-timer-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.6em 1.5em;
+  border-radius: 16px;
+  background-color: var(--surface-color);
+  border: 1.5px solid var(--border-color);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--card-shadow);
+  transition: all 0.25s ease;
+}
+
+.tv-arena-timer-box.is-live {
+  background-color: rgba(34, 197, 94, 0.08);
+  border: 2.5px solid var(--success);
+  box-shadow: 0 0 30px rgba(34, 197, 94, 0.35);
+}
+
+.tv-arena-timer-box.is-paused {
+  background-color: rgba(245, 158, 11, 0.08);
+  border: 2.5px solid var(--warning);
+}
+
+.tv-arena-timer-digits {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: clamp(1.8rem, 3.2vw, 3rem);
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.tv-arena-vs {
+  grid-area: vs;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2vh;
+}
+
+.tv-arena-team-right {
+  grid-area: team-right;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .tv-scoreboard-arena {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-areas:
+      "timer timer"
+      "team-left team-right" !important;
+    gap: 1rem !important;
+    padding: 1vh 0 !important;
+  }
+
+  .tv-arena-timer-box {
+    width: 100% !important;
+    padding: 0.65rem 1rem !important;
+  }
+
+  .tv-arena-timer-digits {
+    font-size: 2.2rem !important;
+  }
+
+  .tv-arena-vs {
+    display: none !important;
+  }
+}
+
 /* Zero-Hydration-Mismatch CSS Theme Toggle Icons */
 :root,
 [data-theme="dark"] .theme-icon-moon {
