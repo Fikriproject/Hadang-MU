@@ -61,7 +61,9 @@ export async function updateMatchStatus(matchId: string, status: string, isStart
     if (isStartingBabak2 || match.round?.includes('BABAK_2_PENDING')) {
       // Mulai babak 2: Reset stopwatch started_at ke waktu sekarang dan tandai Babak 2 telah dimulai
       const anchorId = match.round ? match.round.split('::')[0] : ''
-      updateData.round = `${anchorId}::BABAK_2_STARTED`
+      const b1Match = match.round?.match(/::B1\[(.*?)\]/)
+      const b1Suffix = b1Match ? `::B1[${b1Match[1]}]` : ''
+      updateData.round = `${anchorId}::BABAK_2_STARTED${b1Suffix}`
       updateData.started_at = new Date().toISOString()
     } else if (!match.started_at) {
       updateData.started_at = new Date().toISOString()
@@ -89,7 +91,15 @@ export async function updateMatchStatus(matchId: string, status: string, isStart
   return { success: true }
 }
 
-export async function switchToBabak2(matchId: string) {
+export async function switchToBabak2(
+  matchId: string,
+  b1Summary?: {
+    scoreLeft: number
+    scoreRight: number
+    duration: string
+    endedAt?: string
+  }
+) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -123,7 +133,12 @@ export async function switchToBabak2(matchId: string) {
 
   // Anchor tim kiri diambil dari round lama, tandai sebagai PENDING sampai tombol Mulai Babak 2 ditekan
   const anchorId = match.round ? match.round.split('::')[0] : ''
-  const newRound = `${anchorId}::BABAK_2_PENDING`
+  const b1Match = match.round?.match(/::B1\[(.*?)\]/)
+  const existingB1 = b1Match ? `::B1[${b1Match[1]}]` : ''
+  const b1DataStr = b1Summary
+    ? `::B1[${b1Summary.scoreLeft},${b1Summary.scoreRight},${b1Summary.duration},${b1Summary.endedAt || new Date().toISOString()}]`
+    : existingB1
+  const newRound = `${anchorId}::BABAK_2_PENDING${b1DataStr}`
 
   const { error } = await adminClient
     .from('matches')

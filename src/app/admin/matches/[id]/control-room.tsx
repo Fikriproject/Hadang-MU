@@ -258,6 +258,47 @@ export default function ControlRoom({
   const isBabak2 = match.round?.includes('BABAK_2') || false
   const isBabak2Pending = match.round?.includes('BABAK_2_PENDING') || false
 
+  // Perhitungan Rangkuman Babak 1 (untuk ditampilkan saat Babak 1 berakhir / masuk ke Babak 2)
+  const babak1Summary = useMemo(() => {
+    if (!isBabak2) return null
+
+    // 1. Coba parse dari data tersimpan di match.round: ::B1[scoreLeft,scoreRight,duration,endedAt]
+    if (match.round) {
+      const m = match.round.match(/::B1\[(\d+),(\d+),([^,]+)(?:,([^\]]*))?\]/)
+      if (m) {
+        return {
+          scoreLeft: parseInt(m[1], 10) || 0,
+          scoreRight: parseInt(m[2], 10) || 0,
+          duration: m[3] || '00:00',
+          endedAt: m[4] || null,
+        }
+      }
+    }
+
+    // 2. Fallback untuk data match yang sudah berada di Babak 2 tanpa tag ::B1
+    if (match.started_at) {
+      const b2StartMs = new Date(match.started_at).getTime()
+      const b1ActiveEvents = scoreEvents.filter(
+        (e) => e.status === 'ACTIVE' && new Date(e.created_at).getTime() < b2StartMs
+      )
+      const sLeft = b1ActiveEvents
+        .filter((e) => e.team_id === teamLeft.id)
+        .reduce((sum, e) => sum + e.points, 0)
+      const sRight = b1ActiveEvents
+        .filter((e) => e.team_id === teamRight.id)
+        .reduce((sum, e) => sum + e.points, 0)
+
+      return {
+        scoreLeft: sLeft,
+        scoreRight: sRight,
+        duration: '10:00',
+        endedAt: null,
+      }
+    }
+
+    return null
+  }, [isBabak2, match.round, match.started_at, scoreEvents, teamLeft.id, teamRight.id])
+
   // Status handlers
   const handleStatusChange = (newStatus: string, isStartingBabak2: boolean = false) => {
     setActionError(null)
@@ -266,10 +307,12 @@ export default function ControlRoom({
       if (res?.error) setActionError(res.error)
       else {
         const anchorId = match.round ? match.round.split('::')[0] : ''
+        const b1Match = match.round?.match(/::B1\[(.*?)\]/)
+        const b1Suffix = b1Match ? `::B1[${b1Match[1]}]` : ''
         setMatch((prev) => ({
           ...prev,
           status: newStatus as any,
-          round: isStartingBabak2 ? `${anchorId}::BABAK_2_STARTED` : prev.round,
+          round: isStartingBabak2 ? `${anchorId}::BABAK_2_STARTED${b1Suffix}` : prev.round,
           started_at: isStartingBabak2 ? new Date().toISOString() : prev.started_at,
         }))
       }
@@ -282,16 +325,26 @@ export default function ControlRoom({
     const confirmed = await promptConfirmTukarBabak()
     if (!confirmed) return
 
+    const b1Summary = {
+      scoreLeft,
+      scoreRight,
+      duration: elapsed,
+      teamLeftId: teamLeft.id,
+      teamRightId: teamRight.id,
+      endedAt: new Date().toISOString(),
+    }
+
     startTransition(async () => {
-      const res = await switchToBabak2(match.id)
+      const res = await switchToBabak2(match.id, b1Summary)
       if (res?.error) {
         setActionError(res.error)
       } else {
         const anchorId = match.round ? match.round.split('::')[0] : ''
+        const b1Suffix = `::B1[${scoreLeft},${scoreRight},${elapsed},${b1Summary.endedAt}]`
         setMatch((prev) => ({
           ...prev,
           status: 'PAUSED',
-          round: `${anchorId}::BABAK_2_PENDING`,
+          round: `${anchorId}::BABAK_2_PENDING${b1Suffix}`,
         }))
       }
     })
@@ -1295,6 +1348,282 @@ export default function ControlRoom({
           </div>
         </div>
       </div>
+
+      {/* Rangkuman Babak 1 (Ditampilkan setelah Babak 1 berakhir / masuk ke Babak 2) */}
+      {isBabak2 && babak1Summary && (
+        <div
+          style={{
+            backgroundColor: 'var(--surface-color)',
+            border: '1.5px solid rgba(37, 99, 235, 0.35)',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            boxShadow: 'var(--card-shadow)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Top accent line */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '4px',
+              backgroundColor: '#2563EB',
+            }}
+          />
+
+          {/* Header Rangkuman */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+              marginBottom: '1.25rem',
+              paddingBottom: '0.85rem',
+              borderBottom: '1px solid var(--border-color)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <span style={{ fontSize: '1.5rem' }}>📋</span>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
+                  Rangkuman Babak 1
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+                  Perolehan skor total masing-masing tim dan lamanya waktu pertandingan pada Babak 1
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+              {/* Durasi Babak 1 Badge */}
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                  border: '1px solid rgba(37, 99, 235, 0.3)',
+                  padding: '0.4rem 0.85rem',
+                  borderRadius: '8px',
+                }}
+              >
+                <span style={{ fontSize: '1rem' }}>⏱</span>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '0.625rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    Durasi Babak 1
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                      fontSize: '1.05rem',
+                      fontWeight: 900,
+                      color: '#2563EB',
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {babak1Summary.duration}
+                  </span>
+                </div>
+              </div>
+
+              {/* Status Selesai Badge */}
+              <span
+                style={{
+                  backgroundColor: 'rgba(22, 163, 74, 0.12)',
+                  color: '#16A34A',
+                  border: '1px solid #16A34A',
+                  fontWeight: 800,
+                  fontSize: '0.75rem',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '9999px',
+                  letterSpacing: '0.04em',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                }}
+              >
+                <span>✓</span>
+                <span>BABAK 1 SELESAI</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Skor Total Masing-Masing Tim Arena */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr auto 1fr',
+              gap: '1rem',
+              alignItems: 'center',
+            }}
+          >
+            {/* TIM KIRI */}
+            <div
+              style={{
+                backgroundColor:
+                  babak1Summary.scoreLeft > babak1Summary.scoreRight
+                    ? 'rgba(34, 197, 94, 0.08)'
+                    : 'var(--surface-subtle)',
+                border:
+                  babak1Summary.scoreLeft > babak1Summary.scoreRight
+                    ? '2px solid var(--success)'
+                    : '1px solid var(--border-color)',
+                borderRadius: '10px',
+                padding: '1.25rem 1rem',
+                textAlign: 'center',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Tim 1 (Kiri)
+              </div>
+              <h4 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0.35rem 0 0.5rem 0', color: 'var(--text-primary)' }}>
+                {teamLeft.name}
+              </h4>
+              <div
+                style={{
+                  fontSize: '2.5rem',
+                  fontWeight: 900,
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  color:
+                    babak1Summary.scoreLeft > babak1Summary.scoreRight
+                      ? 'var(--success)'
+                      : 'var(--text-primary)',
+                  lineHeight: 1,
+                  margin: '0.35rem 0',
+                }}
+              >
+                {babak1Summary.scoreLeft}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                Total Poin Babak 1
+              </div>
+            </div>
+
+            {/* VS BADGE */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 900,
+                  color: 'var(--text-muted)',
+                  backgroundColor: 'var(--surface-subtle)',
+                  padding: '0.45rem 0.75rem',
+                  borderRadius: '9999px',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                VS
+              </span>
+            </div>
+
+            {/* TIM KANAN */}
+            <div
+              style={{
+                backgroundColor:
+                  babak1Summary.scoreRight > babak1Summary.scoreLeft
+                    ? 'rgba(34, 197, 94, 0.08)'
+                    : 'var(--surface-subtle)',
+                border:
+                  babak1Summary.scoreRight > babak1Summary.scoreLeft
+                    ? '2px solid var(--success)'
+                    : '1px solid var(--border-color)',
+                borderRadius: '10px',
+                padding: '1.25rem 1rem',
+                textAlign: 'center',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Tim 2 (Kanan)
+              </div>
+              <h4 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0.35rem 0 0.5rem 0', color: 'var(--text-primary)' }}>
+                {teamRight.name}
+              </h4>
+              <div
+                style={{
+                  fontSize: '2.5rem',
+                  fontWeight: 900,
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  color:
+                    babak1Summary.scoreRight > babak1Summary.scoreLeft
+                      ? 'var(--success)'
+                      : 'var(--text-primary)',
+                  lineHeight: 1,
+                  margin: '0.35rem 0',
+                }}
+              >
+                {babak1Summary.scoreRight}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                Total Poin Babak 1
+              </div>
+            </div>
+          </div>
+
+          {/* Status Keunggulan & Keterangan Tambahan */}
+          <div
+            style={{
+              marginTop: '1.25rem',
+              backgroundColor: 'var(--surface-subtle)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              padding: '0.65rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.5rem',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <span>
+              {babak1Summary.scoreLeft > babak1Summary.scoreRight ? (
+                <>
+                  🏆 <strong style={{ color: 'var(--text-primary)' }}>{teamLeft.name}</strong> unggul{' '}
+                  <span style={{ color: 'var(--success)', fontWeight: 800 }}>
+                    +{babak1Summary.scoreLeft - babak1Summary.scoreRight} poin
+                  </span>{' '}
+                  pada Babak 1.
+                </>
+              ) : babak1Summary.scoreRight > babak1Summary.scoreLeft ? (
+                <>
+                  🏆 <strong style={{ color: 'var(--text-primary)' }}>{teamRight.name}</strong> unggul{' '}
+                  <span style={{ color: 'var(--success)', fontWeight: 800 }}>
+                    +{babak1Summary.scoreRight - babak1Summary.scoreLeft} poin
+                  </span>{' '}
+                  pada Babak 1.
+                </>
+              ) : (
+                <>
+                  ⚖️ Skor imbang sama kuat{' '}
+                  <strong style={{ color: 'var(--text-primary)' }}>
+                    ({babak1Summary.scoreLeft} - {babak1Summary.scoreRight})
+                  </strong>{' '}
+                  pada Babak 1.
+                </>
+              )}
+            </span>
+            <span style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
+              Lamanya Waktu Pertandingan: <strong style={{ color: 'var(--text-primary)' }}>{babak1Summary.duration}</strong>
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Score Events Audit Feed */}
       <div

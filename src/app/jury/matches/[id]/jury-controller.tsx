@@ -372,16 +372,26 @@ export default function JuryController({
     const confirmed = await promptConfirmTukarBabak()
     if (!confirmed) return
 
+    const b1Summary = {
+      scoreLeft,
+      scoreRight,
+      duration: elapsed,
+      teamLeftId: teamLeft.id,
+      teamRightId: teamRight.id,
+      endedAt: new Date().toISOString(),
+    }
+
     startTransition(async () => {
-      const res = await switchToBabak2(match.id)
+      const res = await switchToBabak2(match.id, b1Summary)
       if (res?.error) {
         setToastMessage({ text: res.error, type: 'error' })
       } else {
         const anchorId = match.round ? match.round.split('::')[0] : ''
+        const b1Suffix = `::B1[${scoreLeft},${scoreRight},${elapsed},${b1Summary.endedAt}]`
         setMatch((prev) => ({
           ...prev,
           status: 'PAUSED',
-          round: `${anchorId}::BABAK_2_PENDING`,
+          round: `${anchorId}::BABAK_2_PENDING${b1Suffix}`,
         }))
         setToastMessage({ text: 'Pertandingan dijeda. Siap untuk Babak 2!', type: 'success' })
       }
@@ -400,10 +410,12 @@ export default function JuryController({
         setToastMessage({ text: res.error, type: 'error' })
       } else {
         const anchorId = match.round ? match.round.split('::')[0] : ''
+        const b1Match = match.round?.match(/::B1\[(.*?)\]/)
+        const b1Suffix = b1Match ? `::B1[${b1Match[1]}]` : ''
         setMatch((prev) => ({
           ...prev,
           status: 'LIVE',
-          round: `${anchorId}::BABAK_2_STARTED`,
+          round: `${anchorId}::BABAK_2_STARTED${b1Suffix}`,
           started_at: new Date().toISOString(),
         }))
         setToastMessage({ text: 'Babak 2 Resmi Dimulai (LIVE)!', type: 'success' })
