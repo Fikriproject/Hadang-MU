@@ -299,6 +299,84 @@ export default function ControlRoom({
     return null
   }, [isBabak2, match.round, match.started_at, scoreEvents, teamLeft.id, teamRight.id])
 
+  // Rekapitulasi Rinci Per Tim (Skor Babak 1 Depan/Belakang, Skor Babak 2 Depan/Belakang, & Total Akhir)
+  const teamRecap = useMemo(() => {
+    let b1CutoffMs: number | null = null
+    if (babak1Summary?.endedAt) {
+      b1CutoffMs = new Date(babak1Summary.endedAt).getTime()
+    } else if (isBabak2 && match.started_at) {
+      b1CutoffMs = new Date(match.started_at).getTime()
+    }
+
+    const calculateTeamRecap = (teamId: string, b1FallbackPoints: number = 0) => {
+      const teamEvents = activeEvents.filter((e) => e.team_id === teamId)
+
+      let b1Events: ScoreEvent[] = []
+      let b2Events: ScoreEvent[] = []
+
+      if (b1CutoffMs !== null) {
+        b1Events = teamEvents.filter((e) => new Date(e.created_at).getTime() <= b1CutoffMs!)
+        b2Events = teamEvents.filter((e) => new Date(e.created_at).getTime() > b1CutoffMs!)
+      } else if (isBabak2 && babak1Summary) {
+        const sorted = [...teamEvents].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        )
+        let acc = 0
+        let splitIdx = sorted.length
+        for (let i = 0; i < sorted.length; i++) {
+          acc += sorted[i].points
+          if (acc >= b1FallbackPoints) {
+            splitIdx = i + 1
+            break
+          }
+        }
+        b1Events = sorted.slice(0, splitIdx)
+        b2Events = sorted.slice(splitIdx)
+      } else {
+        b1Events = teamEvents
+        b2Events = []
+      }
+
+      // Skor Depan: match.jury_1_id (Scoring 1)
+      // Skor Belakang: match.jury_2_id (Scoring 2)
+      const isBelakang = (e: ScoreEvent) => e.jury_id === match.jury_2_id
+
+      const b1Belakang = b1Events.filter(isBelakang).reduce((sum, e) => sum + e.points, 0)
+      const b1Depan = b1Events.filter((e) => !isBelakang(e)).reduce((sum, e) => sum + e.points, 0)
+      const b1Total = b1Depan + b1Belakang
+
+      const b2Belakang = b2Events.filter(isBelakang).reduce((sum, e) => sum + e.points, 0)
+      const b2Depan = b2Events.filter((e) => !isBelakang(e)).reduce((sum, e) => sum + e.points, 0)
+      const b2Total = b2Depan + b2Belakang
+
+      const totalAkhir = b1Total + b2Total
+
+      return {
+        b1Depan,
+        b1Belakang,
+        b1Total,
+        b2Depan,
+        b2Belakang,
+        b2Total,
+        totalAkhir,
+      }
+    }
+
+    return {
+      left: calculateTeamRecap(teamLeft.id, babak1Summary?.scoreLeft || 0),
+      right: calculateTeamRecap(teamRight.id, babak1Summary?.scoreRight || 0),
+    }
+  }, [
+    activeEvents,
+    babak1Summary,
+    isBabak2,
+    match.started_at,
+    match.jury_1_id,
+    match.jury_2_id,
+    teamLeft.id,
+    teamRight.id,
+  ])
+
   // Status handlers
   const handleStatusChange = (newStatus: string, isStartingBabak2: boolean = false) => {
     setActionError(null)
@@ -1349,282 +1427,6 @@ export default function ControlRoom({
         </div>
       </div>
 
-      {/* Rangkuman Babak 1 (Ditampilkan setelah Babak 1 berakhir / masuk ke Babak 2) */}
-      {isBabak2 && babak1Summary && (
-        <div
-          style={{
-            backgroundColor: 'var(--surface-color)',
-            border: '1.5px solid rgba(37, 99, 235, 0.35)',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            boxShadow: 'var(--card-shadow)',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Top accent line */}
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              height: '4px',
-              backgroundColor: '#2563EB',
-            }}
-          />
-
-          {/* Header Rangkuman */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '0.75rem',
-              marginBottom: '1.25rem',
-              paddingBottom: '0.85rem',
-              borderBottom: '1px solid var(--border-color)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-              <span style={{ fontSize: '1.5rem' }}>📋</span>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>
-                  Rangkuman Babak 1
-                </h3>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
-                  Perolehan skor total masing-masing tim dan lamanya waktu pertandingan pada Babak 1
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-              {/* Durasi Babak 1 Badge */}
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  backgroundColor: 'rgba(37, 99, 235, 0.08)',
-                  border: '1px solid rgba(37, 99, 235, 0.3)',
-                  padding: '0.4rem 0.85rem',
-                  borderRadius: '8px',
-                }}
-              >
-                <span style={{ fontSize: '1rem' }}>⏱</span>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '0.625rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                    Durasi Babak 1
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                      fontSize: '1.05rem',
-                      fontWeight: 900,
-                      color: '#2563EB',
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    {babak1Summary.duration}
-                  </span>
-                </div>
-              </div>
-
-              {/* Status Selesai Badge */}
-              <span
-                style={{
-                  backgroundColor: 'rgba(22, 163, 74, 0.12)',
-                  color: '#16A34A',
-                  border: '1px solid #16A34A',
-                  fontWeight: 800,
-                  fontSize: '0.75rem',
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '9999px',
-                  letterSpacing: '0.04em',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.3rem',
-                }}
-              >
-                <span>✓</span>
-                <span>BABAK 1 SELESAI</span>
-              </span>
-            </div>
-          </div>
-
-          {/* Skor Total Masing-Masing Tim Arena */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr auto 1fr',
-              gap: '1rem',
-              alignItems: 'center',
-            }}
-          >
-            {/* TIM KIRI */}
-            <div
-              style={{
-                backgroundColor:
-                  babak1Summary.scoreLeft > babak1Summary.scoreRight
-                    ? 'rgba(34, 197, 94, 0.08)'
-                    : 'var(--surface-subtle)',
-                border:
-                  babak1Summary.scoreLeft > babak1Summary.scoreRight
-                    ? '2px solid var(--success)'
-                    : '1px solid var(--border-color)',
-                borderRadius: '10px',
-                padding: '1.25rem 1rem',
-                textAlign: 'center',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Tim 1 (Kiri)
-              </div>
-              <h4 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0.35rem 0 0.5rem 0', color: 'var(--text-primary)' }}>
-                {teamLeft.name}
-              </h4>
-              <div
-                style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 900,
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                  color:
-                    babak1Summary.scoreLeft > babak1Summary.scoreRight
-                      ? 'var(--success)'
-                      : 'var(--text-primary)',
-                  lineHeight: 1,
-                  margin: '0.35rem 0',
-                }}
-              >
-                {babak1Summary.scoreLeft}
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
-                Total Poin Babak 1
-              </div>
-            </div>
-
-            {/* VS BADGE */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: 900,
-                  color: 'var(--text-muted)',
-                  backgroundColor: 'var(--surface-subtle)',
-                  padding: '0.45rem 0.75rem',
-                  borderRadius: '9999px',
-                  border: '1px solid var(--border-color)',
-                }}
-              >
-                VS
-              </span>
-            </div>
-
-            {/* TIM KANAN */}
-            <div
-              style={{
-                backgroundColor:
-                  babak1Summary.scoreRight > babak1Summary.scoreLeft
-                    ? 'rgba(34, 197, 94, 0.08)'
-                    : 'var(--surface-subtle)',
-                border:
-                  babak1Summary.scoreRight > babak1Summary.scoreLeft
-                    ? '2px solid var(--success)'
-                    : '1px solid var(--border-color)',
-                borderRadius: '10px',
-                padding: '1.25rem 1rem',
-                textAlign: 'center',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Tim 2 (Kanan)
-              </div>
-              <h4 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0.35rem 0 0.5rem 0', color: 'var(--text-primary)' }}>
-                {teamRight.name}
-              </h4>
-              <div
-                style={{
-                  fontSize: '2.5rem',
-                  fontWeight: 900,
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                  color:
-                    babak1Summary.scoreRight > babak1Summary.scoreLeft
-                      ? 'var(--success)'
-                      : 'var(--text-primary)',
-                  lineHeight: 1,
-                  margin: '0.35rem 0',
-                }}
-              >
-                {babak1Summary.scoreRight}
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 700 }}>
-                Total Poin Babak 1
-              </div>
-            </div>
-          </div>
-
-          {/* Status Keunggulan & Keterangan Tambahan */}
-          <div
-            style={{
-              marginTop: '1.25rem',
-              backgroundColor: 'var(--surface-subtle)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              padding: '0.65rem 1rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '0.5rem',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              color: 'var(--text-secondary)',
-            }}
-          >
-            <span>
-              {babak1Summary.scoreLeft > babak1Summary.scoreRight ? (
-                <>
-                  🏆 <strong style={{ color: 'var(--text-primary)' }}>{teamLeft.name}</strong> unggul{' '}
-                  <span style={{ color: 'var(--success)', fontWeight: 800 }}>
-                    +{babak1Summary.scoreLeft - babak1Summary.scoreRight} poin
-                  </span>{' '}
-                  pada Babak 1.
-                </>
-              ) : babak1Summary.scoreRight > babak1Summary.scoreLeft ? (
-                <>
-                  🏆 <strong style={{ color: 'var(--text-primary)' }}>{teamRight.name}</strong> unggul{' '}
-                  <span style={{ color: 'var(--success)', fontWeight: 800 }}>
-                    +{babak1Summary.scoreRight - babak1Summary.scoreLeft} poin
-                  </span>{' '}
-                  pada Babak 1.
-                </>
-              ) : (
-                <>
-                  ⚖️ Skor imbang sama kuat{' '}
-                  <strong style={{ color: 'var(--text-primary)' }}>
-                    ({babak1Summary.scoreLeft} - {babak1Summary.scoreRight})
-                  </strong>{' '}
-                  pada Babak 1.
-                </>
-              )}
-            </span>
-            <span style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
-              Lamanya Waktu Pertandingan: <strong style={{ color: 'var(--text-primary)' }}>{babak1Summary.duration}</strong>
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Score Events Audit Feed */}
       <div
         style={{
@@ -1726,57 +1528,354 @@ export default function ControlRoom({
         )}
       </div>
 
-      {/* Post-Match Summary (List Penyerang & Bertahan) */}
+      {/* Post-Match Summary / Rekapitulasi Pertandingan */}
       {match.status === 'FINISHED' && (
         <div
           style={{
             backgroundColor: 'var(--surface-color)',
             border: '2px solid var(--primary)',
-            borderRadius: '12px',
-            padding: '1.5rem',
+            borderRadius: '14px',
+            padding: '1.75rem',
             boxShadow: 'var(--card-shadow)',
-            marginTop: '1rem'
+            marginTop: '1.5rem',
           }}
         >
-          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)', margin: '0 0 0.5rem 0' }}>Rekapitulasi Pertandingan</h3>
-            <p className="metadata-text" style={{ margin: 0 }}>Statistik perolehan poin saat menjadi penyerang dan bertahan.</p>
+          <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)', margin: '0 0 0.4rem 0' }}>
+              Rekapitulasi Pertandingan
+            </h3>
+            <p className="metadata-text" style={{ margin: 0 }}>
+              Rincian perolehan poin Babak 1 dan Babak 2 dari meja scoring depan dan belakang.
+            </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-            {/* Tim 1 Summary */}
-            <div style={{ backgroundColor: 'var(--surface-subtle)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-              <h4 style={{ fontSize: '1.25rem', fontWeight: 800, textAlign: 'center', marginBottom: '1rem', color: 'var(--text-primary)' }}>{teamLeft.name}</h4>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border-color)' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Poin sebagai Penyerang</span>
-                <span style={{ fontWeight: 800, color: 'var(--success)' }}>{statsLeft.attackPoints}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border-color)' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Poin sebagai Bertahan</span>
-                <span style={{ fontWeight: 800, color: 'var(--success)' }}>{statsLeft.defensePoints}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', marginTop: '0.25rem' }}>
-                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Total Poin</span>
-                <span style={{ fontWeight: 900, fontSize: '1.25rem', color: 'var(--primary)' }}>{scoreLeft}</span>
-              </div>
-            </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: '1.5rem',
+            }}
+          >
+            {[
+              { team: teamLeft, recap: teamRecap.left, otherRecap: teamRecap.right },
+              { team: teamRight, recap: teamRecap.right, otherRecap: teamRecap.left },
+            ].map(({ team, recap, otherRecap }, idx) => {
+              const isWinner = recap.totalAkhir > otherRecap.totalAkhir
+              const isDraw = recap.totalAkhir === otherRecap.totalAkhir
 
-            {/* Tim 2 Summary */}
-            <div style={{ backgroundColor: 'var(--surface-subtle)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-              <h4 style={{ fontSize: '1.25rem', fontWeight: 800, textAlign: 'center', marginBottom: '1rem', color: 'var(--text-primary)' }}>{teamRight.name}</h4>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border-color)' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Poin sebagai Penyerang</span>
-                <span style={{ fontWeight: 800, color: 'var(--success)' }}>{statsRight.attackPoints}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border-color)' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Poin sebagai Bertahan</span>
-                <span style={{ fontWeight: 800, color: 'var(--success)' }}>{statsRight.defensePoints}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', marginTop: '0.25rem' }}>
-                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Total Poin</span>
-                <span style={{ fontWeight: 900, fontSize: '1.25rem', color: 'var(--primary)' }}>{scoreRight}</span>
-              </div>
-            </div>
+              return (
+                <div
+                  key={team.id}
+                  style={{
+                    backgroundColor: 'var(--surface-subtle)',
+                    padding: '1.25rem',
+                    borderRadius: '12px',
+                    border: isWinner ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                    position: 'relative',
+                  }}
+                >
+                  {/* Team Header */}
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      paddingBottom: '0.85rem',
+                      borderBottom: '2px solid var(--border-color)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        marginBottom: '0.25rem',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          color: 'var(--text-muted)',
+                          letterSpacing: '0.05em',
+                        }}
+                      >
+                        TIM {idx + 1}
+                      </span>
+                      {isWinner && (
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            backgroundColor: 'var(--success)',
+                            color: '#fff',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '999px',
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          PEMENANG
+                        </span>
+                      )}
+                      {isDraw && (
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            backgroundColor: 'var(--surface-color)',
+                            border: '1px solid var(--border-color)',
+                            color: 'var(--text-secondary)',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '999px',
+                          }}
+                        >
+                          SERI
+                        </span>
+                      )}
+                    </div>
+                    <h4
+                      style={{
+                        fontSize: '1.25rem',
+                        fontWeight: 800,
+                        margin: 0,
+                        color: 'var(--text-primary)',
+                      }}
+                    >
+                      {team.name}
+                    </h4>
+                  </div>
+
+                  {/* Skor Babak 1 */}
+                  <div
+                    style={{
+                      backgroundColor: 'var(--surface-color)',
+                      borderRadius: '10px',
+                      padding: '0.9rem 1rem',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '0.6rem',
+                        paddingBottom: '0.4rem',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      <span style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--primary)' }}>
+                        Skor Babak 1 :
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          color: 'var(--primary)',
+                          backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        Babak 1
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.35rem 0',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-secondary)' }}>
+                        Skor depan :{' '}
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          ({formatJuryDisplayName(match.jury_1?.name) || 'Scoring Depan'})
+                        </span>
+                      </span>
+                      <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem' }}>
+                        {recap.b1Depan}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.35rem 0',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-secondary)' }}>
+                        skor belakang :{' '}
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          ({formatJuryDisplayName(match.jury_2?.name) || 'Scoring Belakang'})
+                        </span>
+                      </span>
+                      <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem' }}>
+                        {recap.b1Belakang}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.55rem 0 0.15rem 0',
+                        marginTop: '0.4rem',
+                        borderTop: '1px dashed var(--border-color)',
+                        fontSize: '0.9rem',
+                      }}
+                    >
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                        total skor babak 1 :
+                      </span>
+                      <span style={{ fontWeight: 900, color: 'var(--primary)', fontSize: '1.15rem' }}>
+                        {recap.b1Total}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Skor Babak 2 */}
+                  <div
+                    style={{
+                      backgroundColor: 'var(--surface-color)',
+                      borderRadius: '10px',
+                      padding: '0.9rem 1rem',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '0.6rem',
+                        paddingBottom: '0.4rem',
+                        borderBottom: '1px solid var(--border-color)',
+                      }}
+                    >
+                      <span style={{ fontWeight: 800, fontSize: '0.95rem', color: '#8B5CF6' }}>
+                        Skor Babak 2 :
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          color: '#8B5CF6',
+                          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        Babak 2
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.35rem 0',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-secondary)' }}>
+                        Skor depan :{' '}
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          ({formatJuryDisplayName(match.jury_1?.name) || 'Scoring Depan'})
+                        </span>
+                      </span>
+                      <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem' }}>
+                        {recap.b2Depan}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.35rem 0',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-secondary)' }}>
+                        skor belakang :{' '}
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          ({formatJuryDisplayName(match.jury_2?.name) || 'Scoring Belakang'})
+                        </span>
+                      </span>
+                      <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem' }}>
+                        {recap.b2Belakang}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.55rem 0 0.15rem 0',
+                        marginTop: '0.4rem',
+                        borderTop: '1px dashed var(--border-color)',
+                        fontSize: '0.9rem',
+                      }}
+                    >
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                        total skor babak 2 :
+                      </span>
+                      <span style={{ fontWeight: 900, color: '#8B5CF6', fontSize: '1.15rem' }}>
+                        {recap.b2Total}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Total Skor Akhir */}
+                  <div
+                    style={{
+                      backgroundColor: 'var(--surface-color)',
+                      borderRadius: '10px',
+                      padding: '0.9rem 1.1rem',
+                      border: '2px solid var(--primary)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                        total skor akhir :
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        (Babak 1: {recap.b1Total} + Babak 2: {recap.b2Total})
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '1.85rem',
+                        fontWeight: 900,
+                        color: 'var(--primary)',
+                        fontFamily: 'ui-monospace, monospace',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {recap.totalAkhir}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
