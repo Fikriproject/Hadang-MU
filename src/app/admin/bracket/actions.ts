@@ -16,22 +16,78 @@ import {
 import { detectTeamCategory } from '@/lib/categories'
 
 const BRACKET_FILE = path.join(process.cwd(), 'src', 'data', 'brackets.json')
+const BACKUP_BRACKET_FILE = path.join(process.cwd(), 'data', 'brackets.json')
+
+// In-memory global store to preserve state across reloads/recompiles in dev & prod
+declare global {
+  // eslint-disable-next-line no-var
+  var __hadang_brackets_store__: Record<string, BracketData | null> | undefined
+}
+
+if (!globalThis.__hadang_brackets_store__) {
+  globalThis.__hadang_brackets_store__ = { PUTRA: null, PUTRI: null }
+}
 
 async function readBracketsStore(): Promise<Record<string, BracketData | null>> {
+  // 1. Check in-memory store
+  if (
+    globalThis.__hadang_brackets_store__ &&
+    (globalThis.__hadang_brackets_store__.PUTRA !== null || globalThis.__hadang_brackets_store__.PUTRI !== null)
+  ) {
+    return globalThis.__hadang_brackets_store__
+  }
+
+  // 2. Try read primary file
   try {
     const data = await fs.readFile(BRACKET_FILE, 'utf-8')
-    return JSON.parse(data)
-  } catch (err) {
-    return { PUTRA: null, PUTRI: null }
+    const parsed = JSON.parse(data)
+    if (parsed && typeof parsed === 'object') {
+      globalThis.__hadang_brackets_store__ = {
+        PUTRA: parsed.PUTRA ?? null,
+        PUTRI: parsed.PUTRI ?? null,
+      }
+      return globalThis.__hadang_brackets_store__
+    }
+  } catch {
+    // Try backup file
+    try {
+      const data = await fs.readFile(BACKUP_BRACKET_FILE, 'utf-8')
+      const parsed = JSON.parse(data)
+      if (parsed && typeof parsed === 'object') {
+        globalThis.__hadang_brackets_store__ = {
+          PUTRA: parsed.PUTRA ?? null,
+          PUTRI: parsed.PUTRI ?? null,
+        }
+        return globalThis.__hadang_brackets_store__
+      }
+    } catch {
+      // ignore
+    }
   }
+
+  return globalThis.__hadang_brackets_store__ || { PUTRA: null, PUTRI: null }
 }
 
 async function writeBracketsStore(store: Record<string, BracketData | null>) {
+  // 1. Update in-memory global store immediately
+  globalThis.__hadang_brackets_store__ = { ...store }
+
+  const json = JSON.stringify(store, null, 2)
+
+  // 2. Write to primary file
   try {
     await fs.mkdir(path.dirname(BRACKET_FILE), { recursive: true })
-    await fs.writeFile(BRACKET_FILE, JSON.stringify(store, null, 2), 'utf-8')
+    await fs.writeFile(BRACKET_FILE, json, 'utf-8')
   } catch (err) {
-    console.warn('Gagal menyimpan file brackets ke filesystem (read-only environment):', err)
+    console.warn('Warning: Gagal menyimpan brackets.json primer:', err)
+  }
+
+  // 3. Write to backup file (outside src)
+  try {
+    await fs.mkdir(path.dirname(BACKUP_BRACKET_FILE), { recursive: true })
+    await fs.writeFile(BACKUP_BRACKET_FILE, json, 'utf-8')
+  } catch (err) {
+    // ignore
   }
 }
 
@@ -132,9 +188,10 @@ export async function getBracket(category: BracketCategory) {
  */
 export async function rollRandomBracket(
   category: BracketCategory,
-  teamCount: 4 | 8 | 16,
+  teamCount: number,
   includeThirdPlace: boolean = true,
-  layoutMode: BracketLayoutMode = 'CENTER_SPLIT'
+  layoutMode: BracketLayoutMode = 'CENTER_SPLIT',
+  selectedTeamIds?: string[]
 ): Promise<BracketActionResult> {
   const supabase = await createClient()
 
@@ -143,7 +200,13 @@ export async function rollRandomBracket(
     .select('id, name')
     .order('name')
 
-  const availableTeams = (rawTeams || []).filter((t) => detectTeamCategory(t) === category)
+  let availableTeams = (rawTeams || []).filter((t) => detectTeamCategory(t) === category)
+
+  // If specific team IDs were selected, filter by them
+  if (selectedTeamIds && selectedTeamIds.length > 0) {
+    const selectedSet = new Set(selectedTeamIds)
+    availableTeams = availableTeams.filter((t) => selectedSet.has(t.id))
+  }
 
   if (availableTeams.length < 2) {
     return {
@@ -151,17 +214,18 @@ export async function rollRandomBracket(
     }
   }
 
-  // Take up to teamCount teams, then shuffle them
-  const pool = availableTeams.slice(0, teamCount)
+  const requestedCount = Math.max(2, Math.min(32, teamCount || availableTeams.length))
+  const pool = availableTeams.slice(0, requestedCount)
   const shuffled = shuffleArray(pool)
 
-  const bracket = generateBracketStructure(teamCount, category, shuffled, includeThirdPlace, layoutMode)
+  const bracket = generateBracketStructure(requestedCount, category, shuffled, includeThirdPlace, layoutMode)
 
   const store = await readBracketsStore()
   store[category] = bracket
   await writeBracketsStore(store)
 
   revalidatePath('/admin/bracket')
+  revalidatePath('/bracket')
   return { success: true, bracket }
 }
 
@@ -170,17 +234,39 @@ export async function rollRandomBracket(
  */
 export async function createManualBracket(
   category: BracketCategory,
-  teamCount: 4 | 8 | 16,
+  teamCount: number,
   includeThirdPlace: boolean = true,
   layoutMode: BracketLayoutMode = 'CENTER_SPLIT'
 ): Promise<BracketActionResult> {
-  const bracket = generateBracketStructure(teamCount, category, undefined, includeThirdPlace, layoutMode)
+  const requestedCount = Math.max(2, Math.min(32, teamCount || 4))
+  const bracket = generateBracketStructure(requestedCount, category, undefined, includeThirdPlace, layoutMode)
 
   const store = await readBracketsStore()
   store[category] = bracket
   await writeBracketsStore(store)
 
   revalidatePath('/admin/bracket')
+  revalidatePath('/bracket')
+  return { success: true, bracket }
+}
+
+/**
+ * Sync bracket data from client (e.g. from localStorage restoration or client state)
+ */
+export async function syncBracketToServer(
+  category: BracketCategory,
+  bracket: BracketData
+): Promise<BracketActionResult> {
+  if (!bracket || bracket.category !== category) {
+    return { error: 'Data bagan tidak valid untuk disinkronkan.' }
+  }
+
+  const store = await readBracketsStore()
+  store[category] = bracket
+  await writeBracketsStore(store)
+
+  revalidatePath('/admin/bracket')
+  revalidatePath('/bracket')
   return { success: true, bracket }
 }
 

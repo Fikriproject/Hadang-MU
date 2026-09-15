@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useTransition, useRef } from 'react'
+import React, { useState, useTransition, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import {
   type BracketCategory,
@@ -8,6 +8,8 @@ import {
   type BracketMatch,
   type BracketRound,
   type BracketLayoutMode,
+  getBracketSize,
+  getRoundNames,
 } from '@/lib/bracket'
 import {
   rollRandomBracket,
@@ -19,6 +21,7 @@ import {
   getBracket,
   updateBracketLayout,
   updateIncludeThirdPlace,
+  syncBracketToServer,
 } from './actions'
 
 interface TeamOption {
@@ -50,7 +53,14 @@ export default function BracketView({
   // Creation modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [createMode, setCreateMode] = useState<'AUTO' | 'MANUAL'>('AUTO')
-  const [teamCountInput, setTeamCountInput] = useState<4 | 8 | 16>(8)
+  const [teamCountInput, setTeamCountInput] = useState<number>(
+    initialBracket?.teamCount || (initialCategoryTeams.length >= 2 ? Math.min(16, initialCategoryTeams.length) : 8)
+  )
+  const [autoSelectionType, setAutoSelectionType] = useState<'ALL' | 'CUSTOM'>('ALL')
+  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>(
+    initialCategoryTeams.map((t) => t.id)
+  )
+
   const [modalLayoutMode, setModalLayoutMode] = useState<BracketLayoutMode>(
     bracket?.layoutMode || 'CENTER_SPLIT'
   )
@@ -83,35 +93,131 @@ export default function BracketView({
     setTimeout(() => setToast(null), 3200)
   }
 
+  // Local storage helper for resilient persistence
+  const saveBracketLocal = (cat: BracketCategory, b: BracketData | null) => {
+    if (typeof window === 'undefined') return
+    const key = `hadang_bracket_${cat}`
+    try {
+      if (b) {
+        localStorage.setItem(key, JSON.stringify(b))
+      } else {
+        localStorage.removeItem(key)
+      }
+    } catch (err) {
+      console.warn('LocalStorage save error:', err)
+    }
+  }
+
+  // Auto-restore and sync bracket from localStorage on mount/refresh if server gave null
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const key = `hadang_bracket_${category}`
+    try {
+      const stored = localStorage.getItem(key)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (parsed && parsed.category === category) {
+          if (!bracket) {
+            // Restore from localStorage and sync to server
+            setBracket(parsed)
+            syncBracketToServer(category, parsed).catch((err) => {
+              console.warn('Background sync error:', err)
+            })
+          } else {
+            // Keep localStorage updated with newest state
+            localStorage.setItem(key, JSON.stringify(bracket))
+          }
+        }
+      } else if (bracket) {
+        localStorage.setItem(key, JSON.stringify(bracket))
+      }
+    } catch {
+      // ignore JSON parse errors
+    }
+  }, [category])
+
   // Switch Category (Putra vs Putri)
   const handleCategorySwitch = (newCat: BracketCategory) => {
     if (newCat === category) return
     setCategory(newCat)
+
+    // Update URL parameter without reload so refreshing preserves current category!
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.set('category', newCat)
+      window.history.replaceState(null, '', url.toString())
+    }
+
     startTransition(async () => {
       const res = await getBracket(newCat)
-      setBracket(res.bracket)
+      let nextBracket = res.bracket
+
+      // If server returned null, check client localStorage
+      if (!nextBracket && typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem(`hadang_bracket_${newCat}`)
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            if (parsed && parsed.category === newCat) {
+              nextBracket = parsed
+              syncBracketToServer(newCat, parsed).catch(() => {})
+            }
+          }
+        } catch {}
+      }
+
+      setBracket(nextBracket)
       setTeams(res.categoryTeams)
+      setSelectedTeamIds(res.categoryTeams.map((t) => t.id))
       setZoomLevel(1)
     })
+  }
+
+  // Open modal with smart defaults
+  const handleOpenCreateModal = () => {
+    setModalLayoutMode(bracket?.layoutMode || 'CENTER_SPLIT')
+    setModalIncludeThirdPlace(bracket?.includeThirdPlace ?? true)
+    const initialCount = bracket?.teamCount || (teams.length >= 2 ? Math.min(16, teams.length) : 8)
+    setTeamCountInput(initialCount)
+    setSelectedTeamIds(teams.slice(0, initialCount).map((t) => t.id))
+    setAutoSelectionType('ALL')
+    setIsCreateModalOpen(true)
   }
 
   // Handle auto roll / manual creation
   const handleCreateSubmit = () => {
     startTransition(async () => {
+      const filteredTeamIds =
+        createMode === 'AUTO' && autoSelectionType === 'CUSTOM' && selectedTeamIds.length > 0
+          ? selectedTeamIds
+          : undefined
+
+      const effectiveCount =
+        createMode === 'AUTO' && autoSelectionType === 'CUSTOM' && selectedTeamIds.length > 0
+          ? selectedTeamIds.length
+          : teamCountInput
+
       const res =
         createMode === 'AUTO'
-          ? await rollRandomBracket(category, teamCountInput, modalIncludeThirdPlace, modalLayoutMode)
-          : await createManualBracket(category, teamCountInput, modalIncludeThirdPlace, modalLayoutMode)
+          ? await rollRandomBracket(
+              category,
+              effectiveCount,
+              modalIncludeThirdPlace,
+              modalLayoutMode,
+              filteredTeamIds
+            )
+          : await createManualBracket(category, effectiveCount, modalIncludeThirdPlace, modalLayoutMode)
 
       if (res.error) {
         showToast(res.error, 'error')
       } else if (res.bracket) {
         setBracket(res.bracket)
+        saveBracketLocal(category, res.bracket)
         setIsCreateModalOpen(false)
         showToast(
           createMode === 'AUTO'
-            ? `Bagan ${isPutra ? 'Putra' : 'Putri'} berhasil di-roll acak (${teamCountInput} Tim)!`
-            : `Bagan manual ${isPutra ? 'Putra' : 'Putri'} berhasil dibuat!`
+            ? `Bagan ${isPutra ? 'Putra' : 'Putri'} berhasil di-roll acak (${effectiveCount} Tim)!`
+            : `Bagan manual ${isPutra ? 'Putra' : 'Putri'} berhasil dibuat (${effectiveCount} Tim)!`
         )
       }
     })
@@ -126,6 +232,7 @@ export default function BracketView({
         showToast(res.error, 'error')
       } else if (res.bracket) {
         setBracket(res.bracket)
+        saveBracketLocal(category, res.bracket)
         showToast(
           newLayout === 'LEFT_TO_RIGHT'
             ? 'Tampilan bagan: ➡️ Lurus (Kiri ke Kanan)'
@@ -144,6 +251,7 @@ export default function BracketView({
         showToast(res.error, 'error')
       } else if (res.bracket) {
         setBracket(res.bracket)
+        saveBracketLocal(category, res.bracket)
         showToast(
           include
             ? 'Format Juara: 🥇🥈🥉 Sampai Juara 3 (Ada Perebutan Juara 3)'
@@ -162,7 +270,12 @@ export default function BracketView({
       if (res.error) {
         showToast(res.error, 'error')
       } else {
-        setBracket((prev) => (prev ? { ...prev, isLocked: nextLocked } : null))
+        setBracket((prev) => {
+          if (!prev) return null
+          const updated = { ...prev, isLocked: nextLocked }
+          saveBracketLocal(category, updated)
+          return updated
+        })
         showToast(nextLocked ? 'Bagan terkunci (Mode Aman).' : 'Mode Edit aktif. Anda dapat mengganti tim.')
       }
     })
@@ -186,6 +299,7 @@ export default function BracketView({
         showToast(res.error, 'error')
       } else if (res.bracket) {
         setBracket(res.bracket)
+        saveBracketLocal(category, res.bracket)
         setEditingSlot(null)
         setSelectedEditTeamId('')
         showToast(`Tim "${targetTeam.name}" berhasil dipasang di bagan!`)
@@ -214,6 +328,7 @@ export default function BracketView({
         // Refresh bracket state
         const refreshed = await getBracket(category)
         setBracket(refreshed.bracket)
+        saveBracketLocal(category, refreshed.bracket)
         showToast(`Pertandingan "${bm.title}" berhasil dibuat! Siap dimainkan.`)
       }
     })
@@ -230,6 +345,7 @@ export default function BracketView({
     startTransition(async () => {
       await resetBracket(category)
       setBracket(null)
+      saveBracketLocal(category, null)
       showToast(`Bagan ${isPutra ? 'Putra' : 'Putri'} telah direset.`)
     })
   }
@@ -240,6 +356,7 @@ export default function BracketView({
       const res = await getBracket(category)
       setBracket(res.bracket)
       setTeams(res.categoryTeams)
+      saveBracketLocal(category, res.bracket)
       showToast('Bagan telah disinkronkan dengan hasil pertandingan!')
     })
   }
@@ -386,13 +503,19 @@ export default function BracketView({
               }}
             >
               {isMatchFinished && bm.winnerTeamId === bm.team1?.id ? (isBronze ? '🥉 ' : '👑 ') : ''}
-              {bm.team1?.name || 'TBD'}
+              {bm.team1?.isBye ? (
+                <span style={{ fontStyle: 'italic', color: '#D97706', fontWeight: 800 }}>
+                  ⚡ {bm.team1?.name}
+                </span>
+              ) : (
+                bm.team1?.name || 'TBD'
+              )}
             </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             {/* Score */}
-            {bm.score1 !== null && (
+            {bm.score1 !== null && !bm.team1?.isBye && !bm.team2?.isBye && (
               <span
                 style={{
                   fontFamily: 'monospace',
@@ -408,8 +531,8 @@ export default function BracketView({
               </span>
             )}
 
-            {/* Edit Button in Edit Mode (Round 0 only) */}
-            {canEdit && (
+            {/* Edit Button in Edit Mode (Round 0 only, except BYE) */}
+            {canEdit && !bm.team1?.isBye && (
               <button
                 type="button"
                 onClick={() => {
@@ -442,10 +565,14 @@ export default function BracketView({
             backgroundColor:
               isMatchFinished && bm.winnerTeamId === bm.team2?.id
                 ? 'rgba(34, 197, 94, 0.12)'
+                : bm.team2?.isBye
+                ? 'rgba(217, 119, 6, 0.08)'
                 : 'var(--surface-color)',
             border:
               isMatchFinished && bm.winnerTeamId === bm.team2?.id
                 ? '1.5px solid var(--success)'
+                : bm.team2?.isBye
+                ? '1px dashed #D97706'
                 : '1px solid var(--border-color)',
             borderRadius: '8px',
             padding: '0.45rem 0.65rem',
@@ -468,13 +595,19 @@ export default function BracketView({
               }}
             >
               {isMatchFinished && bm.winnerTeamId === bm.team2?.id ? (isBronze ? '🥉 ' : '👑 ') : ''}
-              {bm.team2?.name || 'TBD'}
+              {bm.team2?.isBye ? (
+                <span style={{ fontStyle: 'italic', color: '#D97706', fontWeight: 800 }}>
+                  ⚡ {bm.team2?.name}
+                </span>
+              ) : (
+                bm.team2?.name || 'TBD'
+              )}
             </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             {/* Score */}
-            {bm.score2 !== null && (
+            {bm.score2 !== null && !bm.team1?.isBye && !bm.team2?.isBye && (
               <span
                 style={{
                   fontFamily: 'monospace',
@@ -490,8 +623,8 @@ export default function BracketView({
               </span>
             )}
 
-            {/* Edit Button in Edit Mode (Round 0 only) */}
-            {canEdit && (
+            {/* Edit Button in Edit Mode (Round 0 only, except BYE) */}
+            {canEdit && !bm.team2?.isBye && (
               <button
                 type="button"
                 onClick={() => {
@@ -1280,11 +1413,7 @@ export default function BracketView({
           {!isPublic && (
             <button
               type="button"
-              onClick={() => {
-                setModalLayoutMode(bracket?.layoutMode || 'CENTER_SPLIT')
-                setModalIncludeThirdPlace(bracket?.includeThirdPlace ?? true)
-                setIsCreateModalOpen(true)
-              }}
+              onClick={handleOpenCreateModal}
               disabled={isPending}
               style={{
                 padding: '0.5rem 1rem',
@@ -1564,7 +1693,7 @@ export default function BracketView({
           ) : (
             <button
               type="button"
-              onClick={() => setIsCreateModalOpen(true)}
+              onClick={handleOpenCreateModal}
               style={{
                 backgroundColor: primaryColor,
                 color: 'white',
@@ -1706,35 +1835,297 @@ export default function BracketView({
               </div>
             </div>
 
-            {/* Pilihan 2: Input Jumlah Tim Peserta */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <label className="metadata-text" style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
-                2. Jumlah Tim yang Ikut:
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                {([4, 8, 16] as const).map((count) => (
+            {/* Pilihan 2: Input Jumlah Tim Peserta Fleksibel */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="metadata-text" style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
+                  2. Jumlah Tim yang Ikut (Bebas / Fleksibel):
+                </label>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Tersedia {teams.length} tim {isPutra ? 'Putra' : 'Putri'}
+                </span>
+              </div>
+
+              {/* Stepper Input Counter */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: 'var(--surface-subtle)',
+                  padding: '0.4rem',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = Math.max(2, teamCountInput - 1)
+                    setTeamCountInput(next)
+                    if (selectedTeamIds.length > next) {
+                      setSelectedTeamIds(selectedTeamIds.slice(0, next))
+                    }
+                  }}
+                  disabled={teamCountInput <= 2}
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--surface-color)',
+                    color: 'var(--text-primary)',
+                    fontWeight: 900,
+                    fontSize: '1.2rem',
+                    cursor: teamCountInput <= 2 ? 'not-allowed' : 'pointer',
+                    opacity: teamCountInput <= 2 ? 0.4 : 1,
+                  }}
+                >
+                  −
+                </button>
+
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                  <input
+                    type="number"
+                    min={2}
+                    max={32}
+                    value={teamCountInput}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10)
+                      if (!isNaN(val)) {
+                        const clamped = Math.max(2, Math.min(32, val))
+                        setTeamCountInput(clamped)
+                        if (selectedTeamIds.length > clamped) {
+                          setSelectedTeamIds(selectedTeamIds.slice(0, clamped))
+                        }
+                      }
+                    }}
+                    style={{
+                      width: '64px',
+                      textAlign: 'center',
+                      fontSize: '1.25rem',
+                      fontWeight: 900,
+                      padding: '0.35rem 0.2rem',
+                      borderRadius: '8px',
+                      border: `2px solid ${primaryColor}`,
+                      backgroundColor: 'var(--surface-color)',
+                      color: 'var(--text-primary)',
+                    }}
+                  />
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    Tim
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = Math.min(32, teamCountInput + 1)
+                    setTeamCountInput(next)
+                  }}
+                  disabled={teamCountInput >= 32}
+                  style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--surface-color)',
+                    color: 'var(--text-primary)',
+                    fontWeight: 900,
+                    fontSize: '1.2rem',
+                    cursor: teamCountInput >= 32 ? 'not-allowed' : 'pointer',
+                    opacity: teamCountInput >= 32 ? 0.4 : 1,
+                  }}
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Preset Buttons */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                {[4, 6, 8, 10, 12, 16].map((count) => (
                   <button
                     key={count}
                     type="button"
-                    onClick={() => setTeamCountInput(count)}
+                    onClick={() => {
+                      setTeamCountInput(count)
+                      if (selectedTeamIds.length > count) {
+                        setSelectedTeamIds(selectedTeamIds.slice(0, count))
+                      }
+                    }}
                     style={{
-                      padding: '0.65rem 0.5rem',
-                      borderRadius: '8px',
-                      border: teamCountInput === count ? `2px solid ${primaryColor}` : '1px solid var(--border-color)',
+                      padding: '0.4rem 0.65rem',
+                      borderRadius: '6px',
+                      border: teamCountInput === count ? `1.5px solid ${primaryColor}` : '1px solid var(--border-color)',
                       backgroundColor: teamCountInput === count ? `${primaryColor}20` : 'var(--surface-subtle)',
-                      color: teamCountInput === count ? primaryColor : 'var(--text-primary)',
+                      color: teamCountInput === count ? primaryColor : 'var(--text-secondary)',
                       fontWeight: 800,
-                      fontSize: '0.9rem',
+                      fontSize: '0.78rem',
                       cursor: 'pointer',
+                      transition: 'all 0.1s ease',
                     }}
                   >
                     {count} Tim
                   </button>
                 ))}
               </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Tersedia {teams.length} tim {isPutra ? 'Putra' : 'Putri'} terdaftar di database.
-              </span>
+
+              {/* Smart Bracket Insight Card */}
+              {(() => {
+                const bSize = getBracketSize(teamCountInput)
+                const rNames = getRoundNames(bSize)
+                const byes = Math.max(0, bSize - teamCountInput)
+                return (
+                  <div
+                    style={{
+                      backgroundColor: `${primaryColor}0c`,
+                      border: `1px solid ${primaryColor}30`,
+                      borderRadius: '8px',
+                      padding: '0.65rem 0.75rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.3rem',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 800, color: primaryColor }}>
+                      <span>📊</span>
+                      <span>
+                        Kapasitas Bagan: {bSize} Slot ({rNames.length} Babak: {rNames.join(' ➔ ')})
+                      </span>
+                    </div>
+                    {byes > 0 ? (
+                      <div style={{ color: '#D97706', fontWeight: 700 }}>
+                        ⚡ {teamCountInput} Tim Masuk: <strong>{byes} Tim</strong> otomatis mendapatkan slot <strong>BYE (Lolos Otomatis)</strong> ke {rNames[1] || 'Final'}.
+                      </div>
+                    ) : (
+                      <div style={{ color: '#16A34A', fontWeight: 700 }}>
+                        ✨ Bagan simetris penuh: Seluruh tim langsung bertanding di {rNames[0]}.
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {/* Pilihan Tim Spesifik (Mode Otomatis) */}
+              {createMode === 'AUTO' && teams.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem',
+                    backgroundColor: 'var(--surface-subtle)',
+                    padding: '0.75rem',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      Pilih Tim dari Database:
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.3rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allIds = teams.map((t) => t.id)
+                          setSelectedTeamIds(allIds)
+                          setTeamCountInput(allIds.length)
+                          setAutoSelectionType('CUSTOM')
+                        }}
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          padding: '0.2rem 0.45rem',
+                          borderRadius: '4px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--surface-color)',
+                          color: 'var(--text-primary)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Pilih Semua
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTeamIds([])
+                          setAutoSelectionType('ALL')
+                        }}
+                        style={{
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          padding: '0.2rem 0.45rem',
+                          borderRadius: '4px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--surface-color)',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Acak Otomatis
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      maxHeight: '130px',
+                      overflowY: 'auto',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.35rem',
+                      paddingRight: '0.25rem',
+                    }}
+                  >
+                    {teams.map((t) => {
+                      const isChecked = selectedTeamIds.includes(t.id)
+                      return (
+                        <label
+                          key={t.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.35rem 0.55rem',
+                            borderRadius: '6px',
+                            backgroundColor: isChecked ? `${primaryColor}15` : 'var(--surface-color)',
+                            border: isChecked ? `1px solid ${primaryColor}40` : '1px solid var(--border-color)',
+                            cursor: 'pointer',
+                            fontSize: '0.78rem',
+                            fontWeight: isChecked ? 700 : 500,
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              setAutoSelectionType('CUSTOM')
+                              let next: string[]
+                              if (e.target.checked) {
+                                next = [...selectedTeamIds, t.id]
+                              } else {
+                                next = selectedTeamIds.filter((id) => id !== t.id)
+                              }
+                              setSelectedTeamIds(next)
+                              if (next.length >= 2) {
+                                setTeamCountInput(next.length)
+                              }
+                            }}
+                          />
+                          <span>{t.name}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  {autoSelectionType === 'CUSTOM' && (
+                    <span style={{ fontSize: '0.7rem', color: primaryColor, fontWeight: 700 }}>
+                      ✓ {selectedTeamIds.length} tim dipilih untuk dimasukkan ke bagan.
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Pilihan 3: Mode Alur Bagan (Lurus vs Kiri-Kanan ke Tengah) */}

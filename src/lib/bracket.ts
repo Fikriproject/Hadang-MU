@@ -5,6 +5,7 @@ export interface TeamSlot {
   id?: string | null
   name: string
   isPlaceholder?: boolean
+  isBye?: boolean
 }
 
 export interface BracketMatch {
@@ -32,7 +33,8 @@ export interface BracketRound {
 
 export interface BracketData {
   category: BracketCategory
-  teamCount: number // 4, 8, or 16
+  teamCount: number // Fleksibel: 2 s/d 32 tim
+  bracketSize?: number // Ukuran bagan pangkat 2 terdekat (2, 4, 8, 16, 32)
   layoutMode: BracketLayoutMode
   includeThirdPlace: boolean
   isLocked: boolean
@@ -57,32 +59,71 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 
 /**
- * Generates an empty or pre-populated knockout bracket structure for 4, 8, or 16 teams.
+ * Menghitung kapasitas ukuran bagan (pangkat 2 terdekat: 2, 4, 8, 16, 32)
+ */
+export function getBracketSize(teamCount: number): number {
+  if (teamCount <= 2) return 2
+  if (teamCount <= 4) return 4
+  if (teamCount <= 8) return 8
+  if (teamCount <= 16) return 16
+  return 32
+}
+
+/**
+ * Mendapatkan nama-nama ronde berdasarkan ukuran bagan
+ */
+export function getRoundNames(bracketSize: number): string[] {
+  if (bracketSize === 2) return ['Final']
+  if (bracketSize === 4) return ['Semifinal', 'Final']
+  if (bracketSize === 8) return ['Perempat Final', 'Semifinal', 'Final']
+  if (bracketSize === 16) return ['Babak 16 Besar', 'Perempat Final', 'Semifinal', 'Final']
+  return ['Babak 32 Besar', 'Babak 16 Besar', 'Perempat Final', 'Semifinal', 'Final']
+}
+
+/**
+ * Generates an empty or pre-populated knockout bracket structure for any team count (2 s/d 32 teams).
+ * Mendukung slot BYE (lolos otomatis) jika jumlah tim bukan kelipatan 2 (misal 6 tim).
  */
 export function generateBracketStructure(
-  teamCount: 4 | 8 | 16,
+  teamCount: number,
   category: BracketCategory,
   initialTeams?: { id: string; name: string }[],
   includeThirdPlace: boolean = true,
   layoutMode: BracketLayoutMode = 'CENTER_SPLIT'
 ): BracketData {
-  let roundNames: string[] = []
-  if (teamCount === 4) {
-    roundNames = ['Semifinal', 'Final']
-  } else if (teamCount === 8) {
-    roundNames = ['Perempat Final', 'Semifinal', 'Final']
-  } else {
-    roundNames = ['Babak 16 Besar', 'Perempat Final', 'Semifinal', 'Final']
-  }
-
+  const normalizedCount = Math.max(2, Math.min(32, teamCount || 4))
+  const bracketSize = getBracketSize(normalizedCount)
+  const roundNames = getRoundNames(bracketSize)
   const numRounds = roundNames.length
   const rounds: BracketRound[] = []
   let matchCounter = 1
 
-  // Map to hold match IDs per round
   const roundMatchesMap: BracketMatch[][] = []
+  const round0MatchCount = Math.pow(2, numRounds - 1)
 
-  // Create matches round by round from Round 0 to Final
+  // Hitung jumlah slot BYE (jika tim terdaftar/dipilih kurang dari kapasitas bagan)
+  const totalSlots = bracketSize
+  const byesCount = Math.max(0, totalSlots - normalizedCount)
+
+  // Distribusikan slot BYE secara simetris di Round 0
+  const byeMatchIndices = new Set<number>()
+  if (byesCount > 0) {
+    const candidateOrder: number[] = []
+    for (let i = 0; i < round0MatchCount; i++) {
+      if (i % 2 === 0) {
+        candidateOrder.push(Math.floor(i / 2))
+      } else {
+        candidateOrder.push(round0MatchCount - 1 - Math.floor(i / 2))
+      }
+    }
+    for (let b = 0; b < byesCount && b < candidateOrder.length; b++) {
+      byeMatchIndices.add(candidateOrder[b])
+    }
+  }
+
+  let teamCursor = 0
+
+  // 1. Buat ronde 0 s/d Final
   for (let r = 0; r < numRounds; r++) {
     const matchesInRoundCount = Math.pow(2, numRounds - 1 - r)
     const matches: BracketMatch[] = []
@@ -94,42 +135,77 @@ export function generateBracketStructure(
       let team1: TeamSlot | null = null
       let team2: TeamSlot | null = null
 
-      // In Round 0 (First Round), assign initial teams if provided
-      if (r === 0 && initialTeams && initialTeams.length > 0) {
-        const t1Index = m * 2
-        const t2Index = m * 2 + 1
-        if (initialTeams[t1Index]) {
-          team1 = { id: initialTeams[t1Index].id, name: initialTeams[t1Index].name }
-        }
-        if (initialTeams[t2Index]) {
-          team2 = { id: initialTeams[t2Index].id, name: initialTeams[t2Index].name }
-        }
-      } else if (r > 0) {
-        team1 = { name: `Pemenang Match`, isPlaceholder: true }
-        team2 = { name: `Pemenang Match`, isPlaceholder: true }
-      }
+      if (r === 0) {
+        const isByeMatch = byeMatchIndices.has(m)
 
-      matches.push({
-        id: matchId,
-        roundIndex: r,
-        matchIndex: m,
-        title: matchTitle,
-        team1,
-        team2,
-        score1: null,
-        score2: null,
-        matchId: null,
-        status: team1?.id && team2?.id ? 'READY' : 'WAITING',
-        winnerTeamId: null,
-        loserTeamId: null,
-        nextMatchId: null,
-      })
+        if (initialTeams && initialTeams.length > 0) {
+          if (teamCursor < initialTeams.length) {
+            team1 = { id: initialTeams[teamCursor].id, name: initialTeams[teamCursor].name, isPlaceholder: false }
+            teamCursor++
+          }
+
+          if (isByeMatch) {
+            team2 = { name: 'BYE (Lolos Otomatis)', isPlaceholder: true, isBye: true }
+          } else if (teamCursor < initialTeams.length) {
+            team2 = { id: initialTeams[teamCursor].id, name: initialTeams[teamCursor].name, isPlaceholder: false }
+            teamCursor++
+          }
+        } else {
+          // Manual Mode
+          if (isByeMatch) {
+            team1 = { name: 'Pilih Tim', isPlaceholder: true }
+            team2 = { name: 'BYE (Lolos Otomatis)', isPlaceholder: true, isBye: true }
+          } else {
+            team1 = { name: 'Pilih Tim', isPlaceholder: true }
+            team2 = { name: 'Pilih Tim', isPlaceholder: true }
+          }
+        }
+
+        const hasBye = isByeMatch && team2?.isBye
+        const isFinishedByBye = hasBye && !!team1?.id
+
+        matches.push({
+          id: matchId,
+          roundIndex: r,
+          matchIndex: m,
+          title: matchTitle,
+          team1,
+          team2,
+          score1: isFinishedByBye ? 1 : null,
+          score2: isFinishedByBye ? 0 : null,
+          matchId: null,
+          status: isFinishedByBye ? 'FINISHED' : (team1?.id && team2?.id ? 'READY' : 'WAITING'),
+          winnerTeamId: isFinishedByBye ? team1!.id! : null,
+          loserTeamId: null,
+          nextMatchId: null,
+        })
+      } else {
+        // Ronde 1 ke atas (placeholder pemenang)
+        team1 = { name: 'Pemenang Match', isPlaceholder: true }
+        team2 = { name: 'Pemenang Match', isPlaceholder: true }
+
+        matches.push({
+          id: matchId,
+          roundIndex: r,
+          matchIndex: m,
+          title: matchTitle,
+          team1,
+          team2,
+          score1: null,
+          score2: null,
+          matchId: null,
+          status: 'WAITING',
+          winnerTeamId: null,
+          loserTeamId: null,
+          nextMatchId: null,
+        })
+      }
     }
 
     roundMatchesMap.push(matches)
   }
 
-  // Connect matches to their parent in the next round
+  // 2. Hubungkan parent ronde berikutnya
   for (let r = 0; r < numRounds - 1; r++) {
     const currentRound = roundMatchesMap[r]
     const nextRound = roundMatchesMap[r + 1]
@@ -143,11 +219,22 @@ export function generateBracketStructure(
         currentRound[m].nextMatchId = nextMatch.id
         currentRound[m].nextSlot = nextSlot
 
-        // Set descriptive placeholder in next match
-        if (nextSlot === 'team1' && nextMatch.team1?.isPlaceholder) {
-          nextMatch.team1.name = `Pemenang ${currentRound[m].id}`
-        } else if (nextSlot === 'team2' && nextMatch.team2?.isPlaceholder) {
-          nextMatch.team2.name = `Pemenang ${currentRound[m].id}`
+        // Jika match ini menang karena BYE, langsung masukkan pemenang ke ronde berikutnya!
+        if (currentRound[m].status === 'FINISHED' && currentRound[m].winnerTeamId && currentRound[m].team1) {
+          if (nextSlot === 'team1') {
+            nextMatch.team1 = { id: currentRound[m].team1!.id, name: currentRound[m].team1!.name, isPlaceholder: false }
+          } else {
+            nextMatch.team2 = { id: currentRound[m].team1!.id, name: currentRound[m].team1!.name, isPlaceholder: false }
+          }
+          if (nextMatch.team1?.id && nextMatch.team2?.id) {
+            nextMatch.status = 'READY'
+          }
+        } else {
+          if (nextSlot === 'team1' && nextMatch.team1?.isPlaceholder) {
+            nextMatch.team1.name = `Pemenang ${currentRound[m].id}`
+          } else if (nextSlot === 'team2' && nextMatch.team2?.isPlaceholder) {
+            nextMatch.team2.name = `Pemenang ${currentRound[m].id}`
+          }
         }
       }
     }
@@ -161,9 +248,10 @@ export function generateBracketStructure(
     })
   }
 
-  // Third place match (Bronze Match) between semifinal losers
+  // Third place match (hanya jika ada semifinal, yaitu minimal 2 ronde / 4 tim)
   let thirdPlaceMatch: BracketMatch | null = null
-  if (includeThirdPlace) {
+  const canHaveThirdPlace = includeThirdPlace && numRounds >= 2
+  if (canHaveThirdPlace) {
     thirdPlaceMatch = {
       id: 'M-BRONZE',
       roundIndex: numRounds - 1,
@@ -183,9 +271,10 @@ export function generateBracketStructure(
 
   const bracketData: BracketData = {
     category,
-    teamCount,
+    teamCount: normalizedCount,
+    bracketSize,
     layoutMode,
-    includeThirdPlace,
+    includeThirdPlace: canHaveThirdPlace,
     isLocked: false,
     rounds,
     thirdPlaceMatch,
@@ -457,6 +546,14 @@ export function reconcileBracketWithDb(
               updatedBracket.runnerUp = loser
             }
           }
+        } else {
+          // Linked DB match was deleted, reset match link safely
+          bm.matchId = null
+          bm.score1 = null
+          bm.score2 = null
+          bm.status = bm.team1?.id && bm.team2?.id ? 'READY' : 'WAITING'
+          bm.winnerTeamId = null
+          bm.loserTeamId = null
         }
       }
     }
@@ -517,6 +614,17 @@ export function reconcileBracketWithDb(
           updatedBracket.thirdPlaceMatch.winnerTeamId = bronzeWinner.id!
           updatedBracket.thirdPlaceWinner = bronzeWinner
         }
+      } else {
+        // Linked DB bronze match was deleted, reset safely
+        updatedBracket.thirdPlaceMatch.matchId = null
+        updatedBracket.thirdPlaceMatch.score1 = null
+        updatedBracket.thirdPlaceMatch.score2 = null
+        updatedBracket.thirdPlaceMatch.status =
+          updatedBracket.thirdPlaceMatch.team1?.id && updatedBracket.thirdPlaceMatch.team2?.id
+            ? 'READY'
+            : 'WAITING'
+        updatedBracket.thirdPlaceMatch.winnerTeamId = null
+        updatedBracket.thirdPlaceWinner = null
       }
     }
   }

@@ -10,12 +10,22 @@ export const metadata = {
   description: 'Pantau pohon bagan kejuaraan turnamen Hadang Putra dan Putri secara realtime.',
 }
 
-export default async function PublicBracketPage() {
+import { type BracketCategory } from '@/lib/bracket'
+
+interface PageProps {
+  searchParams?: Promise<{ category?: string }>
+}
+
+export default async function PublicBracketPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : {}
+  const targetCategory: BracketCategory =
+    resolvedSearchParams.category?.toUpperCase() === 'PUTRI' ? 'PUTRI' : 'PUTRA'
+
   let bracket = null
   let categoryTeams: { id: string; name: string }[] = []
 
   try {
-    const res = await getBracket('PUTRA')
+    const res = await getBracket(targetCategory)
     bracket = res.bracket
     categoryTeams = res.categoryTeams
   } catch (err) {
