@@ -54,8 +54,29 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
   const [match, setMatch] = useState<MatchData>(initialMatch)
   const [scoreEvents, setScoreEvents] = useState<ScoreEvent[]>(initialScoreEvents)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showControls, setShowControls] = useState(true)
   const [lastScoredTeam, setLastScoredTeam] = useState<string | null>(null)
   const [realtimeStatus, setRealtimeStatus] = useState<'SUBSCRIBED' | 'CONNECTING' | 'DISCONNECTED'>('CONNECTING')
+
+  // Auto-hide controls in fullscreen after inactivity for clean broadcast/projector view
+  useEffect(() => {
+    let timeout: any
+    const handleMouseMove = () => {
+      setShowControls(true)
+      clearTimeout(timeout)
+      timeout = setTimeout(() => {
+        if (document.fullscreenElement) {
+          setShowControls(false)
+        }
+      }, 3500)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      clearTimeout(timeout)
+    }
+  }, [])
 
   // Deterministic Left & Right teams: positions NEVER swap on screen
   const { teamLeft, teamRight } = useMemo(() => {
@@ -301,6 +322,9 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
           borderBottom: '1px solid var(--border-color)',
           paddingBottom: '1.5vh',
           zIndex: 10,
+          opacity: isFullscreen && !showControls ? 0 : 1,
+          pointerEvents: isFullscreen && !showControls ? 'none' : 'auto',
+          transition: 'opacity 0.35s ease',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5vw' }}>
@@ -655,6 +679,9 @@ export default function ScoreboardView({ initialMatch, initialScoreEvents }: Sco
           flexWrap: 'wrap',
           gap: '1rem',
           boxShadow: 'var(--card-shadow)',
+          opacity: isFullscreen && !showControls ? 0 : 1,
+          pointerEvents: isFullscreen && !showControls ? 'none' : 'auto',
+          transition: 'opacity 0.35s ease',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', fontSize: 'clamp(0.75rem, 1.2vw, 0.95rem)' }}>

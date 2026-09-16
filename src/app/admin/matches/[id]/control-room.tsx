@@ -15,6 +15,7 @@ import {
   promptUndoScoreReason,
   promptConfirmTukarBabak,
   promptConfirmStartBabak2,
+  promptConfirmFinishMatch,
   showScoreAlert,
 } from '@/lib/sweetalert'
 import { formatJuryDisplayName } from '@/lib/categories'
@@ -213,7 +214,19 @@ export default function ControlRoom({
   const isRightAttacking = match.team_attack_id === teamRight.id
 
   // Memoized score calculation for static Left & Right teams and per-jury totals
-  const { scoreLeft, scoreRight, activeEvents, pointsJury1, pointsJury2, statsLeft, statsRight } = useMemo(() => {
+  const {
+    scoreLeft,
+    scoreRight,
+    activeEvents,
+    pointsJury1,
+    pointsJury2,
+    jury1ScoreLeft,
+    jury1ScoreRight,
+    jury2ScoreLeft,
+    jury2ScoreRight,
+    statsLeft,
+    statsRight,
+  } = useMemo(() => {
     const active = scoreEvents.filter((e) => e.status === 'ACTIVE')
     const sLeft = active
       .filter((e) => e.team_id === teamLeft.id)
@@ -222,11 +235,28 @@ export default function ControlRoom({
       .filter((e) => e.team_id === teamRight.id)
       .reduce((sum, e) => sum + e.points, 0)
 
+    const isBelakang = (e: ScoreEvent) => e.jury_id === match.jury_2_id
+    const isDepan = (e: ScoreEvent) => (match.jury_1_id ? e.jury_id === match.jury_1_id : !isBelakang(e))
+
     const pJ1 = active
       .filter((e) => e.jury_id === match.jury_1_id)
       .reduce((sum, e) => sum + e.points, 0)
     const pJ2 = active
       .filter((e) => e.jury_id === match.jury_2_id)
+      .reduce((sum, e) => sum + e.points, 0)
+
+    const j1ScoreLeft = active
+      .filter((e) => isDepan(e) && e.team_id === teamLeft.id)
+      .reduce((sum, e) => sum + e.points, 0)
+    const j1ScoreRight = active
+      .filter((e) => isDepan(e) && e.team_id === teamRight.id)
+      .reduce((sum, e) => sum + e.points, 0)
+
+    const j2ScoreLeft = active
+      .filter((e) => isBelakang(e) && e.team_id === teamLeft.id)
+      .reduce((sum, e) => sum + e.points, 0)
+    const j2ScoreRight = active
+      .filter((e) => isBelakang(e) && e.team_id === teamRight.id)
       .reduce((sum, e) => sum + e.points, 0)
 
     const getStats = (teamId: string) => {
@@ -250,6 +280,10 @@ export default function ControlRoom({
       activeEvents: active,
       pointsJury1: pJ1,
       pointsJury2: pJ2,
+      jury1ScoreLeft: j1ScoreLeft,
+      jury1ScoreRight: j1ScoreRight,
+      jury2ScoreLeft: j2ScoreLeft,
+      jury2ScoreRight: j2ScoreRight,
       statsLeft: getStats(teamLeft.id),
       statsRight: getStats(teamRight.id),
     }
@@ -1209,8 +1243,16 @@ export default function ControlRoom({
 
             {match.status !== 'FINISHED' && (
               <button
-                onClick={() => {
-                  if (window.confirm('Apakah Anda yakin ingin menyelesaikan pertandingan ini?')) {
+                type="button"
+                onClick={async () => {
+                  const confirmed = await promptConfirmFinishMatch(
+                    match.name,
+                    teamLeft.name,
+                    scoreLeft,
+                    scoreRight,
+                    teamRight.name
+                  )
+                  if (confirmed) {
                     handleStatusChange('FINISHED')
                   }
                 }}
@@ -1327,7 +1369,7 @@ export default function ControlRoom({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
             gap: '0.85rem',
             paddingTop: '1rem',
             borderTop: '1px solid var(--border-color)',
@@ -1341,41 +1383,205 @@ export default function ControlRoom({
               borderRadius: '10px',
               padding: '0.85rem 1.15rem',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '1rem',
+              flexDirection: 'column',
+              gap: '0.75rem',
             }}
           >
-            <div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                Scoring 1 (Depan):{' '}
-                <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>
-                  {formatJuryDisplayName(match.jury_1?.name) || 'Belum ditugaskan'}
-                </strong>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+              <div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Scoring 1 (Depan):{' '}
+                  <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+                    {formatJuryDisplayName(match.jury_1?.name) || 'Belum ditugaskan'}
+                  </strong>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Petugas Meja Scoring Depan/Awal
+                </div>
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                Petugas Meja Scoring Depan/Awal
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-end',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  backgroundColor: 'var(--surface-color)',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Total Input Skor
+                </span>
+                <span style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'ui-monospace, monospace', color: 'var(--primary)', lineHeight: 1.1 }}>
+                  {pointsJury1} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Poin</span>
+                </span>
               </div>
             </div>
+
+            {/* Rincian Skor Depan Per Tim */}
             <div
               style={{
+                paddingTop: '0.65rem',
+                borderTop: '1px dashed var(--border-color)',
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'flex-end',
-                justifyContent: 'center',
-                flexShrink: 0,
-                backgroundColor: 'var(--surface-color)',
-                padding: '0.35rem 0.75rem',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
+                gap: '0.5rem',
               }}
             >
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Total Input Skor
-              </span>
-              <span style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'ui-monospace, monospace', color: 'var(--primary)', lineHeight: 1.1 }}>
-                {pointsJury1} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Poin</span>
-              </span>
+              {/* Tim Left */}
+              <div
+                style={{
+                  backgroundColor: 'var(--surface-color)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  padding: '0.55rem 0.85rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.35rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                    <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#2563EB', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {teamLeft.name}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Skor Depan:</span>
+                    <strong style={{ fontFamily: 'ui-monospace, monospace', fontSize: '1.15rem', fontWeight: 900, color: '#2563EB', lineHeight: 1 }}>
+                      {jury1ScoreLeft}
+                    </strong>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Poin</span>
+                  </div>
+                </div>
+                {/* Rincian Setiap Babak */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    paddingTop: '0.35rem',
+                    borderTop: '1px dotted var(--border-color)',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: 'var(--surface-subtle)',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '5px',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Babak 1:</span>
+                    <strong style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--text-primary)', fontWeight: 800 }}>
+                      {teamRecap.left.b1Depan} <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Poin</span>
+                    </strong>
+                  </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: isBabak2 ? 'var(--surface-subtle)' : 'transparent',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '5px',
+                      border: isBabak2 ? '1px solid var(--border-color)' : '1px dashed var(--border-color)',
+                      opacity: isBabak2 ? 1 : 0.65,
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Babak 2:</span>
+                    <strong style={{ fontFamily: 'ui-monospace, monospace', color: isBabak2 ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: 800 }}>
+                      {isBabak2 ? `${teamRecap.left.b2Depan} Poin` : '-'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tim Right */}
+              <div
+                style={{
+                  backgroundColor: 'var(--surface-color)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  padding: '0.55rem 0.85rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.35rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                    <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#E11D48', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {teamRight.name}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Skor Depan:</span>
+                    <strong style={{ fontFamily: 'ui-monospace, monospace', fontSize: '1.15rem', fontWeight: 900, color: '#2563EB', lineHeight: 1 }}>
+                      {jury1ScoreRight}
+                    </strong>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Poin</span>
+                  </div>
+                </div>
+                {/* Rincian Setiap Babak */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    paddingTop: '0.35rem',
+                    borderTop: '1px dotted var(--border-color)',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: 'var(--surface-subtle)',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '5px',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Babak 1:</span>
+                    <strong style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--text-primary)', fontWeight: 800 }}>
+                      {teamRecap.right.b1Depan} <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Poin</span>
+                    </strong>
+                  </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: isBabak2 ? 'var(--surface-subtle)' : 'transparent',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '5px',
+                      border: isBabak2 ? '1px solid var(--border-color)' : '1px dashed var(--border-color)',
+                      opacity: isBabak2 ? 1 : 0.65,
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Babak 2:</span>
+                    <strong style={{ fontFamily: 'ui-monospace, monospace', color: isBabak2 ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: 800 }}>
+                      {isBabak2 ? `${teamRecap.right.b2Depan} Poin` : '-'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1387,41 +1593,205 @@ export default function ControlRoom({
               borderRadius: '10px',
               padding: '0.85rem 1.15rem',
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '1rem',
+              flexDirection: 'column',
+              gap: '0.75rem',
             }}
           >
-            <div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                Scoring 2 (Belakang):{' '}
-                <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>
-                  {formatJuryDisplayName(match.jury_2?.name) || 'Belum ditugaskan'}
-                </strong>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+              <div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Scoring 2 (Belakang):{' '}
+                  <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+                    {formatJuryDisplayName(match.jury_2?.name) || 'Belum ditugaskan'}
+                  </strong>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Petugas Meja Scoring Belakang/Akhir
+                </div>
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                Petugas Meja Scoring Belakang/Akhir
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-end',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  backgroundColor: 'var(--surface-color)',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Total Input Skor
+                </span>
+                <span style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'ui-monospace, monospace', color: '#E11D48', lineHeight: 1.1 }}>
+                  {pointsJury2} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Poin</span>
+                </span>
               </div>
             </div>
+
+            {/* Rincian Skor Belakang Per Tim */}
             <div
               style={{
+                paddingTop: '0.65rem',
+                borderTop: '1px dashed var(--border-color)',
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'flex-end',
-                justifyContent: 'center',
-                flexShrink: 0,
-                backgroundColor: 'var(--surface-color)',
-                padding: '0.35rem 0.75rem',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
+                gap: '0.5rem',
               }}
             >
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Total Input Skor
-              </span>
-              <span style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'ui-monospace, monospace', color: '#E11D48', lineHeight: 1.1 }}>
-                {pointsJury2} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Poin</span>
-              </span>
+              {/* Tim Left */}
+              <div
+                style={{
+                  backgroundColor: 'var(--surface-color)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  padding: '0.55rem 0.85rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.35rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                    <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#2563EB', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {teamLeft.name}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Skor Belakang:</span>
+                    <strong style={{ fontFamily: 'ui-monospace, monospace', fontSize: '1.15rem', fontWeight: 900, color: '#E11D48', lineHeight: 1 }}>
+                      {jury2ScoreLeft}
+                    </strong>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Poin</span>
+                  </div>
+                </div>
+                {/* Rincian Setiap Babak */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    paddingTop: '0.35rem',
+                    borderTop: '1px dotted var(--border-color)',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: 'var(--surface-subtle)',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '5px',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Babak 1:</span>
+                    <strong style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--text-primary)', fontWeight: 800 }}>
+                      {teamRecap.left.b1Belakang} <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Poin</span>
+                    </strong>
+                  </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: isBabak2 ? 'var(--surface-subtle)' : 'transparent',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '5px',
+                      border: isBabak2 ? '1px solid var(--border-color)' : '1px dashed var(--border-color)',
+                      opacity: isBabak2 ? 1 : 0.65,
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Babak 2:</span>
+                    <strong style={{ fontFamily: 'ui-monospace, monospace', color: isBabak2 ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: 800 }}>
+                      {isBabak2 ? `${teamRecap.left.b2Belakang} Poin` : '-'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tim Right */}
+              <div
+                style={{
+                  backgroundColor: 'var(--surface-color)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  padding: '0.55rem 0.85rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.35rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                    <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#E11D48', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {teamRight.name}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Skor Belakang:</span>
+                    <strong style={{ fontFamily: 'ui-monospace, monospace', fontSize: '1.15rem', fontWeight: 900, color: '#E11D48', lineHeight: 1 }}>
+                      {jury2ScoreRight}
+                    </strong>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Poin</span>
+                  </div>
+                </div>
+                {/* Rincian Setiap Babak */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    paddingTop: '0.35rem',
+                    borderTop: '1px dotted var(--border-color)',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: 'var(--surface-subtle)',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '5px',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Babak 1:</span>
+                    <strong style={{ fontFamily: 'ui-monospace, monospace', color: 'var(--text-primary)', fontWeight: 800 }}>
+                      {teamRecap.right.b1Belakang} <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Poin</span>
+                    </strong>
+                  </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: isBabak2 ? 'var(--surface-subtle)' : 'transparent',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: '5px',
+                      border: isBabak2 ? '1px solid var(--border-color)' : '1px dashed var(--border-color)',
+                      opacity: isBabak2 ? 1 : 0.65,
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Babak 2:</span>
+                    <strong style={{ fontFamily: 'ui-monospace, monospace', color: isBabak2 ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: 800 }}>
+                      {isBabak2 ? `${teamRecap.right.b2Belakang} Poin` : '-'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

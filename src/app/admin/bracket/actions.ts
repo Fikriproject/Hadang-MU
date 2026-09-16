@@ -12,6 +12,7 @@ import {
   shuffleArray,
   reconcileBracketWithDb,
   applyBracketMatchNumbering,
+  propagateByeMatches,
 } from '@/lib/bracket'
 import { detectTeamCategory } from '@/lib/categories'
 
@@ -139,6 +140,7 @@ export async function getBracket(category: BracketCategory) {
 
     if (bracket) {
       bracket = applyBracketMatchNumbering(bracket)
+      bracket = propagateByeMatches(bracket)
     }
 
     if (bracket && rawMatches) {
@@ -152,6 +154,9 @@ export async function getBracket(category: BracketCategory) {
       } catch (recErr) {
         console.warn('Warning: Gagal reconcile bracket dengan db:', recErr)
       }
+    } else if (bracket) {
+      store[category] = bracket
+      await writeBracketsStore(store)
     }
 
     // 4. Fetch available juries
@@ -261,6 +266,7 @@ export async function syncBracketToServer(
     return { error: 'Data bagan tidak valid untuk disinkronkan.' }
   }
 
+  bracket = propagateByeMatches(bracket)
   const store = await readBracketsStore()
   store[category] = bracket
   await writeBracketsStore(store)
@@ -346,7 +352,7 @@ export async function updateBracketSlot(
   teamName: string
 ): Promise<BracketActionResult> {
   const store = await readBracketsStore()
-  const bracket = store[category]
+  let bracket = store[category]
 
   if (!bracket) return { error: 'Bagan belum dibuat.' }
   if (bracket.isLocked) return { error: 'Bagan sedang terkunci. Buka kunci (Mode Edit) terlebih dahulu.' }
@@ -385,6 +391,7 @@ export async function updateBracketSlot(
     }
   }
 
+  bracket = propagateByeMatches(bracket)
   bracket.updatedAt = new Date().toISOString()
   store[category] = bracket
   await writeBracketsStore(store)

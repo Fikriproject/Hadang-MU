@@ -480,6 +480,12 @@ export default function JuryController({
   const handleUndoClick = async () => {
     if (isFinished || !canUndo) return
 
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(80)
+      } catch (e) {}
+    }
+
     const reason = await promptUndoScoreReason()
     if (!reason) return
 
@@ -503,6 +509,13 @@ export default function JuryController({
   // Action: Toggle Attacking Team (Foul / Tukar Posisi with Grace-Period Lock)
   const handleToggleAttacker = () => {
     if (isFinished) return
+
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate([30, 40, 30])
+      } catch (e) {}
+    }
+
     const nextAttackId = isLeftAttacking ? teamRight.id : teamLeft.id
     const nextDefenseId = nextAttackId === teamLeft.id ? teamRight.id : teamLeft.id
     const nextAttackName = nextAttackId === teamLeft.id ? teamLeft.name : teamRight.name
@@ -1228,35 +1241,34 @@ export default function JuryController({
           <span>TUKAR POSISI (FOUL)</span>
         </button>
 
-        {/* 2. BUTTON TUKAR BABAK */}
-        {!isFinished && (
+        {/* 2. BUTTON TUKAR BABAK (Hanya tampil di Babak 1, dengan warna Amber khusus agar tidak tertukar dengan Foul) */}
+        {!isFinished && !isBabak2 && (
           <button
             type="button"
             onClick={handleTukarBabak}
-            disabled={isBabak2 || isPending}
+            disabled={isPending}
             className="touch-manipulation"
             style={{
               width: '100%',
-              height: '44px',
+              height: '42px',
               borderRadius: '10px',
-              border: isBabak2 ? '1px solid var(--border-color)' : '2px solid #2563EB',
-              backgroundColor: isBabak2 ? 'var(--surface-subtle)' : '#EFF6FF',
-              color: isBabak2 ? 'var(--text-muted)' : '#2563EB',
+              border: '2px dashed #D97706',
+              backgroundColor: 'rgba(217, 119, 6, 0.08)',
+              color: '#D97706',
               fontWeight: 800,
-              fontSize: '0.875rem',
-              cursor: isBabak2 || isPending ? 'not-allowed' : 'pointer',
-              opacity: isBabak2 ? 0.5 : 1,
+              fontSize: '0.85rem',
+              cursor: isPending ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '0.45rem',
-              boxShadow: isBabak2 ? 'none' : '0 2px 6px rgba(37, 99, 235, 0.15)',
+              boxShadow: '0 2px 6px rgba(217, 119, 6, 0.15)',
               transition: 'all 0.12s ease',
             }}
-            title={isBabak2 ? 'Sudah berada di Babak 2' : 'Tukar ke Babak 2'}
+            title="Tukar ke Babak 2 saat waktu Babak 1 telah habis"
           >
             <span>🔄</span>
-            <span>{isBabak2 ? 'BABAK 2 (AKTIF)' : 'TUKAR BABAK'}</span>
+            <span>TUKAR KE BABAK 2 (JEDA BABAK 1)</span>
           </button>
         )}
 

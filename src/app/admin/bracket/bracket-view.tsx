@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useTransition, useRef, useEffect } from 'react'
+import React, { useState, useTransition, useRef, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
   type BracketCategory,
@@ -10,6 +10,7 @@ import {
   type BracketLayoutMode,
   getBracketSize,
   getRoundNames,
+  propagateByeMatches,
 } from '@/lib/bracket'
 import {
   rollRandomBracket,
@@ -43,12 +44,20 @@ export default function BracketView({
   isPublic = false,
 }: BracketViewProps) {
   const [category, setCategory] = useState<BracketCategory>(initialCategory)
-  const [bracket, setBracket] = useState<BracketData | null>(initialBracket)
+  const [bracket, setBracket] = useState<BracketData | null>(() =>
+    initialBracket ? propagateByeMatches(initialBracket) : null
+  )
   const [teams, setTeams] = useState<TeamOption[]>(initialCategoryTeams)
 
   // Zoom scale for desktop tree view
   const [zoomLevel, setZoomLevel] = useState<number>(1)
   const [isFullScreen, setIsFullScreen] = useState(false)
+  const zoomLevelRef = useRef<number>(zoomLevel)
+  zoomLevelRef.current = zoomLevel
+  const prevZoomRef = useRef<number>(1)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const innerTreeRef = useRef<HTMLDivElement>(null)
+  const treeScrollRef = useRef<HTMLDivElement>(null)
 
   // Creation modal state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -80,13 +89,121 @@ export default function BracketView({
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  const containerRef = useRef<HTMLDivElement>(null)
-
   const isPutra = category === 'PUTRA'
   const primaryColor = isPutra ? '#2563EB' : '#E11D48'
   const isLocked = bracket?.isLocked ?? false
   const layoutMode: BracketLayoutMode = bracket?.layoutMode || 'CENTER_SPLIT'
   const includeThirdPlace = bracket?.includeThirdPlace ?? true
+
+  // Otomatis sesuaikan ukuran skala bagan agar pas dengan ukuran layar pengguna
+  const handleFitScreen = useCallback(() => {
+    const scrollContainer = isFullScreen ? treeScrollRef.current : containerRef.current
+    const tree = innerTreeRef.current
+    if (!scrollContainer || !tree) return
+
+    // Ambil ukuran dasar murni sebelum di-zoom
+    const currentZ = zoomLevelRef.current || 1
+    const rect = tree.getBoundingClientRect()
+    const unscaledWidth = Math.max(
+      rect.width > 0 ? rect.width / currentZ : 0,
+      tree.scrollWidth || 0,
+      tree.offsetWidth || 0
+    )
+    const unscaledHeight = Math.max(
+      rect.height > 0 ? rect.height / currentZ : 0,
+      tree.scrollHeight || 0,
+      tree.offsetHeight || 0
+    )
+
+    if (unscaledWidth <= 0 || unscaledHeight <= 0) return
+
+    // Hitung area viewport yang tersedia (dengan batas padding yang nyaman)
+    const paddingX = isFullScreen ? 40 : 48
+    const paddingY = isFullScreen ? 36 : 48
+    const availWidth = Math.max(200, scrollContainer.clientWidth - paddingX)
+    const availHeight = Math.max(200, scrollContainer.clientHeight - paddingY)
+
+    const scaleX = availWidth / unscaledWidth
+    const scaleY = availHeight / unscaledHeight
+
+    // Gunakan skala terkecil agar muat utuh horizontal & vertikal tanpa terpotong
+    const optimalScale = Math.min(scaleX, scaleY)
+    // Batasi batas aman skala antara 0.25 (bagan luas 16-32 tim) hingga 1.15
+    const bounded = Math.max(0.25, Math.min(1.15, Math.round(optimalScale * 100) / 100))
+
+    setZoomLevel(bounded)
+  }, [isFullScreen])
+
+  // Handler Full Screen dengan penyimpanan / pemulihan level zoom
+  const toggleFullScreen = useCallback((enable?: boolean) => {
+    setIsFullScreen((prev) => {
+      const next = enable !== undefined ? enable : !prev
+      if (next) {
+        prevZoomRef.current = zoomLevelRef.current
+        if (containerRef.current && !document.fullscreenElement) {
+          containerRef.current.requestFullscreen?.().catch(() => {})
+        }
+      } else {
+        if (document.fullscreenElement) {
+          document.exitFullscreen?.().catch(() => {})
+        }
+        if (prevZoomRef.current) {
+          setZoomLevel(prevZoomRef.current)
+        }
+      }
+      return next
+    })
+  }, [])
+
+  // Efek keyboard ESC, sinkronisasi fullscreen change browser, dan auto-fit saat masuk fullscreen
+  useEffect(() => {
+    if (!isFullScreen) return
+
+    // Tunggu render DOM selesai lalu jalankan auto-fit
+    const timer = setTimeout(() => {
+      handleFitScreen()
+    }, 70)
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        toggleFullScreen(false)
+      }
+    }
+
+    const handleResize = () => {
+      handleFitScreen()
+    }
+
+    const handleFsChange = () => {
+      if (!document.fullscreenElement && isFullScreen) {
+        setIsFullScreen(false)
+        if (prevZoomRef.current) {
+          setZoomLevel(prevZoomRef.current)
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('resize', handleResize)
+    document.addEventListener('fullscreenchange', handleFsChange)
+
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('resize', handleResize)
+      document.removeEventListener('fullscreenchange', handleFsChange)
+    }
+  }, [isFullScreen, handleFitScreen, toggleFullScreen])
+
+  // Otomatis sesuaikan ulang jika layout, kategori, atau data bagan berganti saat fullscreen
+  useEffect(() => {
+    if (isFullScreen) {
+      const timer = setTimeout(() => {
+        handleFitScreen()
+      }, 70)
+      return () => clearTimeout(timer)
+    }
+  }, [layoutMode, category, bracket?.teamCount, bracket?.rounds?.length, isFullScreen, handleFitScreen])
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type })
@@ -135,6 +252,31 @@ export default function BracketView({
       // ignore JSON parse errors
     }
   }, [category])
+
+  // Auto-sync berkala agar skor & pemenang pertandingan otomatis maju tanpa harus klik Sinkron manual
+  useEffect(() => {
+    if (!bracket) return
+
+    const syncInterval = setInterval(async () => {
+      try {
+        const res = await getBracket(category)
+        if (res.bracket) {
+          setBracket((prev) => {
+            if (!prev) return res.bracket
+            if (JSON.stringify(prev) !== JSON.stringify(res.bracket)) {
+              saveBracketLocal(category, res.bracket)
+              return res.bracket
+            }
+            return prev
+          })
+        }
+      } catch {
+        // silent background sync error handling
+      }
+    }, 10000)
+
+    return () => clearInterval(syncInterval)
+  }, [category, bracket?.teamCount])
 
   // Switch Category (Putra vs Putri)
   const handleCategorySwitch = (newCat: BracketCategory) => {
@@ -445,18 +587,20 @@ export default function BracketView({
               backgroundColor: isMatchLive
                 ? 'var(--success-subtle)'
                 : isMatchFinished
-                ? 'var(--badge-neutral-bg)'
+                ? (bm.team1?.isBye || bm.team2?.isBye ? 'rgba(34, 197, 94, 0.18)' : 'var(--badge-neutral-bg)')
                 : isReadyToPlay
                 ? 'var(--primary-subtle)'
                 : 'var(--surface-color)',
               color: isMatchLive
                 ? 'var(--success)'
                 : isMatchFinished
-                ? 'var(--text-secondary)'
+                ? (bm.team1?.isBye || bm.team2?.isBye ? '#16A34A' : 'var(--text-secondary)')
                 : isReadyToPlay
                 ? 'var(--primary)'
                 : 'var(--text-muted)',
-              border: '1px solid var(--border-color)',
+              border: (bm.team1?.isBye || bm.team2?.isBye) && isMatchFinished
+                ? '1px solid #16A34A'
+                : '1px solid var(--border-color)',
               whiteSpace: 'nowrap',
               flexShrink: 0,
             }}
@@ -464,7 +608,7 @@ export default function BracketView({
             {bm.status === 'LIVE'
               ? '● LIVE'
               : bm.status === 'FINISHED'
-              ? 'SELESAI'
+              ? (bm.team1?.isBye || bm.team2?.isBye ? '⚡ LOLOS (BYE)' : 'SELESAI')
               : bm.status === 'READY'
               ? 'SIAP'
               : 'MENUNGGU'}
@@ -514,6 +658,24 @@ export default function BracketView({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            {/* BYE Winner Tag */}
+            {isMatchFinished && bm.winnerTeamId === bm.team1?.id && (bm.team1?.isBye || bm.team2?.isBye) && (
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  color: '#16A34A',
+                  backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                  padding: '0.15rem 0.45rem',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                ✓ Lolos Otomatis
+              </span>
+            )}
+
             {/* Score */}
             {bm.score1 !== null && !bm.team1?.isBye && !bm.team2?.isBye && (
               <span
@@ -606,6 +768,24 @@ export default function BracketView({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            {/* BYE Winner Tag */}
+            {isMatchFinished && bm.winnerTeamId === bm.team2?.id && (bm.team1?.isBye || bm.team2?.isBye) && (
+              <span
+                style={{
+                  fontSize: '0.68rem',
+                  fontWeight: 800,
+                  color: '#16A34A',
+                  backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                  padding: '0.15rem 0.45rem',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                ✓ Lolos Otomatis
+              </span>
+            )}
+
             {/* Score */}
             {bm.score2 !== null && !bm.team1?.isBye && !bm.team2?.isBye && (
               <span
@@ -874,14 +1054,15 @@ export default function BracketView({
 
     return (
       <div
+        ref={innerTreeRef}
         style={{
           display: 'flex',
           alignItems: 'flex-start',
           gap: '2.5rem',
           minWidth: 'max-content',
           transform: `scale(${zoomLevel})`,
-          transformOrigin: 'top left',
-          transition: 'transform 0.1s ease',
+          transformOrigin: isFullScreen && zoomLevel <= 1 ? 'top center' : 'top left',
+          transition: 'transform 0.15s ease',
           paddingBottom: '2rem',
         }}
       >
@@ -984,14 +1165,15 @@ export default function BracketView({
 
     return (
       <div
+        ref={innerTreeRef}
         style={{
           display: 'flex',
           alignItems: 'flex-start',
           gap: '2.5rem',
           minWidth: 'max-content',
           transform: `scale(${zoomLevel})`,
-          transformOrigin: 'top left',
-          transition: 'transform 0.1s ease',
+          transformOrigin: isFullScreen && zoomLevel <= 1 ? 'top center' : 'top left',
+          transition: 'transform 0.15s ease',
           paddingBottom: '2rem',
         }}
       >
@@ -1390,13 +1572,13 @@ export default function BracketView({
           {/* Full Screen Toggle */}
           <button
             type="button"
-            onClick={() => setIsFullScreen(!isFullScreen)}
+            onClick={() => toggleFullScreen()}
             style={{
               padding: '0.5rem 0.75rem',
               borderRadius: '8px',
               border: '1px solid var(--border-color)',
-              backgroundColor: 'var(--surface-subtle)',
-              color: 'var(--text-primary)',
+              backgroundColor: isFullScreen ? 'var(--primary)' : 'var(--surface-subtle)',
+              color: isFullScreen ? 'white' : 'var(--text-primary)',
               fontWeight: 700,
               fontSize: '0.8125rem',
               cursor: 'pointer',
@@ -1404,6 +1586,7 @@ export default function BracketView({
               alignItems: 'center',
               gap: '0.35rem',
             }}
+            title={isFullScreen ? 'Keluar dari mode layar penuh' : 'Tampilkan bagan dalam mode layar penuh (Full Screen)'}
           >
             <span>{isFullScreen ? '🗗' : '⛶'}</span>
             <span className="bracket-btn-text">{isFullScreen ? 'Tutup' : 'Layar Penuh'}</span>
@@ -1628,7 +1811,7 @@ export default function BracketView({
             </button>
             <button
               type="button"
-              onClick={() => setZoomLevel(1)}
+              onClick={handleFitScreen}
               style={{
                 padding: '0.2rem 0.55rem',
                 borderRadius: '6px',
@@ -1638,9 +1821,31 @@ export default function BracketView({
                 fontSize: '0.725rem',
                 fontWeight: 700,
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
               }}
+              title="Sesuaikan skala bagan otomatis agar pas di layar"
             >
-              Reset Fit
+              <span>📐</span>
+              <span>Pas Layar</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomLevel(1)}
+              style={{
+                padding: '0.2rem 0.55rem',
+                borderRadius: '6px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--surface-color)',
+                color: 'var(--text-muted)',
+                fontSize: '0.725rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+              title="Reset ke ukuran asli 100%"
+            >
+              100%
             </button>
           </div>
         </div>
@@ -1721,15 +1926,219 @@ export default function BracketView({
           className={`bracket-tree-wrapper ${isFullScreen ? 'is-fullscreen' : ''}`}
           style={{
             backgroundColor: 'var(--surface-color)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '16px',
-            padding: '1.5rem',
-            overflowX: 'auto',
-            overflowY: 'auto',
-            boxShadow: 'var(--card-shadow)',
+            border: isFullScreen ? 'none' : '1px solid var(--border-color)',
+            borderRadius: isFullScreen ? 0 : '16px',
+            padding: isFullScreen ? '0.75rem 1.25rem 1.25rem' : '1.5rem',
+            overflowX: isFullScreen ? 'hidden' : 'auto',
+            overflowY: isFullScreen ? 'hidden' : 'auto',
+            boxShadow: isFullScreen ? 'none' : 'var(--card-shadow)',
+            display: isFullScreen ? 'flex' : 'block',
+            flexDirection: isFullScreen ? 'column' : undefined,
           }}
         >
-          {layoutMode === 'LEFT_TO_RIGHT' ? renderLeftToRightBracket() : renderCenterSplitBracket()}
+          {/* FLOATING HEADER KHUSUS FULL SCREEN DENGAN TOMBOL KEMBALI & KONTROL ZOOM */}
+          {isFullScreen && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                padding: '0.65rem 1rem',
+                backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '12px',
+                marginBottom: '1rem',
+                boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)',
+                flexShrink: 0,
+                flexWrap: 'wrap',
+              }}
+            >
+              {/* SISI KIRI: TOMBOL KEMBALI & INFORMASI BAGAN */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => toggleFullScreen(false)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.55rem 1.1rem',
+                    borderRadius: '8px',
+                    backgroundColor: primaryColor,
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: `0 4px 14px ${primaryColor}60`,
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="Keluar dari mode layar penuh (Tekan ESC)"
+                >
+                  <span style={{ fontSize: '1rem' }}>←</span>
+                  <span>Kembali / Keluar Fullscreen</span>
+                  <span
+                    style={{
+                      fontSize: '0.68rem',
+                      padding: '0.15rem 0.4rem',
+                      borderRadius: '4px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                      fontWeight: 700,
+                      marginLeft: '0.2rem',
+                    }}
+                  >
+                    ESC
+                  </span>
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#f8fafc' }}>
+                  <span style={{ fontWeight: 800, fontSize: '0.95rem' }}>
+                    🏆 Bagan {isPutra ? 'Putra' : 'Putri'}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.725rem',
+                      fontWeight: 700,
+                      color: '#cbd5e1',
+                      padding: '0.2rem 0.5rem',
+                      borderRadius: '6px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                    }}
+                  >
+                    {layoutMode === 'CENTER_SPLIT' ? 'Split Tengah' : 'Kiri ke Kanan'} •{' '}
+                    {bracket?.teamCount || teams.length} Tim
+                  </span>
+                </div>
+              </div>
+
+              {/* SISI KANAN: FIT KE LAYAR & KONTROL ZOOM CEPAT */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={handleFitScreen}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.45rem 0.85rem',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    color: '#60a5fa',
+                    border: '1px solid rgba(96, 165, 250, 0.4)',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="Sesuaikan ulang skala bagan otomatis agar pas dengan ukuran layar"
+                >
+                  <span>📐</span>
+                  <span>Pas Layar Otomatis</span>
+                </button>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                    padding: '0.2rem 0.4rem',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setZoomLevel((z) => Math.max(0.25, Math.round((z - 0.1) * 100) / 100))}
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                      color: '#ffffff',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                    }}
+                    title="Perkecil (-)"
+                  >
+                    -
+                  </button>
+                  <span
+                    style={{
+                      width: '46px',
+                      textAlign: 'center',
+                      fontWeight: 800,
+                      fontSize: '0.78rem',
+                      color: '#ffffff',
+                    }}
+                  >
+                    {Math.round(zoomLevel * 100)}%
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setZoomLevel((z) => Math.min(1.5, Math.round((z + 0.1) * 100) / 100))}
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                      color: '#ffffff',
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                    }}
+                    title="Perbesar (+)"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => toggleFullScreen(false)}
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                    color: '#f87171',
+                    fontSize: '0.95rem',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="Tutup (ESC)"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* AREA KONTEN POHON BAGAN DENGAN SCROLL MANDIRI */}
+          <div
+            ref={treeScrollRef}
+            style={{
+              flexGrow: isFullScreen ? 1 : undefined,
+              overflowX: 'auto',
+              overflowY: 'auto',
+              display: 'flex',
+              justifyContent: isFullScreen ? 'center' : 'flex-start',
+              alignItems: 'flex-start',
+              width: '100%',
+              minHeight: isFullScreen ? 0 : undefined,
+              padding: isFullScreen ? '0.5rem 0' : undefined,
+            }}
+          >
+            {layoutMode === 'LEFT_TO_RIGHT' ? renderLeftToRightBracket() : renderCenterSplitBracket()}
+          </div>
         </div>
       )}
 

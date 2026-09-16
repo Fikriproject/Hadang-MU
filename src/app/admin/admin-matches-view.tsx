@@ -26,16 +26,34 @@ interface AdminMatchesViewProps {
 
 export default function AdminMatchesView({ initialMatches }: AdminMatchesViewProps) {
   const [filterCategory, setFilterCategory] = useState<'ALL' | 'PUTRA' | 'PUTRI'>('ALL')
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'LIVE' | 'READY' | 'FINISHED'>('ALL')
+  const [searchQuery, setSearchQuery] = useState('')
 
-  const putraMatches = initialMatches.filter((m) => detectMatchCategory(m) === 'PUTRA')
-  const putriMatches = initialMatches.filter((m) => detectMatchCategory(m) === 'PUTRI')
+  const putraCount = initialMatches.filter((m) => detectMatchCategory(m) === 'PUTRA').length
+  const putriCount = initialMatches.filter((m) => detectMatchCategory(m) === 'PUTRI').length
 
-  const filteredMatches =
-    filterCategory === 'PUTRA'
-      ? putraMatches
-      : filterCategory === 'PUTRI'
-      ? putriMatches
-      : initialMatches
+  const filteredMatches = initialMatches.filter((m) => {
+    // 1. Kategori Filter
+    if (filterCategory !== 'ALL' && detectMatchCategory(m) !== filterCategory) return false
+
+    // 2. Status Filter
+    if (filterStatus === 'LIVE' && m.status !== 'LIVE' && m.status !== 'PAUSED') return false
+    if (filterStatus === 'READY' && m.status !== 'READY' && m.status !== 'DRAFT') return false
+    if (filterStatus === 'FINISHED' && m.status !== 'FINISHED') return false
+
+    // 3. Pencarian Teks
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      const matchName = (m.name || '').toLowerCase()
+      const teamA = (m.team_attack?.name || '').toLowerCase()
+      const teamB = (m.team_defense?.name || '').toLowerCase()
+      const jury1 = (m.jury_1?.name || '').toLowerCase()
+      const jury2 = (m.jury_2?.name || '').toLowerCase()
+      return matchName.includes(q) || teamA.includes(q) || teamB.includes(q) || jury1.includes(q) || jury2.includes(q)
+    }
+
+    return true
+  })
 
   return (
     <div
@@ -131,7 +149,7 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                 fontWeight: 800,
               }}
             >
-              {putraMatches.length}
+              {putraCount}
             </span>
           </button>
 
@@ -166,9 +184,92 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                 fontWeight: 800,
               }}
             >
-              {putriMatches.length}
+              {putriCount}
             </span>
           </button>
+        </div>
+      </div>
+
+      {/* Search Bar & Status Filter Pills */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.75rem',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingTop: '0.25rem',
+        }}
+      >
+        {/* Quick Search */}
+        <div style={{ position: 'relative', flex: '1 1 260px' }}>
+          <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem', pointerEvents: 'none' }}>
+            🔍
+          </span>
+          <input
+            type="text"
+            placeholder="Cari nama pertandingan, tim, atau scoring..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.55rem 2rem 0.55rem 2.25rem',
+              borderRadius: '8px',
+              border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--surface-subtle)',
+              color: 'var(--text-primary)',
+              fontSize: '0.85rem',
+              boxSizing: 'border-box',
+            }}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              style={{
+                position: 'absolute',
+                right: '0.75rem',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--text-muted)',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                padding: '0.2rem',
+              }}
+              title="Hapus pencarian"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Quick Status Filter Buttons */}
+        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {[
+            { id: 'ALL', label: 'Semua Status' },
+            { id: 'LIVE', label: '🔴 Live / Dijeda' },
+            { id: 'READY', label: '⏳ Terjadwal' },
+            { id: 'FINISHED', label: '🏁 Selesai' },
+          ].map((st) => (
+            <button
+              key={st.id}
+              type="button"
+              onClick={() => setFilterStatus(st.id as any)}
+              style={{
+                padding: '0.4rem 0.7rem',
+                borderRadius: '6px',
+                border: filterStatus === st.id ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                backgroundColor: filterStatus === st.id ? 'var(--primary-subtle)' : 'var(--surface-subtle)',
+                color: filterStatus === st.id ? 'var(--primary)' : 'var(--text-secondary)',
+                fontSize: '0.78rem',
+                fontWeight: filterStatus === st.id ? 800 : 600,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {st.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -254,13 +355,13 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                 key={m.id}
                 style={{
                   backgroundColor: 'var(--surface-color)',
-                  border: m.status === 'LIVE' ? '2px solid var(--success)' : '1px solid var(--border-color)',
+                  border: m.status === 'LIVE' ? '2px solid var(--success)' : m.status === 'PAUSED' ? '2px solid var(--warning)' : '1px solid var(--border-color)',
                   borderRadius: '10px',
                   padding: '1.25rem',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '1rem',
-                  boxShadow: 'var(--card-shadow)',
+                  boxShadow: m.status === 'LIVE' ? '0 0 18px rgba(34, 197, 94, 0.22)' : 'var(--card-shadow)',
                   position: 'relative',
                   overflow: 'hidden',
                 }}

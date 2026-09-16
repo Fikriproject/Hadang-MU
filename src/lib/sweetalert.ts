@@ -229,3 +229,83 @@ export async function promptConfirmStartBabak2(): Promise<boolean> {
   return result.isConfirmed
 }
 
+/**
+ * Prompts user with a theme-aware SweetAlert2 confirmation modal before permanently finishing a match.
+ * Displays final score preview for both teams to ensure confidence before lock.
+ */
+export async function promptConfirmFinishMatch(
+  matchName: string,
+  teamLeftName: string,
+  scoreLeft: number,
+  scoreRight: number,
+  teamRightName: string
+): Promise<boolean> {
+  const isLight =
+    typeof document !== 'undefined' &&
+    document.documentElement.getAttribute('data-theme') === 'light'
+
+  const bgColor = isLight ? '#FFFFFF' : '#131E32'
+  const textColor = isLight ? '#0F172A' : '#F8FAFC'
+  const subtextColor = isLight ? '#64748B' : '#94A3B8'
+  const cardBg = isLight ? '#F1F5F9' : '#0B1323'
+  const cardBorder = isLight ? '#E2E8F0' : '#1E293B'
+
+  const result = await Swal.fire({
+    title: '<span style="font-size: 1.3rem; font-weight: 800; color: #EF4444;">⏹ Selesaikan Pertandingan?</span>',
+    html: `
+      <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-top: 0.5rem; text-align: center;">
+        <p style="color: ${subtextColor}; font-size: 0.85rem; margin: 0;">
+          Pertandingan <strong>${matchName}</strong> akan diubah statusnya menjadi <strong>FINISHED</strong> dan seluruh input skor akan dikunci permanen.
+        </p>
+        
+        <div style="
+          background-color: ${cardBg};
+          border: 1.5px solid ${cardBorder};
+          border-radius: 10px;
+          padding: 0.85rem 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-around;
+        ">
+          <div style="display: flex; flex-direction: column; align-items: center; max-width: 42%;">
+            <span style="font-size: 0.82rem; font-weight: 700; color: ${textColor}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">
+              ${teamLeftName}
+            </span>
+            <span style="font-size: 1.75rem; font-weight: 900; color: #2563EB; font-family: ui-monospace, monospace;">
+              ${scoreLeft}
+            </span>
+          </div>
+
+          <span style="font-size: 1.1rem; font-weight: 900; color: ${subtextColor};">VS</span>
+
+          <div style="display: flex; flex-direction: column; align-items: center; max-width: 42%;">
+            <span style="font-size: 0.82rem; font-weight: 700; color: ${textColor}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">
+              ${teamRightName}
+            </span>
+            <span style="font-size: 1.75rem; font-weight: 900; color: #E11D48; font-family: ui-monospace, monospace;">
+              ${scoreRight}
+            </span>
+          </div>
+        </div>
+
+        <p style="color: #D97706; font-size: 0.75rem; font-weight: 700; margin: 0;">
+          ⚠️ Pastikan seluruh meja scoring telah selesai memasukkan poin terakhir sebelum melanjutkan.
+        </p>
+      </div>
+    `,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#EF4444',
+    cancelButtonColor: '#64748B',
+    confirmButtonText: '🏁 Ya, Selesaikan Match',
+    cancelButtonText: 'Batal',
+    background: bgColor,
+    color: textColor,
+    customClass: {
+      popup: 'swal2-hadang-popup',
+    },
+  })
+
+  return result.isConfirmed
+}
+

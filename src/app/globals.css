@@ -751,11 +751,16 @@ html, body {
   inset: 0 !important;
   z-index: 99999 !important;
   border-radius: 0 !important;
-  padding: 1.5rem !important;
+  padding: 1rem 1.25rem 1.25rem !important;
   width: 100vw !important;
   height: 100vh !important;
   max-width: 100vw !important;
   max-height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  background-color: var(--surface-color, #0f172a) !important;
 }
 
 

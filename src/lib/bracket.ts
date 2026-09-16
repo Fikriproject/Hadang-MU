@@ -284,7 +284,7 @@ export function generateBracketStructure(
     updatedAt: new Date().toISOString(),
   }
 
-  return applyBracketMatchNumbering(bracketData)
+  return propagateByeMatches(applyBracketMatchNumbering(bracketData))
 }
 
 /**
@@ -429,6 +429,76 @@ export function applyBracketMatchNumbering(bracket: BracketData): BracketData {
 }
 
 /**
+ * Memastikan semua pertandingan yang memiliki slot BYE (Lolos Otomatis)
+ * secara otomatis berstatus FINISHED dan memajukan tim pemenang ke ronde berikutnya.
+ */
+export function propagateByeMatches(bracket: BracketData): BracketData {
+  if (!bracket || !bracket.rounds || bracket.rounds.length === 0) return bracket
+
+  const matchMap = new Map<string, BracketMatch>()
+  for (const round of bracket.rounds) {
+    for (const bm of round.matches) {
+      matchMap.set(bm.id, bm)
+    }
+  }
+
+  for (let r = 0; r < bracket.rounds.length; r++) {
+    const round = bracket.rounds[r]
+    for (const bm of round.matches) {
+      const hasBye1 = bm.team1?.isBye
+      const hasBye2 = bm.team2?.isBye
+
+      if (hasBye1 || hasBye2) {
+        const realTeam = bm.team1?.id && !hasBye1
+          ? bm.team1
+          : bm.team2?.id && !hasBye2
+          ? bm.team2
+          : null
+
+        if (realTeam) {
+          bm.status = 'FINISHED'
+          bm.winnerTeamId = realTeam.id!
+          bm.score1 = bm.team1?.id ? 1 : 0
+          bm.score2 = bm.team2?.id ? 1 : 0
+
+          // Majukan tim pemenang ke slot di ronde berikutnya
+          if (bm.nextMatchId) {
+            const nextMatch = matchMap.get(bm.nextMatchId)
+            if (nextMatch) {
+              const advancedTeam: TeamSlot = {
+                id: realTeam.id,
+                name: realTeam.name,
+                isPlaceholder: false,
+              }
+
+              if (bm.nextSlot === 'team1') {
+                nextMatch.team1 = advancedTeam
+              } else {
+                nextMatch.team2 = advancedTeam
+              }
+
+              if (nextMatch.team1?.id && nextMatch.team2?.id) {
+                if (nextMatch.status === 'WAITING') {
+                  nextMatch.status = 'READY'
+                }
+              }
+            }
+          }
+        } else {
+          // Jika belum ada tim yang dipilih untuk slot melawan BYE
+          bm.status = 'WAITING'
+          bm.winnerTeamId = null
+          bm.score1 = null
+          bm.score2 = null
+        }
+      }
+    }
+  }
+
+  return bracket
+}
+
+/**
  * Reconciles and auto-advances winners through the bracket
  * by checking real match scores and status from Supabase.
  */
@@ -452,6 +522,9 @@ export function reconcileBracketWithDb(
 
   // Pastikan penomoran silang matchNumber & title terbaru diaplikasikan
   applyBracketMatchNumbering(updatedBracket)
+
+  // Otomatis majukan semua pertandingan yang menang via BYE
+  propagateByeMatches(updatedBracket)
 
   const matchMap = new Map<string, BracketMatch>()
 
@@ -628,6 +701,8 @@ export function reconcileBracketWithDb(
       }
     }
   }
+
+  propagateByeMatches(updatedBracket)
 
   return updatedBracket
 }

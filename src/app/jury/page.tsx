@@ -11,6 +11,7 @@ interface MatchItem {
   team_defense_id: string
   jury_1_id: string
   jury_2_id: string
+  created_at?: string
   team_attack: { name: string } | null
   team_defense: { name: string } | null
   jury_1: { name: string } | null
@@ -58,6 +59,22 @@ export default async function JuryDashboardPage() {
   const { data: rawMatches } = await query
   const matches = (rawMatches || []) as unknown as MatchItem[]
 
+  // Prioritize active matches: LIVE > PAUSED > READY > DRAFT > FINISHED
+  const statusRank: Record<string, number> = {
+    LIVE: 1,
+    PAUSED: 2,
+    READY: 3,
+    DRAFT: 4,
+    FINISHED: 5,
+  }
+
+  const sortedMatches = [...matches].sort((a, b) => {
+    const rankA = statusRank[a.status] || 99
+    const rankB = statusRank[b.status] || 99
+    if (rankA !== rankB) return rankA - rankB
+    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+  })
+
   return (
     <div className="jury-matches-container">
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -94,7 +111,7 @@ export default async function JuryDashboardPage() {
         </div>
       ) : (
         <div className="jury-matches-grid">
-          {matches.map((m) => {
+          {sortedMatches.map((m) => {
             const isJury1 = m.jury_1_id === user.id
             const isJury2 = m.jury_2_id === user.id
             const juryPosText = isJury1
@@ -105,6 +122,7 @@ export default async function JuryDashboardPage() {
 
             const isLive = m.status === 'LIVE'
             const isPaused = m.status === 'PAUSED'
+            const isFinished = m.status === 'FINISHED'
 
             return (
               <div
@@ -112,13 +130,18 @@ export default async function JuryDashboardPage() {
                 className="jury-match-card"
                 style={{
                   backgroundColor: 'var(--surface-color)',
-                  border: isLive ? '2px solid var(--success)' : '1px solid var(--border-color)',
+                  border: isLive
+                    ? '2px solid var(--success)'
+                    : isPaused
+                    ? '2px solid var(--warning)'
+                    : '1px solid var(--border-color)',
                   borderRadius: '12px',
                   padding: '1.25rem',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '1rem',
-                  boxShadow: 'var(--card-shadow)',
+                  boxShadow: isLive ? '0 0 16px rgba(34, 197, 94, 0.25)' : 'var(--card-shadow)',
+                  opacity: isFinished ? 0.75 : 1,
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -190,8 +213,13 @@ export default async function JuryDashboardPage() {
                     href={`/jury/matches/${m.id}`}
                     className="touch-manipulation"
                     style={{
-                      backgroundColor: isLive ? 'var(--success)' : 'var(--primary)',
-                      color: 'white',
+                      backgroundColor: isLive
+                        ? 'var(--success)'
+                        : isFinished
+                        ? 'var(--surface-subtle)'
+                        : 'var(--primary)',
+                      color: isFinished ? 'var(--text-secondary)' : 'white',
+                      border: isFinished ? '1px solid var(--border-color)' : 'none',
                       padding: '0.875rem 1.25rem',
                       borderRadius: '8px',
                       fontWeight: 800,
@@ -201,12 +229,12 @@ export default async function JuryDashboardPage() {
                       justifyContent: 'center',
                       gap: '0.5rem',
                       textDecoration: 'none',
-                      boxShadow: isLive ? '0 4px 14px rgba(22, 163, 74, 0.4)' : '0 4px 14px rgba(37, 99, 235, 0.35)',
+                      boxShadow: isLive ? '0 4px 14px rgba(22, 163, 74, 0.4)' : isFinished ? 'none' : '0 4px 14px rgba(37, 99, 235, 0.35)',
                       transition: 'transform 0.1s ease',
                       textAlign: 'center',
                     }}
                   >
-                    Buka Panel Skor Hadang →
+                    {isFinished ? 'Lihat Rekap Hasil Pertandingan ➔' : 'Buka Meja Scoring Lapangan ➔'}
                   </Link>
                 </div>
               </div>

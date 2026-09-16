@@ -84,6 +84,8 @@ export async function updateMatchStatus(matchId: string, status: string, isStart
   }
 
   revalidatePath('/admin')
+  revalidatePath('/admin/bracket')
+  revalidatePath('/bracket')
   revalidatePath(`/admin/matches/${matchId}`)
   revalidatePath('/jury')
   revalidatePath(`/jury/matches/${matchId}`)

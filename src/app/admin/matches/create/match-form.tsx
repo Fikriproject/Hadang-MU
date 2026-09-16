@@ -30,6 +30,20 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
   const [selectedCategory, setSelectedCategory] = useState<'PUTRA' | 'PUTRI'>('PUTRA')
   const [team1Id, setTeam1Id] = useState('')
   const [team2Id, setTeam2Id] = useState('')
+  const [jury1Id, setJury1Id] = useState('')
+  const [jury2Id, setJury2Id] = useState('')
+
+  // Default date (today) and default time (rounded to next 15-min mark)
+  const [defaultDate] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })
+  const [defaultTime] = useState(() => {
+    const d = new Date()
+    const rem = 15 - (d.getMinutes() % 15)
+    d.setMinutes(d.getMinutes() + rem)
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  })
 
   // Calculate dynamic next match numbers per category
   const nextNumberPutra = getNextMatchNumber(existingMatches, 'PUTRA')
@@ -302,6 +316,7 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
               type="date"
               id="scheduled_date"
               name="scheduled_date"
+              defaultValue={defaultDate}
               required
               style={{
                 padding: '0.75rem',
@@ -319,6 +334,7 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
               type="time"
               id="scheduled_time"
               name="scheduled_time"
+              defaultValue={defaultTime}
               required
               style={{
                 padding: '0.75rem',
@@ -428,6 +444,8 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
           <select
             id="jury_1_id"
             name="jury_1_id"
+            value={jury1Id}
+            onChange={(e) => setJury1Id(e.target.value)}
             required
             style={{
               padding: '0.75rem',
@@ -438,10 +456,10 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
               fontSize: '1rem',
             }}
           >
-            <option value="">Pilih Scoring...</option>
+            <option value="">-- Pilih Scoring 1 (Depan) --</option>
             {juries.map((j) => (
-              <option key={j.id} value={j.id}>
-                {formatJuryDisplayName(j.name)}
+              <option key={j.id} value={j.id} disabled={j.id === jury2Id}>
+                {formatJuryDisplayName(j.name)} {j.id === jury2Id ? '(Sudah dipilih sebagai Scoring 2)' : ''}
               </option>
             ))}
           </select>
@@ -454,6 +472,8 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
           <select
             id="jury_2_id"
             name="jury_2_id"
+            value={jury2Id}
+            onChange={(e) => setJury2Id(e.target.value)}
             required
             style={{
               padding: '0.75rem',
@@ -464,10 +484,10 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
               fontSize: '1rem',
             }}
           >
-            <option value="">Pilih Scoring...</option>
+            <option value="">-- Pilih Scoring 2 (Belakang) --</option>
             {juries.map((j) => (
-              <option key={j.id} value={j.id}>
-                {formatJuryDisplayName(j.name)}
+              <option key={j.id} value={j.id} disabled={j.id === jury1Id}>
+                {formatJuryDisplayName(j.name)} {j.id === jury1Id ? '(Sudah dipilih sebagai Scoring 1)' : ''}
               </option>
             ))}
           </select>
