@@ -24,6 +24,18 @@ interface AdminMatchesViewProps {
   initialMatches: MatchWithRelations[]
 }
 
+function formatRoundLabel(round: string | null | undefined): string | null {
+  if (!round) return null
+  const r = round.trim()
+  if (r.includes('BABAK_2_START')) return '⏱️ Babak 2'
+  if (r.includes('BABAK_2_PENDING')) return '⏸️ Jeda Babak'
+  // Suppress internal anchor UUIDs or tokens containing separator ::
+  if (r.includes('::') || /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i.test(r)) {
+    return null
+  }
+  return r
+}
+
 export default function AdminMatchesView({ initialMatches }: AdminMatchesViewProps) {
   const [filterCategory, setFilterCategory] = useState<'ALL' | 'PUTRA' | 'PUTRI'>('ALL')
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'LIVE' | 'READY' | 'FINISHED'>('ALL')
@@ -70,6 +82,7 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
     >
       {/* Header & Tabs */}
       <div
+        className="admin-matches-header"
         style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -89,6 +102,7 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
 
         {/* Filter Tabs */}
         <div
+          className="admin-filter-tabs"
           style={{
             display: 'flex',
             backgroundColor: 'var(--surface-subtle)',
@@ -101,6 +115,7 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
           {/* Tab Semua */}
           <button
             type="button"
+            className="admin-filter-tab-btn"
             onClick={() => setFilterCategory('ALL')}
             style={{
               padding: '0.45rem 0.85rem',
@@ -121,6 +136,7 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
           {/* Tab Putra */}
           <button
             type="button"
+            className="admin-filter-tab-btn"
             onClick={() => setFilterCategory('PUTRA')}
             style={{
               padding: '0.45rem 0.85rem',
@@ -156,6 +172,7 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
           {/* Tab Putri */}
           <button
             type="button"
+            className="admin-filter-tab-btn"
             onClick={() => setFilterCategory('PUTRI')}
             style={{
               padding: '0.45rem 0.85rem',
@@ -191,18 +208,9 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
       </div>
 
       {/* Search Bar & Status Filter Pills */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '0.75rem',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          paddingTop: '0.25rem',
-        }}
-      >
+      <div className="admin-search-status-bar">
         {/* Quick Search */}
-        <div style={{ position: 'relative', flex: '1 1 260px' }}>
+        <div className="admin-search-input-wrapper" style={{ position: 'relative', width: '100%', minWidth: 0 }}>
           <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.9rem', pointerEvents: 'none' }}>
             🔍
           </span>
@@ -244,7 +252,7 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
         </div>
 
         {/* Quick Status Filter Buttons */}
-        <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="admin-status-pills">
           {[
             { id: 'ALL', label: 'Semua Status' },
             { id: 'LIVE', label: '🔴 Live / Dijeda' },
@@ -254,17 +262,13 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
             <button
               key={st.id}
               type="button"
+              className="admin-status-pill-btn"
               onClick={() => setFilterStatus(st.id as any)}
               style={{
-                padding: '0.4rem 0.7rem',
-                borderRadius: '6px',
                 border: filterStatus === st.id ? '1px solid var(--primary)' : '1px solid var(--border-color)',
                 backgroundColor: filterStatus === st.id ? 'var(--primary-subtle)' : 'var(--surface-subtle)',
                 color: filterStatus === st.id ? 'var(--primary)' : 'var(--text-secondary)',
-                fontSize: '0.78rem',
                 fontWeight: filterStatus === st.id ? 800 : 600,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
               }}
             >
               {st.label}
@@ -378,18 +382,10 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                   }}
                 />
 
-                {/* Top Row: Category Badge, Status, Match Name & Quick Actions */}
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '0.5rem',
-                    paddingLeft: '0.35rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: '1 1 auto', flexWrap: 'wrap' }}>
+                {/* Top Section: Badges & Match Name */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', paddingLeft: '0.35rem' }}>
+                  {/* Badges Row */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                     {/* Category Badge (Putra / Putri) */}
                     <span
                       style={{
@@ -427,36 +423,28 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                       {statusLabel}
                     </span>
 
-                    <span
-                      style={{
-                        fontWeight: 800,
-                        fontSize: '1.05rem',
-                        color: 'var(--text-primary)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {m.name}
-                    </span>
+                    {/* Clean Round Badge (ignores internal anchor UUIDs or state tokens) */}
+                    {(() => {
+                      const roundLabel = formatRoundLabel(m.round)
+                      return roundLabel ? (
+                        <span
+                          style={{
+                            backgroundColor: 'var(--badge-neutral-bg)',
+                            border: '1px solid var(--border-color)',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '4px',
+                            fontSize: '0.7rem',
+                            color: 'var(--badge-neutral-text)',
+                            fontWeight: 700,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {roundLabel}
+                        </span>
+                      ) : null
+                    })()}
 
-                    {m.round && (
-                      <span
-                        style={{
-                          backgroundColor: 'var(--badge-neutral-bg)',
-                          border: '1px solid var(--border-color)',
-                          padding: '0.15rem 0.4rem',
-                          borderRadius: '4px',
-                          fontSize: '0.7rem',
-                          color: 'var(--badge-neutral-text)',
-                          fontWeight: 600,
-                          flexShrink: 0,
-                        }}
-                      >
-                        {m.round}
-                      </span>
-                    )}
-
+                    {/* Schedule Date */}
                     {m.scheduled_at && (
                       <span
                         style={{
@@ -465,15 +453,13 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                           fontWeight: 600,
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.3rem',
-                          marginLeft: '0.2rem'
+                          gap: '0.25rem',
                         }}
                       >
                         📅 {new Intl.DateTimeFormat('id-ID', {
-                          weekday: 'long',
+                          weekday: 'short',
                           day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
+                          month: 'short',
                           hour: '2-digit',
                           minute: '2-digit',
                         }).format(new Date(m.scheduled_at)).replace(/\./g, ':')} WIB
@@ -481,62 +467,46 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0, flexWrap: 'wrap' }}>
-                    <Link
-                      href={`/jury/matches/${m.id}`}
-                      style={{
-                        backgroundColor: 'var(--surface-color)',
-                        color: 'var(--text-primary)',
-                        border: '1px solid var(--border-color)',
-                        padding: '0.45rem 0.65rem',
-                        borderRadius: '6px',
-                        fontWeight: 700,
-                        fontSize: '0.8125rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        textDecoration: 'none',
-                      }}
-                      title="Buka panel pencatatan Meja Scoring"
-                    >
-                      📱 Scoring
-                    </Link>
-                    <Link
-                      href={`/admin/matches/${m.id}`}
-                      style={{
-                        backgroundColor: 'var(--primary)',
-                        color: 'white',
-                        padding: '0.45rem 0.85rem',
-                        borderRadius: '6px',
-                        fontWeight: 700,
-                        fontSize: '0.8125rem',
-                        boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      Ruang Kontrol
-                    </Link>
-                    <Link
-                      href={`/tv/${m.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        backgroundColor: 'var(--btn-secondary-bg)',
-                        color: 'var(--btn-secondary-text)',
-                        border: '1px solid var(--border-color)',
-                        padding: '0.45rem 0.75rem',
-                        borderRadius: '6px',
-                        fontWeight: 600,
-                        fontSize: '0.8125rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.3rem',
-                        textDecoration: 'none',
-                      }}
-                    >
-                      📺 TV Score
-                    </Link>
+                  {/* Match Name - Complete display with word wrap on mobile */}
+                  <div
+                    style={{
+                      fontWeight: 800,
+                      fontSize: '1.05rem',
+                      color: 'var(--text-primary)',
+                      lineHeight: 1.35,
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {m.name}
                   </div>
+                </div>
+
+                {/* Quick Action Navigation Buttons */}
+                <div className="admin-card-actions" style={{ paddingLeft: '0.35rem' }}>
+                  <Link
+                    href={`/admin/matches/${m.id}`}
+                    className="admin-card-btn-control"
+                  >
+                    <span>⚙️</span>
+                    <span>Ruang Kontrol</span>
+                  </Link>
+                  <Link
+                    href={`/jury/matches/${m.id}`}
+                    className="admin-card-btn-sub"
+                    title="Buka panel pencatatan Meja Scoring"
+                  >
+                    <span>📱</span>
+                    <span>Scoring</span>
+                  </Link>
+                  <Link
+                    href={`/tv/${m.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="admin-card-btn-tv"
+                  >
+                    <span>📺</span>
+                    <span>TV Score</span>
+                  </Link>
                 </div>
 
                 {/* Scoreboard View */}
@@ -652,12 +622,11 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                             <span
                               style={{
                                 fontWeight: 800,
-                                fontSize: '1rem',
+                                fontSize: '0.95rem',
                                 color: 'var(--text-primary)',
                                 display: 'block',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
+                                lineHeight: 1.3,
+                                wordBreak: 'break-word',
                               }}
                             >
                               {teamLeft.name}
@@ -691,12 +660,11 @@ export default function AdminMatchesView({ initialMatches }: AdminMatchesViewPro
                             <span
                               style={{
                                 fontWeight: 800,
-                                fontSize: '1rem',
+                                fontSize: '0.95rem',
                                 color: 'var(--text-primary)',
                                 display: 'block',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
+                                lineHeight: 1.3,
+                                wordBreak: 'break-word',
                               }}
                             >
                               {teamRight.name}

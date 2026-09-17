@@ -53,63 +53,35 @@ export default async function AdminDashboardPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Top Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 className="heading" style={{ fontSize: '1.875rem' }}>Dashboard Pertandingan</h1>
-          <p className="metadata-text">Sistem Penilaian Hadang (Kategori Putra & Putri)</p>
+      <div className="admin-header-row">
+        <div className="admin-header-text">
+          <h1 className="heading admin-header-title">Dashboard Pertandingan</h1>
+          <p className="metadata-text admin-header-subtitle">Sistem Penilaian Hadang (Kategori Putra & Putri)</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <Link
-            href="/admin/bracket"
-            prefetch={false}
-            style={{
-              backgroundColor: '#EAB308',
-              color: '#000',
-              padding: '0.75rem 1.25rem',
-              borderRadius: '8px',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              boxShadow: '0 4px 14px rgba(234, 179, 8, 0.35)',
-              transition: 'all 0.2s',
-            }}
-          >
-            🏆 Bagan Turnamen
-          </Link>
+        <div className="admin-header-actions">
           <Link
             href="/admin/matches/create"
             prefetch={false}
-            style={{
-              backgroundColor: 'var(--primary)',
-              color: 'white',
-              padding: '0.75rem 1.25rem',
-              borderRadius: '8px',
-              fontWeight: 800,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
-              transition: 'all 0.2s',
-            }}
+            className="admin-action-btn admin-action-btn-primary"
           >
-            + Buat Pertandingan
+            <span style={{ fontSize: '1.05rem', lineHeight: 1 }}>➕</span>
+            <span>Buat Pertandingan</span>
+          </Link>
+          <Link
+            href="/admin/bracket"
+            prefetch={false}
+            className="admin-action-btn admin-action-btn-bracket"
+          >
+            <span>🏆</span>
+            <span>Bagan Turnamen</span>
           </Link>
           <Link
             href="/admin/teams"
             prefetch={false}
-            style={{
-              backgroundColor: 'var(--surface-color)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border-color)',
-              padding: '0.75rem 1.25rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}
+            className="admin-action-btn admin-action-btn-teams"
           >
-            Kelola Tim ({teams.length})
+            <span>👥</span>
+            <span>Kelola Tim ({teams.length})</span>
           </Link>
         </div>
       </div>

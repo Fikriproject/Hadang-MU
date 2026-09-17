@@ -1371,9 +1371,10 @@ export default function ControlRoom({
 
         {/* Assigned Scoring & Total Input Score Cards */}
         <div
+          className="control-scoring-cards-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
             gap: '0.85rem',
             paddingTop: '1rem',
             borderTop: '1px solid var(--border-color)',
@@ -1385,21 +1386,22 @@ export default function ControlRoom({
               backgroundColor: 'var(--surface-subtle)',
               border: '1px solid var(--border-color)',
               borderRadius: '10px',
-              padding: '0.85rem 1.15rem',
+              padding: '0.85rem 1rem',
               display: 'flex',
               flexDirection: 'column',
               gap: '0.75rem',
+              minWidth: 0,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600, wordBreak: 'break-word' }}>
                   Scoring 1 (Depan):{' '}
                   <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>
                     {formatJuryDisplayName(match.jury_1?.name) || 'Belum ditugaskan'}
                   </strong>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                   Petugas Meja Scoring Depan/Awal
                 </div>
               </div>
@@ -1411,7 +1413,7 @@ export default function ControlRoom({
                   justifyContent: 'center',
                   flexShrink: 0,
                   backgroundColor: 'var(--surface-color)',
-                  padding: '0.35rem 0.75rem',
+                  padding: '0.35rem 0.65rem',
                   borderRadius: '8px',
                   border: '1px solid var(--border-color)',
                 }}
@@ -1419,7 +1421,7 @@ export default function ControlRoom({
                 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Total Input Skor
                 </span>
-                <span style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'ui-monospace, monospace', color: 'var(--primary)', lineHeight: 1.1 }}>
+                <span style={{ fontSize: '1.25rem', fontWeight: 900, fontFamily: 'ui-monospace, monospace', color: 'var(--primary)', lineHeight: 1.1 }}>
                   {pointsJury1} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Poin</span>
                 </span>
               </div>
@@ -1441,25 +1443,25 @@ export default function ControlRoom({
                   backgroundColor: 'var(--surface-color)',
                   borderRadius: '8px',
                   border: '1px solid var(--border-color)',
-                  padding: '0.55rem 0.85rem',
+                  padding: '0.55rem 0.75rem',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '0.35rem',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', minWidth: 0, flex: '1 1 120px' }}>
                     <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#2563EB', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', wordBreak: 'break-word', lineHeight: 1.25 }}>
                       {teamLeft.name}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', flexShrink: 0 }}>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Skor Depan:</span>
                     <strong style={{ fontFamily: 'ui-monospace, monospace', fontSize: '1.15rem', fontWeight: 900, color: '#2563EB', lineHeight: 1 }}>
                       {jury1ScoreLeft}
                     </strong>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Poin</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Poin</span>
                   </div>
                 </div>
                 {/* Rincian Setiap Babak */}
@@ -1517,25 +1519,25 @@ export default function ControlRoom({
                   backgroundColor: 'var(--surface-color)',
                   borderRadius: '8px',
                   border: '1px solid var(--border-color)',
-                  padding: '0.55rem 0.85rem',
+                  padding: '0.55rem 0.75rem',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '0.35rem',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', minWidth: 0, flex: '1 1 120px' }}>
                     <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#E11D48', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', wordBreak: 'break-word', lineHeight: 1.25 }}>
                       {teamRight.name}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', flexShrink: 0 }}>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Skor Depan:</span>
                     <strong style={{ fontFamily: 'ui-monospace, monospace', fontSize: '1.15rem', fontWeight: 900, color: '#2563EB', lineHeight: 1 }}>
                       {jury1ScoreRight}
                     </strong>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Poin</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Poin</span>
                   </div>
                 </div>
                 {/* Rincian Setiap Babak */}
@@ -1595,21 +1597,22 @@ export default function ControlRoom({
               backgroundColor: 'var(--surface-subtle)',
               border: '1px solid var(--border-color)',
               borderRadius: '10px',
-              padding: '0.85rem 1.15rem',
+              padding: '0.85rem 1rem',
               display: 'flex',
               flexDirection: 'column',
               gap: '0.75rem',
+              minWidth: 0,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-              <div>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 600, wordBreak: 'break-word' }}>
                   Scoring 2 (Belakang):{' '}
                   <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem' }}>
                     {formatJuryDisplayName(match.jury_2?.name) || 'Belum ditugaskan'}
                   </strong>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                   Petugas Meja Scoring Belakang/Akhir
                 </div>
               </div>
@@ -1621,7 +1624,7 @@ export default function ControlRoom({
                   justifyContent: 'center',
                   flexShrink: 0,
                   backgroundColor: 'var(--surface-color)',
-                  padding: '0.35rem 0.75rem',
+                  padding: '0.35rem 0.65rem',
                   borderRadius: '8px',
                   border: '1px solid var(--border-color)',
                 }}
@@ -1629,7 +1632,7 @@ export default function ControlRoom({
                 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Total Input Skor
                 </span>
-                <span style={{ fontSize: '1.35rem', fontWeight: 900, fontFamily: 'ui-monospace, monospace', color: '#E11D48', lineHeight: 1.1 }}>
+                <span style={{ fontSize: '1.25rem', fontWeight: 900, fontFamily: 'ui-monospace, monospace', color: '#E11D48', lineHeight: 1.1 }}>
                   {pointsJury2} <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Poin</span>
                 </span>
               </div>
@@ -1651,25 +1654,25 @@ export default function ControlRoom({
                   backgroundColor: 'var(--surface-color)',
                   borderRadius: '8px',
                   border: '1px solid var(--border-color)',
-                  padding: '0.55rem 0.85rem',
+                  padding: '0.55rem 0.75rem',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '0.35rem',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', minWidth: 0, flex: '1 1 120px' }}>
                     <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#2563EB', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', wordBreak: 'break-word', lineHeight: 1.25 }}>
                       {teamLeft.name}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', flexShrink: 0 }}>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Skor Belakang:</span>
                     <strong style={{ fontFamily: 'ui-monospace, monospace', fontSize: '1.15rem', fontWeight: 900, color: '#E11D48', lineHeight: 1 }}>
                       {jury2ScoreLeft}
                     </strong>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Poin</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Poin</span>
                   </div>
                 </div>
                 {/* Rincian Setiap Babak */}
@@ -1727,25 +1730,25 @@ export default function ControlRoom({
                   backgroundColor: 'var(--surface-color)',
                   borderRadius: '8px',
                   border: '1px solid var(--border-color)',
-                  padding: '0.55rem 0.85rem',
+                  padding: '0.55rem 0.75rem',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '0.35rem',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', minWidth: 0, flex: '1 1 120px' }}>
                     <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#E11D48', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)', wordBreak: 'break-word', lineHeight: 1.25 }}>
                       {teamRight.name}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.3rem', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.25rem', flexShrink: 0 }}>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>Total Skor Belakang:</span>
                     <strong style={{ fontFamily: 'ui-monospace, monospace', fontSize: '1.15rem', fontWeight: 900, color: '#E11D48', lineHeight: 1 }}>
                       {jury2ScoreRight}
                     </strong>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Poin</span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontWeight: 700 }}>Poin</span>
                   </div>
                 </div>
                 {/* Rincian Setiap Babak */}
@@ -1839,39 +1842,41 @@ export default function ControlRoom({
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '0.75rem 1rem',
+                    padding: '0.65rem 0.75rem',
                     backgroundColor: isCancelled ? 'var(--surface-subtle)' : 'var(--surface-color)',
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     border: isCancelled ? '1px dashed var(--border-color)' : '1px solid var(--border-color)',
                     opacity: isCancelled ? 0.65 : 1,
+                    gap: '0.5rem',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', minWidth: 0, flex: 1 }}>
                     <span
                       style={{
                         backgroundColor: isCancelled ? 'var(--badge-neutral-bg)' : 'var(--success)',
                         color: isCancelled ? 'var(--badge-neutral-text)' : 'white',
                         fontWeight: 800,
-                        fontSize: '0.875rem',
-                        padding: '0.25rem 0.5rem',
+                        fontSize: '0.8125rem',
+                        padding: '0.2rem 0.45rem',
                         borderRadius: '4px',
-                        minWidth: '2.5rem',
+                        minWidth: '2.2rem',
                         textAlign: 'center',
+                        flexShrink: 0,
                       }}
                     >
                       +{evt.points}
                     </span>
 
-                    <div>
-                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', textDecoration: isCancelled ? 'line-through' : 'none' }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', textDecoration: isCancelled ? 'line-through' : 'none', fontSize: '0.85rem', wordBreak: 'break-word', lineHeight: 1.25 }}>
                         {teamName}
                         {isCancelled && (
-                          <span style={{ color: 'var(--danger)', fontSize: '0.75rem', marginLeft: '0.5rem', fontWeight: 600 }}>
+                          <span style={{ color: 'var(--danger)', fontSize: '0.72rem', marginLeft: '0.35rem', fontWeight: 600 }}>
                             (DIBATALKAN: {evt.cancel_reason || 'Batal'})
                           </span>
                         )}
                       </div>
-                      <div className="metadata-text" style={{ fontSize: '0.75rem' }}>
+                      <div className="metadata-text" style={{ fontSize: '0.72rem', marginTop: '0.15rem', wordBreak: 'break-word', lineHeight: 1.3 }}>
                         Waktu: {timeStr} • Pencatat: {evt.jury?.name || 'Admin/Sistem'} • Tipe: {evt.event_type}
                       </div>
                     </div>
@@ -1885,14 +1890,16 @@ export default function ControlRoom({
                         color: 'var(--danger)',
                         border: '1px solid var(--danger)',
                         backgroundColor: 'var(--danger-subtle)',
-                        padding: '0.375rem 0.75rem',
-                        borderRadius: '4px',
-                        fontSize: '0.8125rem',
+                        padding: '0.35rem 0.6rem',
+                        borderRadius: '5px',
+                        fontSize: '0.75rem',
                         fontWeight: 700,
                         cursor: 'pointer',
+                        flexShrink: 0,
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      Batalkan Poin
+                      Batalkan
                     </button>
                   )}
                 </div>
@@ -1905,29 +1912,30 @@ export default function ControlRoom({
       {/* Post-Match Summary / Rekapitulasi Pertandingan */}
       {match.status === 'FINISHED' && (
         <div
+          className="control-recap-card"
           style={{
             backgroundColor: 'var(--surface-color)',
             border: '2px solid var(--primary)',
             borderRadius: '14px',
-            padding: '1.75rem',
             boxShadow: 'var(--card-shadow)',
             marginTop: '1.5rem',
           }}
         >
-          <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-            <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)', margin: '0 0 0.4rem 0' }}>
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary)', margin: '0 0 0.4rem 0' }}>
               Rekapitulasi Pertandingan
             </h3>
-            <p className="metadata-text" style={{ margin: 0 }}>
+            <p className="metadata-text" style={{ margin: 0, fontSize: '0.8125rem' }}>
               Rincian perolehan poin Babak 1 dan Babak 2 dari meja scoring depan dan belakang.
             </p>
           </div>
 
           <div
+            className="control-recap-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-              gap: '1.5rem',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gap: '1.25rem',
             }}
           >
             {(() => {
@@ -2039,15 +2047,17 @@ export default function ControlRoom({
                     return (
                       <div
                         key={team.id}
+                        className="control-recap-team-card"
                         style={{
                           backgroundColor: 'var(--surface-subtle)',
-                          padding: '1.25rem',
+                          padding: '1rem',
                           borderRadius: '12px',
                           border: isWinner ? '2px solid var(--primary)' : '1px solid var(--border-color)',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '1rem',
+                          gap: '0.85rem',
                           position: 'relative',
+                          minWidth: 0,
                         }}
                       >
                         {/* Team Header */}
@@ -2143,10 +2153,12 @@ export default function ControlRoom({
                           </div>
                           <h4
                             style={{
-                              fontSize: '1.25rem',
+                              fontSize: '1.15rem',
                               fontWeight: 800,
                               margin: 0,
                               color: 'var(--text-primary)',
+                              wordBreak: 'break-word',
+                              lineHeight: 1.3,
                             }}
                           >
                             {team.name}
@@ -2350,29 +2362,31 @@ export default function ControlRoom({
                     style={{
                       backgroundColor: 'var(--surface-color)',
                       borderRadius: '10px',
-                      padding: '0.9rem 1.1rem',
+                      padding: '0.85rem 1rem',
                       border: '2px solid var(--primary)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
+                      gap: '0.75rem',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                     }}
                   >
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                        total skor akhir :
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'capitalize' }}>
+                        Total Skor Akhir :
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.15rem', wordBreak: 'break-word', lineHeight: 1.3 }}>
                         (Babak 1: {recap.b1Total} + Babak 2: {recap.b2Total}) • <strong style={{ color: 'var(--primary)' }}>Skor Depan: {teamDepan}</strong>
                       </div>
                     </div>
                     <div
                       style={{
-                        fontSize: '1.85rem',
+                        fontSize: '1.75rem',
                         fontWeight: 900,
                         color: 'var(--primary)',
                         fontFamily: 'ui-monospace, monospace',
                         lineHeight: 1,
+                        flexShrink: 0,
                       }}
                     >
                       {recap.totalAkhir}
