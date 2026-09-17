@@ -261,7 +261,7 @@ div:where(.swal2-popup.swal2-hadang-popup) {
 /* Scoring Arena Desktop & Mobile Responsive Grid */
 .scoring-scoreboard-arena {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   grid-template-areas:
     "timer timer timer"
     "team-left vs team-right";
@@ -273,6 +273,8 @@ div:where(.swal2-popup.swal2-hadang-popup) {
   gap: 0.85rem;
   box-shadow: var(--card-shadow);
   flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .scoring-timer-card {
@@ -286,6 +288,8 @@ div:where(.swal2-popup.swal2-hadang-popup) {
   border-radius: 10px;
   padding: 0.65rem 1rem;
   transition: all 0.2s ease;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .scoring-timer-card.is-live {
@@ -310,10 +314,16 @@ div:where(.swal2-popup.swal2-hadang-popup) {
 
 .scoring-team-left {
   grid-area: team-left;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .scoring-team-right {
   grid-area: team-right;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .scoring-vs-divider {
@@ -324,16 +334,28 @@ div:where(.swal2-popup.swal2-hadang-popup) {
 
 @media (max-width: 640px) {
   .scoring-scoreboard-arena {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
     grid-template-areas:
       "timer timer"
       "team-left team-right" !important;
     padding: 0.75rem 0.5rem !important;
     gap: 0.5rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .scoring-team-left,
+  .scoring-team-right {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
   .scoring-timer-card {
     padding: 0.6rem 0.75rem !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .scoring-timer-digits {
