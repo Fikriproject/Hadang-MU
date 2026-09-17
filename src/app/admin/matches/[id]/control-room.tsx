@@ -1245,12 +1245,16 @@ export default function ControlRoom({
               <button
                 type="button"
                 onClick={async () => {
+                  const depanLeft = teamRecap.left.b1Depan + teamRecap.left.b2Depan
+                  const depanRight = teamRecap.right.b1Depan + teamRecap.right.b2Depan
                   const confirmed = await promptConfirmFinishMatch(
                     match.name,
                     teamLeft.name,
                     scoreLeft,
                     scoreRight,
-                    teamRight.name
+                    teamRight.name,
+                    depanLeft,
+                    depanRight
                   )
                   if (confirmed) {
                     handleStatusChange('FINISHED')
@@ -1926,97 +1930,228 @@ export default function ControlRoom({
               gap: '1.5rem',
             }}
           >
-            {[
-              { team: teamLeft, recap: teamRecap.left, otherRecap: teamRecap.right },
-              { team: teamRight, recap: teamRecap.right, otherRecap: teamRecap.left },
-            ].map(({ team, recap, otherRecap }, idx) => {
-              const isWinner = recap.totalAkhir > otherRecap.totalAkhir
-              const isDraw = recap.totalAkhir === otherRecap.totalAkhir
+            {(() => {
+              const isScoreDraw = teamRecap.left.totalAkhir === teamRecap.right.totalAkhir
+              const leftDepan = teamRecap.left.b1Depan + teamRecap.left.b2Depan
+              const rightDepan = teamRecap.right.b1Depan + teamRecap.right.b2Depan
+              const hasTieBreakWinner = isScoreDraw && leftDepan !== rightDepan
+              const tieBreakWinnerId = hasTieBreakWinner
+                ? leftDepan > rightDepan
+                  ? teamLeft.id
+                  : teamRight.id
+                : null
 
               return (
-                <div
-                  key={team.id}
-                  style={{
-                    backgroundColor: 'var(--surface-subtle)',
-                    padding: '1.25rem',
-                    borderRadius: '12px',
-                    border: isWinner ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '1rem',
-                    position: 'relative',
-                  }}
-                >
-                  {/* Team Header */}
-                  <div
-                    style={{
-                      textAlign: 'center',
-                      paddingBottom: '0.85rem',
-                      borderBottom: '2px solid var(--border-color)',
-                    }}
-                  >
+                <>
+                  {/* Tie-break notification banner if total score is equal */}
+                  {isScoreDraw && (
                     <div
                       style={{
+                        gridColumn: '1 / -1',
+                        backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                        border: '1.5px solid #2563EB',
+                        borderRadius: '10px',
+                        padding: '1rem 1.25rem',
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem',
-                        marginBottom: '0.25rem',
+                        flexDirection: 'column',
+                        gap: '0.4rem',
                       }}
                     >
-                      <span
+                      <div
                         style={{
-                          fontSize: '0.75rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
                           fontWeight: 800,
-                          textTransform: 'uppercase',
-                          color: 'var(--text-muted)',
-                          letterSpacing: '0.05em',
+                          color: '#2563EB',
+                          fontSize: '0.95rem',
                         }}
                       >
-                        TIM {idx + 1}
-                      </span>
-                      {isWinner && (
-                        <span
+                        <span>⚖️</span>
+                        <span>VALIDASI ATURAN SERI / TIE-BREAK</span>
+                      </div>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: '0.85rem',
+                          color: 'var(--text-primary)',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        Skor total akhir kedua tim imbang{' '}
+                        <strong>
+                          {teamRecap.left.totalAkhir} - {teamRecap.right.totalAkhir}
+                        </strong>
+                        . Sesuai regulasi resmi permainan Hadang, jika perolehan skor akhir sama, pemenang ditentukan dari{' '}
+                        <strong>jumlah perolehan skor garis depan (Scoring 1) terbanyak</strong>.
+                      </p>
+                      {hasTieBreakWinner ? (
+                        <div
                           style={{
-                            fontSize: '0.7rem',
-                            fontWeight: 800,
-                            backgroundColor: 'var(--success)',
-                            color: '#fff',
-                            padding: '0.15rem 0.5rem',
-                            borderRadius: '999px',
-                            letterSpacing: '0.04em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            marginTop: '0.25rem',
+                            fontSize: '0.875rem',
                           }}
                         >
-                          PEMENANG
-                        </span>
-                      )}
-                      {isDraw && (
-                        <span
+                          <span style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>Hasil:</span>
+                          <span style={{ fontWeight: 800, color: 'var(--success)' }}>
+                            🏆 {tieBreakWinnerId === teamLeft.id ? teamLeft.name : teamRight.name} dinyatakan sebagai PEMENANG (Skor Depan {Math.max(leftDepan, rightDepan)} vs {Math.min(leftDepan, rightDepan)}).
+                          </span>
+                        </div>
+                      ) : (
+                        <div
                           style={{
-                            fontSize: '0.7rem',
-                            fontWeight: 700,
-                            backgroundColor: 'var(--surface-color)',
-                            border: '1px solid var(--border-color)',
+                            marginTop: '0.25rem',
+                            fontSize: '0.85rem',
                             color: 'var(--text-secondary)',
-                            padding: '0.15rem 0.5rem',
-                            borderRadius: '999px',
                           }}
                         >
-                          SERI
-                        </span>
+                          Perolehan skor depan kedua tim juga bernilai sama ({leftDepan} - {rightDepan}).
+                        </div>
                       )}
                     </div>
-                    <h4
-                      style={{
-                        fontSize: '1.25rem',
-                        fontWeight: 800,
-                        margin: 0,
-                        color: 'var(--text-primary)',
-                      }}
-                    >
-                      {team.name}
-                    </h4>
-                  </div>
+                  )}
+
+                  {[
+                    {
+                      team: teamLeft,
+                      recap: teamRecap.left,
+                      otherRecap: teamRecap.right,
+                      teamDepan: leftDepan,
+                      otherDepan: rightDepan,
+                    },
+                    {
+                      team: teamRight,
+                      recap: teamRecap.right,
+                      otherRecap: teamRecap.left,
+                      teamDepan: rightDepan,
+                      otherDepan: leftDepan,
+                    },
+                  ].map(({ team, recap, otherRecap, teamDepan, otherDepan }, idx) => {
+                    const isNormalWin = recap.totalAkhir > otherRecap.totalAkhir
+                    const isTieBreakWin = isScoreDraw && teamDepan > otherDepan
+                    const isTieBreakLoss = isScoreDraw && teamDepan < otherDepan
+                    const isWinner = isNormalWin || isTieBreakWin
+                    const isExactDraw = isScoreDraw && teamDepan === otherDepan
+
+                    return (
+                      <div
+                        key={team.id}
+                        style={{
+                          backgroundColor: 'var(--surface-subtle)',
+                          padding: '1.25rem',
+                          borderRadius: '12px',
+                          border: isWinner ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '1rem',
+                          position: 'relative',
+                        }}
+                      >
+                        {/* Team Header */}
+                        <div
+                          style={{
+                            textAlign: 'center',
+                            paddingBottom: '0.85rem',
+                            borderBottom: '2px solid var(--border-color)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '0.5rem',
+                              marginBottom: '0.25rem',
+                              flexWrap: 'wrap',
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                color: 'var(--text-muted)',
+                                letterSpacing: '0.05em',
+                              }}
+                            >
+                              TIM {idx + 1}
+                            </span>
+                            {isNormalWin && (
+                              <span
+                                style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  backgroundColor: 'var(--success)',
+                                  color: '#fff',
+                                  padding: '0.15rem 0.5rem',
+                                  borderRadius: '999px',
+                                  letterSpacing: '0.04em',
+                                }}
+                              >
+                                PEMENANG
+                              </span>
+                            )}
+                            {isTieBreakWin && (
+                              <span
+                                style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 800,
+                                  backgroundColor: '#2563EB',
+                                  color: '#fff',
+                                  padding: '0.15rem 0.55rem',
+                                  borderRadius: '999px',
+                                  letterSpacing: '0.04em',
+                                }}
+                                title="Menang tie-break berdasarkan skor depan tertinggi"
+                              >
+                                🏆 PEMENANG (UNGGUL SKOR DEPAN)
+                              </span>
+                            )}
+                            {isTieBreakLoss && (
+                              <span
+                                style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                                  color: '#EF4444',
+                                  padding: '0.15rem 0.5rem',
+                                  borderRadius: '999px',
+                                }}
+                              >
+                                KALAH SKOR DEPAN ({teamDepan} vs {otherDepan})
+                              </span>
+                            )}
+                            {isExactDraw && (
+                              <span
+                                style={{
+                                  fontSize: '0.7rem',
+                                  fontWeight: 700,
+                                  backgroundColor: 'var(--surface-color)',
+                                  border: '1px solid var(--border-color)',
+                                  color: 'var(--text-secondary)',
+                                  padding: '0.15rem 0.5rem',
+                                  borderRadius: '999px',
+                                }}
+                              >
+                                SERI
+                              </span>
+                            )}
+                          </div>
+                          <h4
+                            style={{
+                              fontSize: '1.25rem',
+                              fontWeight: 800,
+                              margin: 0,
+                              color: 'var(--text-primary)',
+                            }}
+                          >
+                            {team.name}
+                          </h4>
+                        </div>
 
                   {/* Skor Babak 1 */}
                   <div
@@ -2228,7 +2363,7 @@ export default function ControlRoom({
                         total skor akhir :
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                        (Babak 1: {recap.b1Total} + Babak 2: {recap.b2Total})
+                        (Babak 1: {recap.b1Total} + Babak 2: {recap.b2Total}) • <strong style={{ color: 'var(--primary)' }}>Skor Depan: {teamDepan}</strong>
                       </div>
                     </div>
                     <div
@@ -2245,7 +2380,8 @@ export default function ControlRoom({
                   </div>
                 </div>
               )
-            })}
+            })}</>
+            )})()}
           </div>
         </div>
       )}

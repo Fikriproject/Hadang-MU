@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import {
   type BracketCategory,
   type BracketData,
+  type BracketMatch,
   type BracketLayoutMode,
   generateBracketStructure,
   shuffleArray,
@@ -23,10 +24,16 @@ const BACKUP_BRACKET_FILE = path.join(process.cwd(), 'data', 'brackets.json')
 declare global {
   // eslint-disable-next-line no-var
   var __hadang_brackets_store__: Record<string, BracketData | null> | undefined
+  // eslint-disable-next-line no-var
+  var __hadang_bracket_creation_locks__: Map<string, Promise<{ success?: boolean; matchId?: string; error?: string }>> | undefined
 }
 
 if (!globalThis.__hadang_brackets_store__) {
   globalThis.__hadang_brackets_store__ = { PUTRA: null, PUTRI: null }
+}
+
+if (!globalThis.__hadang_bracket_creation_locks__) {
+  globalThis.__hadang_bracket_creation_locks__ = new Map()
 }
 
 async function readBracketsStore(): Promise<Record<string, BracketData | null>> {
@@ -126,12 +133,15 @@ export async function getBracket(category: BracketCategory) {
       .from('matches')
       .select(`
         id,
+        name,
         status,
         team_attack_id,
         team_defense_id,
+        jury_1_id,
+        jury_2_id,
         team_attack:team_attack_id(id, name),
         team_defense:team_defense_id(id, name),
-        score_events(team_id, points, status)
+        score_events(team_id, points, status, jury_id)
       `)
 
     if (matchesErr) {
@@ -419,7 +429,9 @@ export async function toggleBracketLock(category: BracketCategory, isLocked: boo
 }
 
 /**
- * Generate a real Supabase match from a ready bracket match
+ * Generate a real Supabase match from a ready bracket match.
+ * Dilengkapi concurrency lock dan proteksi idempotency agar tidak tercipta match ganda
+ * meskipun tombol diklik 2 kali cepat atau diklik oleh 2 admin bersamaan.
  */
 export async function generateMatchFromBracket(
   category: BracketCategory,
@@ -427,65 +439,162 @@ export async function generateMatchFromBracket(
   team1Id: string,
   team2Id: string,
   matchTitle: string
-) {
-  const supabase = await createClient()
+): Promise<{ success?: boolean; matchId?: string; error?: string }> {
+  const lockKey = `${category}::${bracketMatchId}`
 
-  // Get available juries for default assignment
-  const { data: juries } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('role', 'JURY')
-    .limit(2)
-
-  const jury1Id = juries?.[0]?.id || null
-  const jury2Id = juries?.[1]?.id || juries?.[0]?.id || null
-
-  const matchName = `${matchTitle} (${category === 'PUTRA' ? 'Putra' : 'Putri'})`
-
-  const { data: newMatch, error } = await supabase
-    .from('matches')
-    .insert({
-      name: matchName,
-      round: team1Id, // Anchor team1 on left
-      team_attack_id: team1Id,
-      team_defense_id: team2Id,
-      jury_1_id: jury1Id,
-      jury_2_id: jury2Id,
-      status: 'READY',
-    })
-    .select('id')
-    .single()
-
-  if (error) {
-    return { error: error.message }
+  // 1. In-flight concurrency lock: cegah eksekusi paralel untuk bracketMatchId yang sama
+  if (globalThis.__hadang_bracket_creation_locks__?.has(lockKey)) {
+    return await globalThis.__hadang_bracket_creation_locks__.get(lockKey)!
   }
 
-  // Link match to bracket
-  const store = await readBracketsStore()
-  const bracket = store[category]
-  if (bracket) {
-    let matched = false
-    for (const round of bracket.rounds) {
-      const match = round.matches.find((m) => m.id === bracketMatchId)
-      if (match) {
-        match.matchId = newMatch.id
-        match.status = 'READY'
-        matched = true
-        break
+  const executionPromise = (async () => {
+    try {
+      const supabase = await createClient()
+
+      // 2. Baca bracket store dan cari target match
+      const store = await readBracketsStore()
+      const bracket = store[category]
+      if (!bracket) {
+        return { error: 'Bagan belum dibuat.' }
       }
-    }
 
-    if (!matched && bracket.thirdPlaceMatch && bracket.thirdPlaceMatch.id === bracketMatchId) {
-      bracket.thirdPlaceMatch.matchId = newMatch.id
-      bracket.thirdPlaceMatch.status = 'READY'
-    }
+      let targetMatch: BracketMatch | undefined
+      for (const round of bracket.rounds) {
+        const m = round.matches.find((item) => item.id === bracketMatchId)
+        if (m) {
+          targetMatch = m
+          break
+        }
+      }
+      if (!targetMatch && bracket.thirdPlaceMatch && bracket.thirdPlaceMatch.id === bracketMatchId) {
+        targetMatch = bracket.thirdPlaceMatch
+      }
 
-    await writeBracketsStore(store)
+      if (!targetMatch) {
+        return { error: 'Pertandingan bagan tidak ditemukan.' }
+      }
+
+      const actualTeam1Id = targetMatch.team1?.id || team1Id
+      const actualTeam2Id = targetMatch.team2?.id || team2Id
+      if (!actualTeam1Id || !actualTeam2Id) {
+        return { error: 'Kedua tim harus terisi sebelum match dimulai.' }
+      }
+
+      // 3. Jika bracket match sudah memiliki matchId yang valid di DB, kembalikan langsung
+      if (targetMatch.matchId) {
+        const { data: existingLinked } = await supabase
+          .from('matches')
+          .select('id, status')
+          .eq('id', targetMatch.matchId)
+          .maybeSingle()
+
+        if (existingLinked) {
+          targetMatch.status = (existingLinked.status as any) || targetMatch.status
+          await writeBracketsStore(store)
+          revalidatePath('/admin/bracket')
+          revalidatePath('/bracket')
+          revalidatePath('/admin')
+          return { success: true, matchId: existingLinked.id }
+        }
+      }
+
+      // 4. Idempotency DB check: Periksa apakah match dengan judul/kategori ini sudah ada di Supabase
+      const matchName = `${matchTitle} (${category === 'PUTRA' ? 'Putra' : 'Putri'})`
+      const { data: existingMatches, error: searchErr } = await supabase
+        .from('matches')
+        .select('id, name, status, team_attack_id, team_defense_id, created_at')
+        .eq('name', matchName)
+        .order('created_at', { ascending: true })
+
+      if (!searchErr && existingMatches && existingMatches.length > 0) {
+        // Cari match yang timnya sesuai
+        const matched =
+          existingMatches.find((m) => {
+            const hasTeam1 = m.team_attack_id === actualTeam1Id || m.team_defense_id === actualTeam1Id
+            const hasTeam2 = m.team_attack_id === actualTeam2Id || m.team_defense_id === actualTeam2Id
+            return hasTeam1 && hasTeam2
+          }) || existingMatches[0]
+
+        if (matched) {
+          // Bersihkan match duplikat berstatus READY tanpa score events jika sebelumnya sempat tercipta
+          if (existingMatches.length > 1) {
+            const duplicatesToRemove = existingMatches.filter(
+              (m) => m.id !== matched.id && m.status === 'READY'
+            )
+            for (const dup of duplicatesToRemove) {
+              const { count } = await supabase
+                .from('score_events')
+                .select('id', { count: 'exact', head: true })
+                .eq('match_id', dup.id)
+
+              if (!count || count === 0) {
+                await supabase.from('matches').delete().eq('id', dup.id)
+              }
+            }
+          }
+
+          targetMatch.matchId = matched.id
+          targetMatch.status = (matched.status as any) || 'READY'
+          await writeBracketsStore(store)
+          revalidatePath('/admin/bracket')
+          revalidatePath('/bracket')
+          revalidatePath('/admin')
+          return { success: true, matchId: matched.id }
+        }
+      }
+
+      // 5. Belum ada match -> Buat tepat 1 match baru di Supabase
+      const { data: juries } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'JURY')
+        .limit(2)
+
+      const jury1Id = juries?.[0]?.id || null
+      const jury2Id = juries?.[1]?.id || juries?.[0]?.id || null
+
+      const { data: newMatch, error: insertError } = await supabase
+        .from('matches')
+        .insert({
+          name: matchName,
+          round: actualTeam1Id, // Anchor team1 on left
+          team_attack_id: actualTeam1Id,
+          team_defense_id: actualTeam2Id,
+          jury_1_id: jury1Id,
+          jury_2_id: jury2Id,
+          status: 'READY',
+        })
+        .select('id')
+        .single()
+
+      if (insertError) {
+        return { error: insertError.message }
+      }
+
+      targetMatch.matchId = newMatch.id
+      targetMatch.status = 'READY'
+      await writeBracketsStore(store)
+
+      revalidatePath('/admin/bracket')
+      revalidatePath('/bracket')
+      revalidatePath('/admin')
+      return { success: true, matchId: newMatch.id }
+    } catch (err: any) {
+      console.error('Error generating match from bracket:', err)
+      return { error: err?.message || 'Gagal membuat pertandingan.' }
+    }
+  })()
+
+  if (!globalThis.__hadang_bracket_creation_locks__) {
+    globalThis.__hadang_bracket_creation_locks__ = new Map()
   }
+  globalThis.__hadang_bracket_creation_locks__.set(lockKey, executionPromise)
 
-  revalidatePath('/admin/bracket')
-  revalidatePath('/admin')
-  return { success: true, matchId: newMatch.id }
+  try {
+    return await executionPromise
+  } finally {
+    globalThis.__hadang_bracket_creation_locks__?.delete(lockKey)
+  }
 }
 
 /**

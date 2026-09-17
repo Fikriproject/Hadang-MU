@@ -238,7 +238,9 @@ export async function promptConfirmFinishMatch(
   teamLeftName: string,
   scoreLeft: number,
   scoreRight: number,
-  teamRightName: string
+  teamRightName: string,
+  depanLeft?: number,
+  depanRight?: number
 ): Promise<boolean> {
   const isLight =
     typeof document !== 'undefined' &&
@@ -249,6 +251,43 @@ export async function promptConfirmFinishMatch(
   const subtextColor = isLight ? '#64748B' : '#94A3B8'
   const cardBg = isLight ? '#F1F5F9' : '#0B1323'
   const cardBorder = isLight ? '#E2E8F0' : '#1E293B'
+
+  const isScoreTied = scoreLeft === scoreRight
+  const hasDepan = typeof depanLeft === 'number' && typeof depanRight === 'number'
+
+  let tieBreakHtml = ''
+  if (isScoreTied && hasDepan) {
+    let resultText = ''
+    if (depanLeft > depanRight) {
+      resultText = `Pemenang: <strong>${teamLeftName}</strong> (Skor Depan: <strong>${depanLeft}</strong> vs ${depanRight})`
+    } else if (depanRight > depanLeft) {
+      resultText = `Pemenang: <strong>${teamRightName}</strong> (Skor Depan: <strong>${depanRight}</strong> vs ${depanLeft})`
+    } else {
+      resultText = `Skor Depan Kedua Tim Sama (${depanLeft} - ${depanRight})`
+    }
+
+    tieBreakHtml = `
+      <div style="
+        background-color: ${isLight ? '#EFF6FF' : 'rgba(37, 99, 235, 0.12)'};
+        border: 1.5px solid #2563EB;
+        border-radius: 8px;
+        padding: 0.65rem 0.85rem;
+        text-align: center;
+        font-size: 0.8rem;
+      ">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.4rem; font-weight: 800; color: #2563EB; margin-bottom: 0.25rem;">
+          <span>⚖️</span>
+          <span>PENENTUAN TIE-BREAK (SKOR DEPAN)</span>
+        </div>
+        <div style="font-size: 0.76rem; color: ${subtextColor}; line-height: 1.35;">
+          Skor total akhir seri (${scoreLeft} - ${scoreRight}). Sesuai aturan, pemenang ditentukan dari skor garis depan tertinggi:
+        </div>
+        <div style="margin-top: 0.35rem; font-size: 0.85rem; font-weight: 800; color: #16A34A;">
+          🏆 ${resultText}
+        </div>
+      </div>
+    `
+  }
 
   const result = await Swal.fire({
     title: '<span style="font-size: 1.3rem; font-weight: 800; color: #EF4444;">⏹ Selesaikan Pertandingan?</span>',
@@ -274,6 +313,7 @@ export async function promptConfirmFinishMatch(
             <span style="font-size: 1.75rem; font-weight: 900; color: #2563EB; font-family: ui-monospace, monospace;">
               ${scoreLeft}
             </span>
+            ${hasDepan ? `<span style="font-size: 0.72rem; color: ${subtextColor};">Depan: <strong>${depanLeft}</strong></span>` : ''}
           </div>
 
           <span style="font-size: 1.1rem; font-weight: 900; color: ${subtextColor};">VS</span>
@@ -285,8 +325,11 @@ export async function promptConfirmFinishMatch(
             <span style="font-size: 1.75rem; font-weight: 900; color: #E11D48; font-family: ui-monospace, monospace;">
               ${scoreRight}
             </span>
+            ${hasDepan ? `<span style="font-size: 0.72rem; color: ${subtextColor};">Depan: <strong>${depanRight}</strong></span>` : ''}
           </div>
         </div>
+
+        ${tieBreakHtml}
 
         <p style="color: #D97706; font-size: 0.75rem; font-weight: 700; margin: 0;">
           ⚠️ Pastikan seluruh meja scoring telah selesai memasukkan poin terakhir sebelum melanjutkan.

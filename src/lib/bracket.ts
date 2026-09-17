@@ -24,6 +24,7 @@ export interface BracketMatch {
   loserTeamId?: string | null
   nextMatchId: string | null
   nextSlot?: 'team1' | 'team2'
+  isTieBreak?: boolean
 }
 
 export interface BracketRound {
@@ -81,6 +82,84 @@ export function getRoundNames(bracketSize: number): string[] {
 }
 
 /**
+ * Menentukan urutan indeks pertandingan Round 0 yang mendapatkan slot BYE.
+ * Slot BYE diposisikan di ujung-ujung bagan (sudut terluar) agar seimbang
+ * dan tidak bertumpuk di satu sisi/babak.
+ *
+ * Contoh kasus 4 BYE pada bagan 16 tim (8 match Round 0):
+ * - Atas Kiri 1 (Index 0)
+ * - Bawah Kanan 1 (Index 7)
+ * - Bawah Kiri 1 (Index 3)
+ * - Atas Kanan 1 (Index 4)
+ * Menghasilkan tepat 1 BYE di Atas Kiri, 1 di Atas Kanan, 1 di Bawah Kiri, dan 1 di Bawah Kanan.
+ */
+export function getByeMatchOrder(
+  round0MatchCount: number,
+  layoutMode: BracketLayoutMode = 'CENTER_SPLIT'
+): number[] {
+  if (round0MatchCount <= 1) return [0]
+
+  const result: number[] = []
+  const seen = new Set<number>()
+
+  const addIndex = (idx: number) => {
+    if (idx >= 0 && idx < round0MatchCount && !seen.has(idx)) {
+      seen.add(idx)
+      result.push(idx)
+    }
+  }
+
+  if (layoutMode === 'CENTER_SPLIT') {
+    const half = Math.ceil(round0MatchCount / 2)
+
+    // Tier 1: 4 Sudut terluar (Ujung-ujung bagan)
+    // 1. Atas Kiri (0)
+    // 2. Bawah Kanan (round0MatchCount - 1)
+    // 3. Bawah Kiri (half - 1)
+    // 4. Atas Kanan (half)
+    addIndex(0)
+    addIndex(round0MatchCount - 1)
+    addIndex(half - 1)
+    addIndex(half)
+
+    // Tier 2: Pembagian simetris untuk slot BYE tambahan jika > 4
+    if (round0MatchCount === 8) {
+      // Sisa match di 8-match Round 0: 1, 2, 5, 6
+      addIndex(2) // Tengah Bawah Kiri
+      addIndex(5) // Tengah Atas Kanan
+      addIndex(1) // Tengah Atas Kiri
+      addIndex(6) // Tengah Bawah Kanan
+    } else if (round0MatchCount === 16) {
+      // 32-tim (16 match di Round 0)
+      const secondaryCorners = [3, 12, 4, 11, 1, 14, 6, 9, 2, 13, 5, 10]
+      for (const idx of secondaryCorners) {
+        addIndex(idx)
+      }
+    }
+
+    // Fallback sisa indeks dari luar ke dalam
+    for (let i = 0; i < round0MatchCount; i++) {
+      addIndex(i)
+    }
+  } else {
+    // Layout LEFT_TO_RIGHT: Ujung Atas (0), Ujung Bawah (count - 1), lalu bergantian ke tengah
+    addIndex(0)
+    addIndex(round0MatchCount - 1)
+
+    for (let i = 1; i < round0MatchCount / 2; i++) {
+      addIndex(round0MatchCount - 1 - i)
+      addIndex(i)
+    }
+
+    for (let i = 0; i < round0MatchCount; i++) {
+      addIndex(i)
+    }
+  }
+
+  return result
+}
+
+/**
  * Generates an empty or pre-populated knockout bracket structure for any team count (2 s/d 32 teams).
  * Mendukung slot BYE (lolos otomatis) jika jumlah tim bukan kelipatan 2 (misal 6 tim).
  */
@@ -105,17 +184,10 @@ export function generateBracketStructure(
   const totalSlots = bracketSize
   const byesCount = Math.max(0, totalSlots - normalizedCount)
 
-  // Distribusikan slot BYE secara simetris di Round 0
+  // Distribusikan slot BYE di ujung-ujung bagan di Round 0 agar tidak bertumpuk
   const byeMatchIndices = new Set<number>()
   if (byesCount > 0) {
-    const candidateOrder: number[] = []
-    for (let i = 0; i < round0MatchCount; i++) {
-      if (i % 2 === 0) {
-        candidateOrder.push(Math.floor(i / 2))
-      } else {
-        candidateOrder.push(round0MatchCount - 1 - Math.floor(i / 2))
-      }
-    }
+    const candidateOrder = getByeMatchOrder(round0MatchCount, layoutMode)
     for (let b = 0; b < byesCount && b < candidateOrder.length; b++) {
       byeMatchIndices.add(candidateOrder[b])
     }
@@ -506,12 +578,15 @@ export function reconcileBracketWithDb(
   bracket: BracketData,
   dbMatches: {
     id: string
+    name?: string
     status: string
     team_attack_id: string
     team_defense_id: string
+    jury_1_id?: string | null
+    jury_2_id?: string | null
     team_attack?: { id: string; name: string } | null
     team_defense?: { id: string; name: string } | null
-    score_events?: { team_id: string; points: number; status: string }[]
+    score_events?: { team_id: string; points: number; status: string; jury_id?: string | null }[]
   }[]
 ): BracketData {
   const updatedBracket: BracketData = JSON.parse(JSON.stringify(bracket))
@@ -546,6 +621,23 @@ export function reconcileBracketWithDb(
     for (let m = 0; m < round.matches.length; m++) {
       const bm = round.matches[m]
 
+      // Auto-reconnect DB match if bm.matchId is missing but match was created in Supabase
+      if (!bm.matchId && bm.team1?.id && bm.team2?.id) {
+        const expectedName = `${bm.title} (${bracket.category === 'PUTRA' ? 'Putra' : 'Putri'})`
+        const matchedDb = dbMatches.find((dm) => {
+          const nameMatches = dm.name && dm.name.trim().toLowerCase() === expectedName.trim().toLowerCase()
+          if (nameMatches) {
+            const hasTeam1 = dm.team_attack_id === bm.team1!.id || dm.team_defense_id === bm.team1!.id
+            const hasTeam2 = dm.team_attack_id === bm.team2!.id || dm.team_defense_id === bm.team2!.id
+            return hasTeam1 && hasTeam2
+          }
+          return false
+        })
+        if (matchedDb) {
+          bm.matchId = matchedDb.id
+        }
+      }
+
       // Find linked DB match
       if (bm.matchId) {
         const dbM = dbMatches.find((matchItem) => matchItem.id === bm.matchId)
@@ -576,18 +668,39 @@ export function reconcileBracketWithDb(
               winner = bm.team2
               loser = bm.team1
             } else {
-              // Tie breaker: prioritize attack team in DB
-              if (dbM.team_attack_id === bm.team1.id) {
+              // Validasi Kondisi Nilai Seri (s1 === s2):
+              // Sesuai aturan Hadang: Pemenang ditentukan dari regu yang memperoleh skor garis depan tertinggi
+              const isBelakang = (e: any) => (dbM.jury_2_id ? e.jury_id === dbM.jury_2_id : false)
+              const isDepan = (e: any) => (dbM.jury_1_id ? e.jury_id === dbM.jury_1_id : !isBelakang(e))
+
+              const depan1 = activeEvents
+                .filter((e) => e.team_id === bm.team1!.id && isDepan(e))
+                .reduce((s, e) => s + e.points, 0)
+              const depan2 = activeEvents
+                .filter((e) => e.team_id === bm.team2!.id && isDepan(e))
+                .reduce((s, e) => s + e.points, 0)
+
+              if (depan1 > depan2) {
                 winner = bm.team1
                 loser = bm.team2
-              } else {
+              } else if (depan2 > depan1) {
                 winner = bm.team2
                 loser = bm.team1
+              } else {
+                // Jika skor depan sama persis, fallback ke tim penyerang awal
+                if (dbM.team_attack_id === bm.team1.id) {
+                  winner = bm.team1
+                  loser = bm.team2
+                } else {
+                  winner = bm.team2
+                  loser = bm.team1
+                }
               }
             }
 
             bm.winnerTeamId = winner.id!
             bm.loserTeamId = loser.id!
+            bm.isTieBreak = s1 === s2
 
             // If this was a semifinal match, track loser for the third place match
             if (r === semifinalRoundIndex) {
@@ -650,6 +763,31 @@ export function reconcileBracketWithDb(
       updatedBracket.thirdPlaceMatch.status = 'READY'
     }
 
+    // Auto-reconnect DB bronze match if matchId is missing but match exists in Supabase
+    if (
+      !updatedBracket.thirdPlaceMatch.matchId &&
+      updatedBracket.thirdPlaceMatch.team1?.id &&
+      updatedBracket.thirdPlaceMatch.team2?.id
+    ) {
+      const expectedBronzeName = `${updatedBracket.thirdPlaceMatch.title} (${bracket.category === 'PUTRA' ? 'Putra' : 'Putri'})`
+      const matchedBronzeDb = dbMatches.find((dm) => {
+        const nameMatches = dm.name && dm.name.trim().toLowerCase() === expectedBronzeName.trim().toLowerCase()
+        if (nameMatches) {
+          const hasTeam1 =
+            dm.team_attack_id === updatedBracket.thirdPlaceMatch!.team1!.id ||
+            dm.team_defense_id === updatedBracket.thirdPlaceMatch!.team1!.id
+          const hasTeam2 =
+            dm.team_attack_id === updatedBracket.thirdPlaceMatch!.team2!.id ||
+            dm.team_defense_id === updatedBracket.thirdPlaceMatch!.team2!.id
+          return hasTeam1 && hasTeam2
+        }
+        return false
+      })
+      if (matchedBronzeDb) {
+        updatedBracket.thirdPlaceMatch.matchId = matchedBronzeDb.id
+      }
+    }
+
     // Check third place match DB result
     if (updatedBracket.thirdPlaceMatch.matchId) {
       const dbBronze = dbMatches.find((m) => m.id === updatedBracket.thirdPlaceMatch!.matchId)
@@ -675,17 +813,38 @@ export function reconcileBracketWithDb(
           updatedBracket.thirdPlaceMatch.team1?.id &&
           updatedBracket.thirdPlaceMatch.team2?.id
         ) {
-          const bronzeWinner =
-            b1 > b2
-              ? updatedBracket.thirdPlaceMatch.team1
-              : b2 > b1
-              ? updatedBracket.thirdPlaceMatch.team2
-              : dbBronze.team_attack_id === updatedBracket.thirdPlaceMatch.team1.id
-              ? updatedBracket.thirdPlaceMatch.team1
-              : updatedBracket.thirdPlaceMatch.team2
+          let bronzeWinner: TeamSlot
+          if (b1 > b2) {
+            bronzeWinner = updatedBracket.thirdPlaceMatch.team1
+          } else if (b2 > b1) {
+            bronzeWinner = updatedBracket.thirdPlaceMatch.team2
+          } else {
+            // Validasi Kondisi Seri Juara 3 (b1 === b2): Pemenang diambil dari skor garis depan tertinggi
+            const isBelakang = (e: any) => (dbBronze.jury_2_id ? e.jury_id === dbBronze.jury_2_id : false)
+            const isDepan = (e: any) => (dbBronze.jury_1_id ? e.jury_id === dbBronze.jury_1_id : !isBelakang(e))
+
+            const depan1 = activeEvents
+              .filter((e) => e.team_id === updatedBracket.thirdPlaceMatch!.team1!.id && isDepan(e))
+              .reduce((s, e) => s + e.points, 0)
+            const depan2 = activeEvents
+              .filter((e) => e.team_id === updatedBracket.thirdPlaceMatch!.team2!.id && isDepan(e))
+              .reduce((s, e) => s + e.points, 0)
+
+            if (depan1 > depan2) {
+              bronzeWinner = updatedBracket.thirdPlaceMatch.team1
+            } else if (depan2 > depan1) {
+              bronzeWinner = updatedBracket.thirdPlaceMatch.team2
+            } else {
+              bronzeWinner =
+                dbBronze.team_attack_id === updatedBracket.thirdPlaceMatch.team1.id
+                  ? updatedBracket.thirdPlaceMatch.team1
+                  : updatedBracket.thirdPlaceMatch.team2
+            }
+          }
 
           updatedBracket.thirdPlaceMatch.winnerTeamId = bronzeWinner.id!
           updatedBracket.thirdPlaceWinner = bronzeWinner
+          updatedBracket.thirdPlaceMatch.isTieBreak = b1 === b2
         }
       } else {
         // Linked DB bronze match was deleted, reset safely

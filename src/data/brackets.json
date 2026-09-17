@@ -1,7 +1,7 @@
 {
   "PUTRA": {
     "category": "PUTRA",
-    "teamCount": 14,
+    "teamCount": 12,
     "bracketSize": 16,
     "layoutMode": "CENTER_SPLIT",
     "includeThirdPlace": true,
@@ -16,8 +16,8 @@
             "matchIndex": 0,
             "title": "Match 8 • Babak 16 Besar (Kiri)",
             "team1": {
-              "id": "d2c56206-a4a7-4b71-b472-8ca111053fcd",
-              "name": "TIM GARUDA (Putra)",
+              "id": "68a0bc0c-abdf-4cd3-8254-04eb7559529b",
+              "name": "TIM UMC (Putra)",
               "isPlaceholder": false
             },
             "team2": {
@@ -29,7 +29,7 @@
             "score2": 0,
             "matchId": null,
             "status": "FINISHED",
-            "winnerTeamId": "d2c56206-a4a7-4b71-b472-8ca111053fcd",
+            "winnerTeamId": "68a0bc0c-abdf-4cd3-8254-04eb7559529b",
             "loserTeamId": null,
             "nextMatchId": "M12",
             "nextSlot": "team1",
@@ -51,8 +51,8 @@
               "isPlaceholder": false
             },
             "score1": 3,
-            "score2": 2,
-            "matchId": "269e04f4-899c-4156-98b3-5de7a65b4a4a",
+            "score2": 1,
+            "matchId": "64db7250-2389-4e3c-b4dd-2d87f78681ba",
             "status": "FINISHED",
             "winnerTeamId": "b67cf208-43e3-48e4-ad6b-f87147a3063d",
             "loserTeamId": "72d5215a-7f37-43e0-8097-8dfd44016140",
@@ -71,14 +71,14 @@
               "isPlaceholder": false
             },
             "team2": {
-              "id": "b67cf208-43e3-48e4-ad6b-f87147a3063d",
-              "name": "SMAN 1 DUKUPUNTANG (Putra)",
+              "id": "c3d6a975-64f6-4922-a880-17971b9cd38f",
+              "name": "SMAN 1 Gegesik (Putra)",
               "isPlaceholder": false
             },
-            "score1": 0,
-            "score2": 0,
-            "matchId": "25b19014-5edf-4460-9dae-515a73688037",
-            "status": "READY",
+            "score1": 2,
+            "score2": 2,
+            "matchId": "d05bb5e6-1702-4a30-93d5-b9dad94f74fb",
+            "status": "LIVE",
             "winnerTeamId": null,
             "loserTeamId": null,
             "nextMatchId": "M10",
@@ -90,13 +90,11 @@
             "roundIndex": 0,
             "matchIndex": 3,
             "title": "Match 2 • Babak 16 Besar (Kiri)",
-            "team1": {
-              "name": "Pilih Tim",
-              "isPlaceholder": true
-            },
+            "team1": null,
             "team2": {
-              "name": "Pilih Tim",
-              "isPlaceholder": true
+              "name": "BYE (Lolos Otomatis)",
+              "isPlaceholder": true,
+              "isBye": true
             },
             "score1": null,
             "score2": null,
@@ -113,13 +111,11 @@
             "roundIndex": 0,
             "matchIndex": 4,
             "title": "Match 1 • Babak 16 Besar (Kanan)",
-            "team1": {
-              "name": "Pilih Tim",
-              "isPlaceholder": true
-            },
+            "team1": null,
             "team2": {
-              "name": "Pilih Tim",
-              "isPlaceholder": true
+              "name": "BYE (Lolos Otomatis)",
+              "isPlaceholder": true,
+              "isBye": true
             },
             "score1": null,
             "score2": null,
@@ -136,14 +132,8 @@
             "roundIndex": 0,
             "matchIndex": 5,
             "title": "Match 3 • Babak 16 Besar (Kanan)",
-            "team1": {
-              "name": "Pilih Tim",
-              "isPlaceholder": true
-            },
-            "team2": {
-              "name": "Pilih Tim",
-              "isPlaceholder": true
-            },
+            "team1": null,
+            "team2": null,
             "score1": null,
             "score2": null,
             "matchId": null,
@@ -159,14 +149,8 @@
             "roundIndex": 0,
             "matchIndex": 6,
             "title": "Match 5 • Babak 16 Besar (Kanan)",
-            "team1": {
-              "name": "Pilih Tim",
-              "isPlaceholder": true
-            },
-            "team2": {
-              "name": "Pilih Tim",
-              "isPlaceholder": true
-            },
+            "team1": null,
+            "team2": null,
             "score1": null,
             "score2": null,
             "matchId": null,
@@ -182,21 +166,17 @@
             "roundIndex": 0,
             "matchIndex": 7,
             "title": "Match 7 • Babak 16 Besar (Kanan)",
-            "team1": {
-              "id": "68a0bc0c-abdf-4cd3-8254-04eb7559529b",
-              "name": "TIM UMC (Putra)",
-              "isPlaceholder": false
-            },
+            "team1": null,
             "team2": {
               "name": "BYE (Lolos Otomatis)",
               "isPlaceholder": true,
               "isBye": true
             },
-            "score1": 1,
-            "score2": 0,
+            "score1": null,
+            "score2": null,
             "matchId": null,
-            "status": "FINISHED",
-            "winnerTeamId": "68a0bc0c-abdf-4cd3-8254-04eb7559529b",
+            "status": "WAITING",
+            "winnerTeamId": null,
             "loserTeamId": null,
             "nextMatchId": "M11",
             "nextSlot": "team2",
@@ -213,8 +193,8 @@
             "matchIndex": 0,
             "title": "Match 12 • Perempat Final (Kiri)",
             "team1": {
-              "id": "d2c56206-a4a7-4b71-b472-8ca111053fcd",
-              "name": "TIM GARUDA (Putra)",
+              "id": "68a0bc0c-abdf-4cd3-8254-04eb7559529b",
+              "name": "TIM UMC (Putra)",
               "isPlaceholder": false
             },
             "team2": {
@@ -288,9 +268,8 @@
               "isPlaceholder": true
             },
             "team2": {
-              "id": "68a0bc0c-abdf-4cd3-8254-04eb7559529b",
-              "name": "TIM UMC (Putra)",
-              "isPlaceholder": false
+              "name": "Pemenang Match 7",
+              "isPlaceholder": true
             },
             "score1": null,
             "score2": null,
@@ -408,7 +387,7 @@
     "champion": null,
     "runnerUp": null,
     "thirdPlaceWinner": null,
-    "updatedAt": "2026-09-16T14:03:37.444Z"
+    "updatedAt": "2026-09-17T05:58:01.239Z"
   },
   "PUTRI": null
 }

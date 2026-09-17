@@ -24,6 +24,7 @@ import {
   updateIncludeThirdPlace,
   syncBracketToServer,
 } from './actions'
+import { createClient } from '@/lib/supabase/client'
 
 interface TeamOption {
   id: string
@@ -88,6 +89,10 @@ export default function BracketView({
   // Toast / feedback message
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isPending, startTransition] = useTransition()
+
+  // Concurrency & debounce lock per match ID to prevent rapid double-clicks
+  const [generatingMatchIds, setGeneratingMatchIds] = useState<Set<string>>(new Set())
+  const generatingMatchIdsRef = useRef<Set<string>>(new Set())
 
   const isPutra = category === 'PUTRA'
   const primaryColor = isPutra ? '#2563EB' : '#E11D48'
@@ -253,16 +258,19 @@ export default function BracketView({
     }
   }, [category])
 
-  // Auto-sync berkala agar skor & pemenang pertandingan otomatis maju tanpa harus klik Sinkron manual
+  // Auto-sync berkala & Realtime Supabase listener agar match baru, skor & pemenang otomatis tersinkron antar admin
   useEffect(() => {
-    if (!bracket) return
+    const supabase = createClient()
 
-    const syncInterval = setInterval(async () => {
+    const triggerSync = async () => {
       try {
         const res = await getBracket(category)
         if (res.bracket) {
           setBracket((prev) => {
-            if (!prev) return res.bracket
+            if (!prev) {
+              saveBracketLocal(category, res.bracket)
+              return res.bracket
+            }
             if (JSON.stringify(prev) !== JSON.stringify(res.bracket)) {
               saveBracketLocal(category, res.bracket)
               return res.bracket
@@ -273,10 +281,33 @@ export default function BracketView({
       } catch {
         // silent background sync error handling
       }
-    }, 10000)
+    }
 
-    return () => clearInterval(syncInterval)
-  }, [category, bracket?.teamCount])
+    const channel = supabase
+      .channel(`admin-bracket-realtime-${category}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'matches',
+        },
+        () => {
+          triggerSync()
+        }
+      )
+      .subscribe()
+
+    const syncInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+      triggerSync()
+    }, 5000)
+
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(syncInterval)
+    }
+  }, [category])
 
   // Switch Category (Putra vs Putri)
   const handleCategorySwitch = (newCat: BracketCategory) => {
@@ -449,14 +480,21 @@ export default function BracketView({
     })
   }
 
-  // Generate real Supabase match
-  const handleGenerateMatch = (bm: BracketMatch) => {
+  // Generate real Supabase match with debounce & concurrency protection
+  const handleGenerateMatch = async (bm: BracketMatch) => {
     if (!bm.team1?.id || !bm.team2?.id) {
       showToast('Kedua tim harus terisi sebelum match dimulai.', 'error')
       return
     }
 
-    startTransition(async () => {
+    // Synchronously check and lock this match ID to prevent rapid double-clicks
+    if (generatingMatchIdsRef.current.has(bm.id)) {
+      return
+    }
+    generatingMatchIdsRef.current.add(bm.id)
+    setGeneratingMatchIds(new Set(generatingMatchIdsRef.current))
+
+    try {
       const res = await generateMatchFromBracket(
         category,
         bm.id,
@@ -471,9 +509,14 @@ export default function BracketView({
         const refreshed = await getBracket(category)
         setBracket(refreshed.bracket)
         saveBracketLocal(category, refreshed.bracket)
-        showToast(`Pertandingan "${bm.title}" berhasil dibuat! Siap dimainkan.`)
+        showToast(`Pertandingan "${bm.title}" siap dimainkan!`)
       }
-    })
+    } catch (err: any) {
+      showToast(err?.message || 'Gagal membuat pertandingan.', 'error')
+    } finally {
+      generatingMatchIdsRef.current.delete(bm.id)
+      setGeneratingMatchIds(new Set(generatingMatchIdsRef.current))
+    }
   }
 
   // Reset bracket
@@ -693,6 +736,29 @@ export default function BracketView({
               </span>
             )}
 
+            {/* Tie-break indicator if match won by front score */}
+            {isMatchFinished &&
+              bm.winnerTeamId === bm.team1?.id &&
+              !bm.team1?.isBye &&
+              !bm.team2?.isBye &&
+              (bm.isTieBreak || (bm.score1 !== null && bm.score1 === bm.score2)) && (
+                <span
+                  style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    color: '#2563EB',
+                    backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                    padding: '0.12rem 0.4rem',
+                    borderRadius: '4px',
+                    border: '1px solid rgba(37, 99, 235, 0.35)',
+                    whiteSpace: 'nowrap',
+                  }}
+                  title="Pemenang tie-break ditentukan dari perolehan skor garis depan tertinggi"
+                >
+                  ★ Skor Depan
+                </span>
+              )}
+
             {/* Edit Button in Edit Mode (Round 0 only, except BYE) */}
             {canEdit && !bm.team1?.isBye && (
               <button
@@ -803,6 +869,29 @@ export default function BracketView({
               </span>
             )}
 
+            {/* Tie-break indicator if match won by front score */}
+            {isMatchFinished &&
+              bm.winnerTeamId === bm.team2?.id &&
+              !bm.team1?.isBye &&
+              !bm.team2?.isBye &&
+              (bm.isTieBreak || (bm.score2 !== null && bm.score1 === bm.score2)) && (
+                <span
+                  style={{
+                    fontSize: '0.65rem',
+                    fontWeight: 800,
+                    color: '#2563EB',
+                    backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                    padding: '0.12rem 0.4rem',
+                    borderRadius: '4px',
+                    border: '1px solid rgba(37, 99, 235, 0.35)',
+                    whiteSpace: 'nowrap',
+                  }}
+                  title="Pemenang tie-break ditentukan dari perolehan skor garis depan tertinggi"
+                >
+                  ★ Skor Depan
+                </span>
+              )}
+
             {/* Edit Button in Edit Mode (Round 0 only, except BYE) */}
             {canEdit && !bm.team2?.isBye && (
               <button
@@ -836,7 +925,7 @@ export default function BracketView({
           <button
             type="button"
             onClick={() => handleGenerateMatch(bm)}
-            disabled={isPending}
+            disabled={isPending || generatingMatchIds.has(bm.id)}
             style={{
               width: '100%',
               padding: '0.4rem',
@@ -846,16 +935,27 @@ export default function BracketView({
               color: 'white',
               fontWeight: 800,
               fontSize: '0.75rem',
-              cursor: 'pointer',
+              cursor: generatingMatchIds.has(bm.id) ? 'not-allowed' : 'pointer',
+              opacity: generatingMatchIds.has(bm.id) ? 0.7 : 1,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '0.3rem',
               marginTop: '0.2rem',
+              transition: 'opacity 0.2s',
             }}
           >
-            <span>▶</span>
-            <span>Mulai / Buka Match</span>
+            {generatingMatchIds.has(bm.id) ? (
+              <>
+                <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⏳</span>
+                <span>Membuat Match...</span>
+              </>
+            ) : (
+              <>
+                <span>▶</span>
+                <span>Mulai / Buka Match</span>
+              </>
+            )}
           </button>
         ) : bm.matchId ? (
           isPublic ? (
@@ -1057,7 +1157,7 @@ export default function BracketView({
         ref={innerTreeRef}
         style={{
           display: 'flex',
-          alignItems: 'flex-start',
+          alignItems: 'stretch',
           gap: '2.5rem',
           minWidth: 'max-content',
           transform: `scale(${zoomLevel})`,
@@ -1098,14 +1198,14 @@ export default function BracketView({
                 {isFinal ? `🏆 ${round.name}` : round.name}
               </div>
 
-              {/* Matches in Round with vertical spacing */}
+              {/* Matches in Round with vertical spacing centered between previous round */}
               <div
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-around',
                   flexGrow: 1,
-                  gap: `${Math.pow(2, rIndex) * 1.5}rem`,
+                  gap: rIndex === 0 ? '1.25rem' : '0rem',
                 }}
               >
                 {round.matches.map((bm: BracketMatch) => renderMatchCard(bm, rIndex))}
@@ -1168,7 +1268,7 @@ export default function BracketView({
         ref={innerTreeRef}
         style={{
           display: 'flex',
-          alignItems: 'flex-start',
+          alignItems: 'stretch',
           gap: '2.5rem',
           minWidth: 'max-content',
           transform: `scale(${zoomLevel})`,
@@ -1217,7 +1317,7 @@ export default function BracketView({
                   flexDirection: 'column',
                   justifyContent: 'space-around',
                   flexGrow: 1,
-                  gap: `${Math.pow(2, rIndex) * 1.5}rem`,
+                  gap: rIndex === 0 ? '1.25rem' : '0rem',
                 }}
               >
                 {leftMatches.map((bm: BracketMatch) => renderMatchCard(bm, rIndex))}
@@ -1330,7 +1430,7 @@ export default function BracketView({
                   flexDirection: 'column',
                   justifyContent: 'space-around',
                   flexGrow: 1,
-                  gap: `${Math.pow(2, rIndex) * 1.5}rem`,
+                  gap: rIndex === 0 ? '1.25rem' : '0rem',
                 }}
               >
                 {rightMatches.map((bm: BracketMatch) => renderMatchCard(bm, rIndex))}
