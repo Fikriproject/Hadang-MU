@@ -25,8 +25,14 @@ import {
   syncBracketToServer,
 } from './actions'
 import { createClient } from '@/lib/supabase/client'
+import { formatJuryDisplayName } from '@/lib/categories'
 
 interface TeamOption {
+  id: string
+  name: string
+}
+
+interface JuryOption {
   id: string
   name: string
 }
@@ -35,6 +41,7 @@ interface BracketViewProps {
   initialCategory: BracketCategory
   initialBracket: BracketData | null
   initialCategoryTeams: TeamOption[]
+  initialJuries?: JuryOption[]
   isPublic?: boolean
 }
 
@@ -42,6 +49,7 @@ export default function BracketView({
   initialCategory,
   initialBracket,
   initialCategoryTeams,
+  initialJuries = [],
   isPublic = false,
 }: BracketViewProps) {
   const [category, setCategory] = useState<BracketCategory>(initialCategory)
@@ -93,6 +101,12 @@ export default function BracketView({
   // Concurrency & debounce lock per match ID to prevent rapid double-clicks
   const [generatingMatchIds, setGeneratingMatchIds] = useState<Set<string>>(new Set())
   const generatingMatchIdsRef = useRef<Set<string>>(new Set())
+
+  // Scoring assignment modal state before match generation
+  const [juries, setJuries] = useState<JuryOption[]>(initialJuries || [])
+  const [assigningMatch, setAssigningMatch] = useState<BracketMatch | null>(null)
+  const [selectedJury1Id, setSelectedJury1Id] = useState<string>('')
+  const [selectedJury2Id, setSelectedJury2Id] = useState<string>('')
 
   const isPutra = category === 'PUTRA'
   const primaryColor = isPutra ? '#2563EB' : '#E11D48'
@@ -480,13 +494,45 @@ export default function BracketView({
     })
   }
 
-  // Generate real Supabase match with debounce & concurrency protection
-  const handleGenerateMatch = async (bm: BracketMatch) => {
+  // Open Scoring Assignment Modal before generating match
+  const handleOpenAssignJuryModal = (bm: BracketMatch) => {
     if (!bm.team1?.id || !bm.team2?.id) {
       showToast('Kedua tim harus terisi sebelum match dimulai.', 'error')
       return
     }
+    setAssigningMatch(bm)
+    if (juries.length >= 2) {
+      setSelectedJury1Id(juries[0].id)
+      setSelectedJury2Id(juries[1].id)
+    } else if (juries.length === 1) {
+      setSelectedJury1Id(juries[0].id)
+      setSelectedJury2Id('')
+    } else {
+      setSelectedJury1Id('')
+      setSelectedJury2Id('')
+    }
+  }
 
+  // Generate real Supabase match with chosen scoring juries, debounce & concurrency protection
+  const handleConfirmGenerateMatch = async () => {
+    if (!assigningMatch) return
+    if (!assigningMatch.team1?.id || !assigningMatch.team2?.id) {
+      showToast('Kedua tim harus terisi sebelum match dimulai.', 'error')
+      return
+    }
+
+    if (juries.length >= 2) {
+      if (!selectedJury1Id || !selectedJury2Id) {
+        showToast('Harap pilih Petugas Scoring 1 dan Scoring 2 terlebih dahulu.', 'error')
+        return
+      }
+      if (selectedJury1Id === selectedJury2Id) {
+        showToast('Petugas Scoring 1 dan Scoring 2 tidak boleh orang yang sama.', 'error')
+        return
+      }
+    }
+
+    const bm = assigningMatch
     // Synchronously check and lock this match ID to prevent rapid double-clicks
     if (generatingMatchIdsRef.current.has(bm.id)) {
       return
@@ -500,16 +546,22 @@ export default function BracketView({
         bm.id,
         bm.team1!.id!,
         bm.team2!.id!,
-        bm.title
+        bm.title,
+        selectedJury1Id || undefined,
+        selectedJury2Id || undefined
       )
       if (res.error) {
         showToast(res.error, 'error')
       } else if (res.matchId) {
+        setAssigningMatch(null)
         // Refresh bracket state
         const refreshed = await getBracket(category)
         setBracket(refreshed.bracket)
+        if (refreshed.juries && refreshed.juries.length > 0) {
+          setJuries(refreshed.juries)
+        }
         saveBracketLocal(category, refreshed.bracket)
-        showToast(`Pertandingan "${bm.title}" siap dimainkan!`)
+        showToast(`Pertandingan "${bm.title}" berhasil dibuat dan siap dimainkan!`)
       }
     } catch (err: any) {
       showToast(err?.message || 'Gagal membuat pertandingan.', 'error')
@@ -541,6 +593,9 @@ export default function BracketView({
       const res = await getBracket(category)
       setBracket(res.bracket)
       setTeams(res.categoryTeams)
+      if (res.juries && res.juries.length > 0) {
+        setJuries(res.juries)
+      }
       saveBracketLocal(category, res.bracket)
       showToast('Bagan telah disinkronkan dengan hasil pertandingan!')
     })
@@ -924,7 +979,7 @@ export default function BracketView({
         {!isPublic && !bm.matchId && isReadyToPlay ? (
           <button
             type="button"
-            onClick={() => handleGenerateMatch(bm)}
+            onClick={() => handleOpenAssignJuryModal(bm)}
             disabled={isPending || generatingMatchIds.has(bm.id)}
             style={{
               width: '100%',
@@ -2826,6 +2881,295 @@ export default function BracketView({
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PENUGASAN PETUGAS SCORING SEBELUM MEMBUAT MATCH */}
+      {assigningMatch && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(5px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--surface-color)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              padding: '1.75rem',
+              maxWidth: '480px',
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem',
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
+                  <span style={{ fontSize: '1.2rem' }}>📋</span>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    Penugasan Petugas Scoring
+                  </h3>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
+                  Tentukan petugas Scoring 1 (Depan) dan Scoring 2 (Belakang) sebelum match dibuat.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !generatingMatchIds.has(assigningMatch.id) && setAssigningMatch(null)}
+                disabled={generatingMatchIds.has(assigningMatch.id)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  fontSize: '1.2rem',
+                  cursor: 'pointer',
+                  padding: '0.2rem',
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Match Context Card */}
+            <div
+              style={{
+                backgroundColor: 'var(--surface-subtle)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '10px',
+                padding: '0.85rem 1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: primaryColor, textTransform: 'uppercase' }}>
+                  {assigningMatch.title}
+                </span>
+                <span style={{ fontSize: '0.725rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                  {isPutra ? 'Kategori Putra' : 'Kategori Putri'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700 }}>TIM PENYERANG AWAL</div>
+                  <div
+                    style={{
+                      fontWeight: 800,
+                      fontSize: '0.9rem',
+                      color: 'var(--text-primary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {assigningMatch.team1?.name}
+                  </div>
+                </div>
+                <span style={{ fontWeight: 900, color: 'var(--text-muted)', fontSize: '0.85rem' }}>VS</span>
+                <div style={{ flex: 1, textAlign: 'right', overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 700 }}>TIM BERTAHAN AWAL</div>
+                  <div
+                    style={{
+                      fontWeight: 800,
+                      fontSize: '0.9rem',
+                      color: 'var(--text-primary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {assigningMatch.team2?.name}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Scoring 1 Select */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  Scoring 1 (Area Depan / Awal) <span style={{ color: 'var(--danger)' }}>*</span>
+                </label>
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: '#2563EB',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    padding: '0.1rem 0.4rem',
+                    borderRadius: '4px',
+                  }}
+                >
+                  Meja Depan
+                </span>
+              </div>
+              <select
+                value={selectedJury1Id}
+                onChange={(e) => setSelectedJury1Id(e.target.value)}
+                disabled={generatingMatchIds.has(assigningMatch.id)}
+                style={{
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  border:
+                    selectedJury1Id === selectedJury2Id && selectedJury1Id
+                      ? '1.5px solid var(--danger)'
+                      : '1px solid var(--border-color)',
+                  backgroundColor: 'var(--surface-subtle)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.925rem',
+                  fontWeight: 700,
+                }}
+              >
+                <option value="">-- Pilih Petugas Scoring 1 (Depan) --</option>
+                {juries.map((j) => (
+                  <option key={j.id} value={j.id} disabled={j.id === selectedJury2Id}>
+                    {formatJuryDisplayName(j.name)} {j.id === selectedJury2Id ? '(Sudah dipilih di Scoring 2)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Scoring 2 Select */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  Scoring 2 (Area Belakang / Akhir) <span style={{ color: 'var(--danger)' }}>*</span>
+                </label>
+                <span
+                  style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: '#8B5CF6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    padding: '0.1rem 0.4rem',
+                    borderRadius: '4px',
+                  }}
+                >
+                  Meja Belakang
+                </span>
+              </div>
+              <select
+                value={selectedJury2Id}
+                onChange={(e) => setSelectedJury2Id(e.target.value)}
+                disabled={generatingMatchIds.has(assigningMatch.id)}
+                style={{
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  border:
+                    selectedJury1Id === selectedJury2Id && selectedJury2Id
+                      ? '1.5px solid var(--danger)'
+                      : '1px solid var(--border-color)',
+                  backgroundColor: 'var(--surface-subtle)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.925rem',
+                  fontWeight: 700,
+                }}
+              >
+                <option value="">-- Pilih Petugas Scoring 2 (Belakang) --</option>
+                {juries.map((j) => (
+                  <option key={j.id} value={j.id} disabled={j.id === selectedJury1Id}>
+                    {formatJuryDisplayName(j.name)} {j.id === selectedJury1Id ? '(Sudah dipilih di Scoring 1)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Error alert if duplicate or insufficient juries */}
+            {selectedJury1Id && selectedJury2Id && selectedJury1Id === selectedJury2Id && (
+              <div style={{ fontSize: '0.78rem', color: 'var(--danger)', fontWeight: 700 }}>
+                ⚠️ Petugas Scoring 1 dan Scoring 2 tidak boleh orang yang sama.
+              </div>
+            )}
+            {juries.length === 0 && (
+              <div style={{ fontSize: '0.78rem', color: '#D97706', fontWeight: 700 }}>
+                ⚠️ Belum ada user dengan role JURY terdaftar. Match akan dibuat dengan juri sistem default jika dilanjutkan.
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setAssigningMatch(null)}
+                disabled={generatingMatchIds.has(assigningMatch.id)}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--surface-subtle)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmGenerateMatch}
+                disabled={
+                  generatingMatchIds.has(assigningMatch.id) ||
+                  (juries.length >= 2 &&
+                    (!selectedJury1Id || !selectedJury2Id || selectedJury1Id === selectedJury2Id))
+                }
+                style={{
+                  flex: 1.5,
+                  padding: '0.75rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: primaryColor,
+                  color: 'white',
+                  fontWeight: 800,
+                  fontSize: '0.9rem',
+                  cursor:
+                    generatingMatchIds.has(assigningMatch.id) ||
+                    (juries.length >= 2 &&
+                      (!selectedJury1Id || !selectedJury2Id || selectedJury1Id === selectedJury2Id))
+                      ? 'not-allowed'
+                      : 'pointer',
+                  opacity:
+                    generatingMatchIds.has(assigningMatch.id) ||
+                    (juries.length >= 2 &&
+                      (!selectedJury1Id || !selectedJury2Id || selectedJury1Id === selectedJury2Id))
+                      ? 0.6
+                      : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.4rem',
+                }}
+              >
+                {generatingMatchIds.has(assigningMatch.id) ? (
+                  <>
+                    <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⏳</span>
+                    <span>Membuat Match...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🚀</span>
+                    <span>Buat Pertandingan</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

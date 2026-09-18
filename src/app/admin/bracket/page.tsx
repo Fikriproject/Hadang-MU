@@ -20,11 +20,13 @@ export default async function AdminBracketPage({ searchParams }: PageProps) {
 
   let bracket = null
   let categoryTeams: { id: string; name: string }[] = []
+  let juries: { id: string; name: string }[] = []
 
   try {
     const res = await getBracket(targetCategory)
     bracket = res.bracket
     categoryTeams = res.categoryTeams
+    juries = res.juries || []
   } catch (err) {
     console.error('Error fetching admin bracket:', err)
   }
@@ -35,6 +37,7 @@ export default async function AdminBracketPage({ searchParams }: PageProps) {
         initialCategory={targetCategory}
         initialBracket={bracket}
         initialCategoryTeams={categoryTeams}
+        initialJuries={juries}
       />
     </div>
   )

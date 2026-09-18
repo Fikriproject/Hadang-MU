@@ -438,7 +438,9 @@ export async function generateMatchFromBracket(
   bracketMatchId: string,
   team1Id: string,
   team2Id: string,
-  matchTitle: string
+  matchTitle: string,
+  jury1Id?: string,
+  jury2Id?: string
 ): Promise<{ success?: boolean; matchId?: string; error?: string }> {
   const lockKey = `${category}::${bracketMatchId}`
 
@@ -450,6 +452,10 @@ export async function generateMatchFromBracket(
   const executionPromise = (async () => {
     try {
       const supabase = await createClient()
+
+      if (jury1Id && jury2Id && jury1Id === jury2Id) {
+        return { error: 'Petugas Scoring 1 (Depan) dan Scoring 2 (Belakang) tidak boleh orang yang sama.' }
+      }
 
       // 2. Baca bracket store dan cari target match
       const store = await readBracketsStore()
@@ -516,6 +522,17 @@ export async function generateMatchFromBracket(
           }) || existingMatches[0]
 
         if (matched) {
+          // Jika petugas scoring dipilih, perbarui di DB
+          if (jury1Id && jury2Id) {
+            await supabase
+              .from('matches')
+              .update({
+                jury_1_id: jury1Id,
+                jury_2_id: jury2Id,
+              })
+              .eq('id', matched.id)
+          }
+
           // Bersihkan match duplikat berstatus READY tanpa score events jika sebelumnya sempat tercipta
           if (existingMatches.length > 1) {
             const duplicatesToRemove = existingMatches.filter(
@@ -543,15 +560,20 @@ export async function generateMatchFromBracket(
         }
       }
 
-      // 5. Belum ada match -> Buat tepat 1 match baru di Supabase
-      const { data: juries } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', 'JURY')
-        .limit(2)
+      // 5. Belum ada match -> Buat tepat 1 match baru di Supabase dengan petugas scoring yang dipilih
+      let finalJury1Id = jury1Id || null
+      let finalJury2Id = jury2Id || null
 
-      const jury1Id = juries?.[0]?.id || null
-      const jury2Id = juries?.[1]?.id || juries?.[0]?.id || null
+      if (!finalJury1Id || !finalJury2Id) {
+        const { data: dbJuries } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', 'JURY')
+          .limit(2)
+
+        if (!finalJury1Id) finalJury1Id = dbJuries?.[0]?.id || null
+        if (!finalJury2Id) finalJury2Id = dbJuries?.[1]?.id || dbJuries?.[0]?.id || null
+      }
 
       const { data: newMatch, error: insertError } = await supabase
         .from('matches')
@@ -560,8 +582,8 @@ export async function generateMatchFromBracket(
           round: actualTeam1Id, // Anchor team1 on left
           team_attack_id: actualTeam1Id,
           team_defense_id: actualTeam2Id,
-          jury_1_id: jury1Id,
-          jury_2_id: jury2Id,
+          jury_1_id: finalJury1Id,
+          jury_2_id: finalJury2Id,
           status: 'READY',
         })
         .select('id')
