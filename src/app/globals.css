@@ -261,7 +261,7 @@ div:where(.swal2-popup.swal2-hadang-popup) {
 /* Scoring Arena Desktop & Mobile Responsive Grid */
 .scoring-scoreboard-arena {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   grid-template-areas:
     "timer timer timer"
     "team-left vs team-right";
@@ -273,6 +273,8 @@ div:where(.swal2-popup.swal2-hadang-popup) {
   gap: 0.85rem;
   box-shadow: var(--card-shadow);
   flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .scoring-timer-card {
@@ -286,6 +288,8 @@ div:where(.swal2-popup.swal2-hadang-popup) {
   border-radius: 10px;
   padding: 0.65rem 1rem;
   transition: all 0.2s ease;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .scoring-timer-card.is-live {
@@ -310,10 +314,16 @@ div:where(.swal2-popup.swal2-hadang-popup) {
 
 .scoring-team-left {
   grid-area: team-left;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .scoring-team-right {
   grid-area: team-right;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .scoring-vs-divider {
@@ -324,16 +334,28 @@ div:where(.swal2-popup.swal2-hadang-popup) {
 
 @media (max-width: 640px) {
   .scoring-scoreboard-arena {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
     grid-template-areas:
       "timer timer"
       "team-left team-right" !important;
     padding: 0.75rem 0.5rem !important;
     gap: 0.5rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .scoring-team-left,
+  .scoring-team-right {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
   .scoring-timer-card {
     padding: 0.6rem 0.75rem !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .scoring-timer-digits {
@@ -450,6 +472,14 @@ div:where(.swal2-popup.swal2-hadang-popup) {
   .admin-team-manager-sticky {
     position: static !important;
     top: auto !important;
+  }
+
+  .admin-team-banner {
+    padding: 1rem 0.85rem !important;
+  }
+
+  .admin-team-form-card {
+    padding: 1rem 0.85rem !important;
   }
 }
 
@@ -631,6 +661,326 @@ html, body {
   }
 }
 
+.create-match-card {
+  padding: 1.75rem;
+}
+
+@media (max-width: 640px) {
+  .create-match-card {
+    padding: 1rem 0.85rem;
+  }
+}
+
+/* Control Room Scoring & Recap Responsive */
+.control-recap-card {
+  padding: 1.75rem;
+}
+
+@media (max-width: 640px) {
+  .control-scoring-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .control-recap-card {
+    padding: 0.85rem 0.65rem !important;
+  }
+
+  .control-recap-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+  }
+
+  .control-recap-team-card {
+    padding: 0.75rem !important;
+  }
+}
+
+
+/* Admin Dashboard Header & Navigation Actions */
+.admin-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.admin-header-text {
+  min-width: 0;
+}
+
+.admin-header-title {
+  font-size: 1.875rem;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.admin-header-subtitle {
+  margin-top: 0.25rem;
+}
+
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.admin-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.admin-action-btn:active {
+  transform: scale(0.97);
+}
+
+.admin-action-btn-primary {
+  background-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+}
+
+.admin-action-btn-bracket {
+  background-color: #EAB308;
+  color: #000;
+  box-shadow: 0 4px 14px rgba(234, 179, 8, 0.35);
+}
+
+.admin-action-btn-teams {
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  font-weight: 700;
+  box-shadow: var(--card-shadow);
+}
+
+@media (max-width: 640px) {
+  .admin-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+
+  .admin-header-title {
+    font-size: 1.45rem !important;
+  }
+
+  .admin-header-subtitle {
+    font-size: 0.8rem !important;
+  }
+
+  .admin-header-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+    width: 100%;
+  }
+
+  .admin-action-btn {
+    width: 100%;
+    padding: 0.7rem 0.5rem !important;
+    font-size: 0.825rem !important;
+    border-radius: 10px;
+    box-sizing: border-box;
+  }
+
+  .admin-action-btn-primary {
+    grid-column: 1 / -1;
+    order: -1;
+    padding: 0.8rem 1rem !important;
+    font-size: 0.925rem !important;
+    font-weight: 800 !important;
+  }
+
+  .admin-action-btn-bracket {
+    grid-column: span 1;
+    order: 1;
+  }
+
+  .admin-action-btn-teams {
+    grid-column: span 1;
+    order: 2;
+  }
+
+  /* Admin Matches List Header & Filter Tabs */
+  .admin-matches-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .admin-filter-tabs {
+    width: 100% !important;
+    display: flex !important;
+  }
+
+  .admin-filter-tab-btn {
+    flex: 1 !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 0.5rem 0.3rem !important;
+    font-size: 0.8rem !important;
+  }
+}
+
+/* Admin Search & Status Filters */
+.admin-search-status-bar {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.25rem;
+}
+
+.admin-search-input-wrapper {
+  flex: 1 1 240px;
+  width: auto;
+  min-width: 0;
+}
+
+.admin-status-pills {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin-status-pill-btn {
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Admin Match Card Action Buttons */
+.admin-card-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.admin-card-btn-control {
+  background-color: var(--primary);
+  color: white;
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.15s ease;
+}
+
+.admin-card-btn-sub {
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 0.45rem 0.65rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.admin-card-btn-tv {
+  background-color: var(--btn-secondary-bg);
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--border-color);
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+@media (max-width: 640px) {
+  .admin-search-status-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.65rem !important;
+  }
+
+  .admin-search-input-wrapper {
+    flex: none !important;
+    width: 100% !important;
+  }
+
+  .admin-status-pills {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem !important;
+    width: 100% !important;
+  }
+
+  .admin-status-pill-btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding: 0.48rem 0.35rem !important;
+    font-size: 0.75rem !important;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  .admin-card-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+    width: 100%;
+    margin-top: 0.35rem;
+  }
+
+  .admin-card-btn-control {
+    grid-column: 1 / -1;
+    order: -1;
+    padding: 0.65rem 0.75rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 800 !important;
+    text-align: center;
+    justify-content: center;
+    border-radius: 8px;
+  }
+
+  .admin-card-btn-sub,
+  .admin-card-btn-tv {
+    width: 100%;
+    padding: 0.55rem 0.35rem !important;
+    font-size: 0.78rem !important;
+    text-align: center;
+    justify-content: center;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+}
+
 /* App Header Nav Responsive */
 .app-nav-header {
   display: flex;
@@ -738,12 +1088,231 @@ html, body {
   .bracket-mobile-notice {
     display: flex;
   }
-  .bracket-btn-text {
-    display: none;
+}
+
+/* Tournament Bracket Toolbars Responsive Layout */
+.bracket-toolbar-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.bracket-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.bracket-top-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bracket-category-tabs {
+  display: flex;
+  background-color: var(--surface-subtle);
+  padding: 0.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  gap: 0.25rem;
+}
+
+.bracket-category-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  text-align: center;
+}
+
+.bracket-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.bracket-action-sub-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.bracket-btn-create-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+/* Secondary Toolbar */
+.bracket-toolbar-secondary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.bracket-options-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.bracket-option-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.bracket-segmented-pills {
+  display: flex;
+  background-color: var(--surface-subtle);
+  padding: 0.2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  gap: 0.2rem;
+}
+
+.bracket-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.bracket-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .bracket-toolbar-main {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
   }
-  .bracket-zoom-bar {
-    display: none !important;
+
+  .bracket-nav-group {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.65rem !important;
+    width: 100% !important;
   }
+
+  .bracket-top-meta-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+
+  .bracket-category-tabs {
+    width: 100% !important;
+    display: flex !important;
+    box-sizing: border-box;
+  }
+
+  .bracket-category-tab {
+    flex: 1 !important;
+    padding: 0.55rem 0.5rem !important;
+    font-size: 0.825rem !important;
+    justify-content: center !important;
+  }
+
+  .bracket-actions-group {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)) !important;
+    gap: 0.45rem !important;
+    width: 100% !important;
+  }
+
+  .bracket-btn-create-primary {
+    grid-column: 1 / -1 !important;
+    order: -1 !important;
+    width: 100% !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 800 !important;
+    justify-content: center !important;
+    border-radius: 9px;
+  }
+
+  .bracket-action-sub-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 0.55rem 0.25rem !important;
+    font-size: 0.75rem !important;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+
+  /* Secondary Toolbar on Mobile */
+  .bracket-toolbar-secondary {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+
+  .bracket-options-group {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.65rem !important;
+    width: 100% !important;
+  }
+
+  .bracket-option-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
+    width: 100% !important;
+  }
+
+  .bracket-segmented-pills {
+    width: 100% !important;
+    display: flex !important;
+    box-sizing: border-box;
+  }
+
+  .bracket-pill-btn {
+    flex: 1 !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 0.45rem 0.35rem !important;
+    font-size: 0.72rem !important;
+    white-space: nowrap !important;
+  }
+
+  .bracket-zoom-controls {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    padding-top: 0.35rem;
+    border-top: 1px dashed var(--border-color);
+  }
+}
+
+.bracket-tree-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
 }
 
 .bracket-tree-wrapper.is-fullscreen {
@@ -762,5 +1331,22 @@ html, body {
   box-sizing: border-box !important;
   background-color: var(--surface-color, #0f172a) !important;
 }
+
+.bracket-toolbar-main,
+.bracket-toolbar-secondary {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.bracket-mobile-notice {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  word-break: break-word !important;
+}
+
+
 
 

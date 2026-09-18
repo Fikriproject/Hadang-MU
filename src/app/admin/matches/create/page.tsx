@@ -58,20 +58,21 @@ export default async function CreateMatchPage() {
       </div>
 
       <div>
-        <h1 className="heading" style={{ fontSize: '1.75rem', margin: '0 0 0.25rem' }}>
+        <h1 className="heading" style={{ fontSize: 'clamp(1.35rem, 4vw, 1.75rem)', margin: '0 0 0.25rem' }}>
           Buat Pertandingan
         </h1>
-        <p className="metadata-text" style={{ margin: 0 }}>
+        <p className="metadata-text" style={{ margin: 0, fontSize: '0.85rem' }}>
           Jadwalkan pertandingan baru kategori Putra atau Putri dengan penugasan meja scoring.
         </p>
       </div>
 
       <div
+        className="create-match-card"
         style={{
           backgroundColor: 'var(--surface-color)',
-          padding: '2rem',
-          borderRadius: '8px',
+          borderRadius: '12px',
           border: '1px solid var(--border-color)',
+          boxShadow: 'var(--card-shadow)',
         }}
       >
         <MatchForm teams={teams || []} juries={juries || []} existingMatches={matches || []} />

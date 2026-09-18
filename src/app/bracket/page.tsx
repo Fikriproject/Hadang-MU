@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 import { getBracket } from '@/app/admin/bracket/actions'
 import BracketView from '@/app/admin/bracket/bracket-view'
 import ThemeToggle from '@/components/theme-toggle'
@@ -20,6 +22,24 @@ export default async function PublicBracketPage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : {}
   const targetCategory: BracketCategory =
     resolvedSearchParams.category?.toUpperCase() === 'PUTRI' ? 'PUTRI' : 'PUTRA'
+
+  // Jika pengguna sudah login, arahkan ke bagan sesuai rolenya (Admin / Juri)
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const catParam = resolvedSearchParams.category ? `?category=${resolvedSearchParams.category}` : ''
+    if (profile?.role === 'ADMIN') {
+      redirect(`/admin/bracket${catParam}`)
+    } else if (profile?.role === 'JURY') {
+      redirect(`/jury/bracket${catParam}`)
+    }
+  }
 
   let bracket = null
   let categoryTeams: { id: string; name: string }[] = []
@@ -128,9 +148,9 @@ export default async function PublicBracketPage({ searchParams }: PageProps) {
       </header>
 
       {/* Main Bracket Content */}
-      <main className="container" style={{ padding: '1.25rem 1rem 3rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <main className="admin-main-container" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%', minWidth: 0 }}>
         <BracketView
-          initialCategory="PUTRA"
+          initialCategory={targetCategory}
           initialBracket={bracket}
           initialCategoryTeams={categoryTeams}
           isPublic={true}

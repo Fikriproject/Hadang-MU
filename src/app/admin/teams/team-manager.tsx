@@ -127,74 +127,85 @@ export default function TeamManager({ initialTeams }: TeamManagerProps) {
 
       {/* Top Banner Stats */}
       <div
+        className="admin-team-banner"
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
+          flexDirection: 'column',
           gap: '1rem',
           backgroundColor: 'var(--surface-color)',
           border: '1px solid var(--border-color)',
           borderRadius: '12px',
-          padding: '1.25rem 1.5rem',
+          padding: '1.25rem',
           boxShadow: 'var(--card-shadow)',
         }}
       >
         <div>
-          <h1 className="heading" style={{ fontSize: '1.75rem', marginBottom: '0.25rem' }}>
+          <h1 className="heading" style={{ fontSize: 'clamp(1.35rem, 4vw, 1.75rem)', marginBottom: '0.25rem' }}>
             Kelola Tim Pertandingan
           </h1>
-          <p className="metadata-text">
+          <p className="metadata-text" style={{ fontSize: '0.85rem', margin: 0 }}>
             Sistem pengelompokan dan pendaftaran tim Hadang kategori Putra & Putri.
           </p>
         </div>
 
-        {/* Counter Badges */}
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        {/* Counter Badges - 3 Columns Equal Grid */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '0.6rem',
+            width: '100%',
+          }}
+        >
+          {/* Putra */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              backgroundColor: 'rgba(37, 99, 235, 0.12)',
-              border: '1px solid rgba(37, 99, 235, 0.3)',
-              borderRadius: '8px',
-              padding: '0.5rem 0.85rem',
+              backgroundColor: 'rgba(37, 99, 235, 0.1)',
+              border: '1px solid rgba(37, 99, 235, 0.25)',
+              borderRadius: '10px',
+              padding: '0.65rem 0.6rem',
+              minWidth: 0,
             }}
           >
-            <span style={{ fontSize: '1.2rem' }}>🚹</span>
-            <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#3B82F6', letterSpacing: '0.05em' }}>
-                TIM PUTRA
+            <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>🚹</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#2563EB', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                PUTRA
               </div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {teamsPutra.length} <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Tim</span>
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.1 }}>
+                {teamsPutra.length} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)' }}>Tim</span>
               </div>
             </div>
           </div>
 
+          {/* Putri */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              backgroundColor: 'rgba(225, 29, 72, 0.12)',
-              border: '1px solid rgba(225, 29, 72, 0.3)',
-              borderRadius: '8px',
-              padding: '0.5rem 0.85rem',
+              backgroundColor: 'rgba(225, 29, 72, 0.1)',
+              border: '1px solid rgba(225, 29, 72, 0.25)',
+              borderRadius: '10px',
+              padding: '0.65rem 0.6rem',
+              minWidth: 0,
             }}
           >
-            <span style={{ fontSize: '1.2rem' }}>🚺</span>
-            <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#FB7185', letterSpacing: '0.05em' }}>
-                TIM PUTRI
+            <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>🚺</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#E11D48', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                PUTRI
               </div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {teamsPutri.length} <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Tim</span>
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.1 }}>
+                {teamsPutri.length} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)' }}>Tim</span>
               </div>
             </div>
           </div>
 
+          {/* Total */}
           <div
             style={{
               display: 'flex',
@@ -202,17 +213,18 @@ export default function TeamManager({ initialTeams }: TeamManagerProps) {
               gap: '0.5rem',
               backgroundColor: 'var(--surface-subtle)',
               border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              padding: '0.5rem 0.85rem',
+              borderRadius: '10px',
+              padding: '0.65rem 0.6rem',
+              minWidth: 0,
             }}
           >
-            <span style={{ fontSize: '1.2rem' }}>🏆</span>
-            <div>
-              <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
-                TOTAL TIM
+            <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>🏆</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--text-secondary)', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                TOTAL
               </div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                {initialTeams.length} <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Tim</span>
+              <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.1 }}>
+                {initialTeams.length} <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)' }}>Tim</span>
               </div>
             </div>
           </div>
@@ -220,19 +232,19 @@ export default function TeamManager({ initialTeams }: TeamManagerProps) {
       </div>
 
       {/* Main Grid: Input Card & Grouped Lists */}
-      <div className="admin-team-manager-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 380px) 1fr', gap: '1.75rem', alignItems: 'start' }}>
+      <div className="admin-team-manager-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 380px) 1fr', gap: '1.5rem', alignItems: 'start' }}>
         
         {/* ========================================================================= */}
         {/* 1. INPUT FORM CARD WITH CLEAR CATEGORY SWITCHER                          */}
         {/* ========================================================================= */}
         <div
-          className="admin-team-manager-sticky"
+          className="admin-team-manager-sticky admin-team-form-card"
           style={{
             backgroundColor: 'var(--surface-color)',
             borderRadius: '12px',
             border: `1.5px solid ${activeColor}`,
             boxShadow: `0 8px 24px ${activeGlow}`,
-            padding: '1.5rem',
+            padding: '1.25rem',
             transition: 'border-color 0.25s, box-shadow 0.25s',
             position: 'sticky',
             top: '1.5rem',

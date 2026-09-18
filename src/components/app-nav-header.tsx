@@ -60,7 +60,7 @@ export default function AppNavHeader({
       ]
     : [
         { href: '/jury', label: 'Daftar Scoring', icon: '📋' },
-        { href: '/bracket', label: 'Bagan Turnamen', icon: '🏆' },
+        { href: '/jury/bracket', label: 'Bagan Pertandingan', icon: '🏆' },
         { href: '/', label: 'Beranda Publik', icon: '🏠' },
       ]
 

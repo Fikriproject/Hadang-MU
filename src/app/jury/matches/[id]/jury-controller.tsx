@@ -670,8 +670,9 @@ export default function JuryController({
         margin: '0 auto',
         width: '100%',
         boxSizing: 'border-box',
-        gap: '0.4rem',
-        justifyContent: 'space-between',
+        gap: '0.45rem',
+        justifyContent: isFinished ? 'flex-start' : 'space-between',
+        overflowX: 'hidden',
       }}
     >
       {/* Match Header Bar - Ultra Compact for HP */}
@@ -683,56 +684,60 @@ export default function JuryController({
           backgroundColor: 'var(--surface-color)',
           border: '1px solid var(--border-color)',
           borderRadius: '8px',
-          padding: '0.5rem 0.75rem',
+          padding: '0.45rem 0.65rem',
           boxShadow: 'var(--card-shadow)',
           flexShrink: 0,
+          gap: '0.5rem',
+          minWidth: 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', minWidth: 0, flex: 1 }}>
           <Link
             href="/jury"
             onClick={handleBackClick}
             className="touch-manipulation"
             style={{
               color: 'var(--primary)',
-              fontSize: '0.825rem',
+              fontSize: '0.8rem',
               fontWeight: 800,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.3rem',
-              padding: '0.45rem 0.65rem',
+              gap: '0.25rem',
+              padding: '0.4rem 0.6rem',
               borderRadius: '6px',
               backgroundColor: 'var(--primary-subtle)',
               border: '1px solid rgba(37, 99, 235, 0.25)',
               flexShrink: 0,
               textDecoration: 'none',
-              minHeight: '38px',
+              minHeight: '36px',
             }}
           >
             <span>←</span>
             <span>Meja Skor</span>
           </Link>
-          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+          <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
             <h2
               style={{
-                fontSize: '0.95rem',
+                fontSize: '0.875rem',
                 fontWeight: 800,
                 color: 'var(--text-primary)',
-                whiteSpace: 'nowrap',
+                lineHeight: 1.25,
+                margin: 0,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                lineHeight: 1.2,
+                whiteSpace: 'nowrap',
               }}
+              title={match.name}
             >
               {match.name}
             </h2>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block' }}>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {juryLabel}
             </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0, marginLeft: '0.35rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
           {/* Running Stopwatch Badge (Hidden on mobile because mobile uses the prominent arena timer) */}
           <div
             className="hide-on-mobile"
@@ -819,8 +824,8 @@ export default function JuryController({
         </div>
       )}
 
-      {/* Non-LIVE Notice Banner */}
-      {!isLive && (
+      {/* Non-LIVE Notice Banner (only show when not live and NOT finished) */}
+      {!isLive && !isFinished && (
         <div
           style={{
             backgroundColor: 'var(--warning-subtle)',
@@ -836,8 +841,6 @@ export default function JuryController({
         >
           {match.status === 'PAUSED'
             ? '⏸ Pertandingan dijeda Admin. Tombol input dinonaktifkan.'
-            : match.status === 'FINISHED'
-            ? '🏁 Pertandingan telah selesai.'
             : '⏳ Pertandingan belum LIVE (Status: ' + match.status + '). Menunggu Admin memulai pertandingan.'}
         </div>
       )}
@@ -912,6 +915,9 @@ export default function JuryController({
             backgroundColor: isLeftAttacking ? 'rgba(34, 197, 94, 0.08)' : 'transparent',
             border: isLeftAttacking ? '2px solid var(--success)' : '1px solid var(--border-color)',
             transition: 'all 0.2s',
+            minWidth: 0,
+            overflow: 'hidden',
+            boxSizing: 'border-box',
           }}
         >
           <div style={{ minHeight: '22px' }}>
@@ -953,20 +959,26 @@ export default function JuryController({
           <div
             style={{
               fontWeight: 800,
-              fontSize: '0.95rem',
+              fontSize: '0.85rem',
               marginTop: '0.25rem',
-              lineHeight: 1.2,
+              lineHeight: 1.25,
               color: 'var(--text-primary)',
+              minWidth: 0,
+              wordBreak: 'break-word',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              height: '2.5em',
             }}
+            title={teamLeft.name}
           >
             {teamLeft.name}
           </div>
           <div
             style={{
-              fontSize: 'clamp(2.4rem, 9vw, 3.2rem)',
+              fontSize: 'clamp(2.2rem, 8vw, 3rem)',
               fontWeight: 900,
               fontVariantNumeric: 'tabular-nums',
               lineHeight: 1,
@@ -994,6 +1006,9 @@ export default function JuryController({
             backgroundColor: isRightAttacking ? 'rgba(34, 197, 94, 0.08)' : 'transparent',
             border: isRightAttacking ? '2px solid var(--success)' : '1px solid var(--border-color)',
             transition: 'all 0.2s',
+            minWidth: 0,
+            overflow: 'hidden',
+            boxSizing: 'border-box',
           }}
         >
           <div style={{ minHeight: '22px' }}>
@@ -1035,20 +1050,26 @@ export default function JuryController({
           <div
             style={{
               fontWeight: 800,
-              fontSize: '0.95rem',
+              fontSize: '0.85rem',
               marginTop: '0.25rem',
-              lineHeight: 1.2,
+              lineHeight: 1.25,
               color: 'var(--text-primary)',
+              minWidth: 0,
+              wordBreak: 'break-word',
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              height: '2.5em',
             }}
+            title={teamRight.name}
           >
             {teamRight.name}
           </div>
           <div
             style={{
-              fontSize: 'clamp(2.4rem, 9vw, 3.2rem)',
+              fontSize: 'clamp(2.2rem, 8vw, 3rem)',
               fontWeight: 900,
               fontVariantNumeric: 'tabular-nums',
               lineHeight: 1,
@@ -1061,249 +1082,270 @@ export default function JuryController({
         </div>
       </div>
 
-      {/* When FINISHED: Prominent Final Match Result Banner & Return Button */}
-      {isFinished && (
-        <div
-          style={{
-            backgroundColor: 'rgba(34, 197, 94, 0.12)',
-            border: '2px solid var(--success)',
-            borderRadius: '12px',
-            padding: '1rem',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.6rem',
-            boxShadow: '0 4px 16px rgba(34, 197, 94, 0.2)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--success)', fontWeight: 900, fontSize: '0.95rem' }}>
-            <span>🏁</span>
-            <span>PERTANDINGAN TELAH SELESAI</span>
-          </div>
-          <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)' }}>
-            Skor Akhir: {teamLeft.name} {scoreLeft} - {scoreRight} {teamRight.name}
-          </div>
-          <p className="metadata-text" style={{ margin: 0, fontSize: '0.78rem' }}>
-            Seluruh poin telah direkam dan status pertandingan terkunci permanen.
-          </p>
-          <Link
-            href="/jury"
-            className="touch-manipulation"
-            style={{
-              backgroundColor: 'var(--primary)',
-              color: 'white',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '8px',
-              fontWeight: 800,
-              fontSize: '0.925rem',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.45rem',
-              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
-              marginTop: '0.25rem',
-            }}
-          >
-            <span>←</span>
-            <span>Kembali ke Daftar Pertandingan</span>
-          </Link>
-        </div>
-      )}
-
-      {/* When FINISHED: Move Jury Count Cards to the TOP */}
-      {isFinished && renderJuryCountCards(true)}
-
-      {/* Primary Action: +1 POIN HADANG (Disabled when FINISHED) */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          flex: 1,
-          justifyContent: 'center',
-          minHeight: '120px',
-        }}
-      >
-        <button
-          type="button"
-          onClick={handleScoreClick}
-          disabled={!isLive || isFinished}
-          className="touch-manipulation"
-          style={{
-            height: '100%',
-            width: '100%',
-            backgroundColor: isFinished
-              ? 'var(--surface-subtle)'
-              : !isLive
-              ? 'var(--surface-hover)'
-              : isButtonActive
-              ? '#15803D'
-              : 'var(--success)',
-            color: isFinished ? 'var(--text-muted)' : !isLive ? 'var(--text-muted)' : 'white',
-            borderRadius: '16px',
-            border: isFinished ? '2px dashed var(--border-color)' : !isLive ? '2px solid var(--border-color)' : '3px solid #16A34A',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.35rem',
-            cursor: !isLive || isFinished ? 'not-allowed' : 'pointer',
-            boxShadow: isLive && !isFinished ? '0 8px 24px rgba(22, 163, 74, 0.45)' : 'none',
-            transform: isButtonActive && isLive && !isFinished ? 'scale(0.95)' : 'scale(1)',
-            transition: 'transform 0.08s ease, background-color 0.12s ease',
-            padding: '1rem',
-            opacity: isFinished ? 0.6 : 1,
-          }}
-        >
-          <span style={{ fontSize: isFinished ? '1.8rem' : 'clamp(2.6rem, 10vw, 3.5rem)', fontWeight: 900, lineHeight: 1 }}>
-            {isFinished ? '🏁 SELESAI' : '+1 POIN'}
-          </span>
-          <span style={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '0.06em', opacity: 0.95 }}>
-            {isFinished ? 'PERTANDINGAN BERAKHIR' : 'HADANG'}
-          </span>
+      {/* When FINISHED: Clean celebratory result card */}
+      {isFinished ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', width: '100%' }}>
           <div
             style={{
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              backgroundColor: isFinished ? 'var(--border-color)' : 'rgba(0,0,0,0.25)',
-              padding: '0.25rem 0.85rem',
-              borderRadius: '9999px',
-              marginTop: '0.25rem',
-              maxWidth: '90%',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
+              backgroundColor: 'rgba(34, 197, 94, 0.08)',
+              border: '2px solid var(--success)',
+              borderRadius: '12px',
+              padding: '0.85rem',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.45rem',
+              boxShadow: '0 4px 16px rgba(34, 197, 94, 0.15)',
+              flexShrink: 0,
             }}
           >
-            {isFinished ? 'Input skor ditutup' : `Masuk ke: ${attackingTeamName}`}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--success)', fontWeight: 900, fontSize: '0.9rem' }}>
+              <span>🏁</span>
+              <span>PERTANDINGAN TELAH SELESAI</span>
+            </div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.3 }}>
+              Skor Akhir: {teamLeft.name} {scoreLeft} - {scoreRight} {teamRight.name}
+            </div>
+            <p className="metadata-text" style={{ margin: 0, fontSize: '0.75rem', lineHeight: 1.3 }}>
+              Seluruh poin telah direkam dan status pertandingan terkunci permanen.
+            </p>
+            <Link
+              href="/jury"
+              className="touch-manipulation"
+              style={{
+                backgroundColor: 'var(--primary)',
+                color: 'white',
+                padding: '0.65rem 1.25rem',
+                borderRadius: '8px',
+                fontWeight: 800,
+                fontSize: '0.875rem',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+                marginTop: '0.15rem',
+              }}
+            >
+              <span>←</span>
+              <span>Kembali ke Daftar Pertandingan</span>
+            </Link>
           </div>
-        </button>
-      </div>
 
-      {/* Actions Section: Tukar Posisi, Tukar Babak, Undo, and Match Controls */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', flexShrink: 0 }}>
-        {/* Tombol Mulai Babak 2 saat Babak 2 Siap (PAUSED) */}
-        {!isFinished && isBabak2Pending && match.status === 'PAUSED' && (
-          <button
-            type="button"
-            onClick={handleStartBabak2}
-            disabled={isPending}
-            className="touch-manipulation"
+          {/* Jury Count Cards */}
+          {renderJuryCountCards(false)}
+
+          {/* Locked Status Banner */}
+          <div
             style={{
-              width: '100%',
-              height: '46px',
+              backgroundColor: 'var(--surface-subtle)',
+              border: '1px dashed var(--border-color)',
               borderRadius: '10px',
-              border: 'none',
-              backgroundColor: 'var(--success)',
-              color: 'white',
-              fontWeight: 800,
-              fontSize: '0.925rem',
-              cursor: isPending ? 'not-allowed' : 'pointer',
+              padding: '0.5rem 0.75rem',
+              textAlign: 'center',
+              color: 'var(--text-muted)',
+              fontWeight: 700,
+              fontSize: '0.78rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '0.45rem',
-              boxShadow: '0 4px 12px rgba(34, 197, 94, 0.35)',
-              transition: 'all 0.12s ease',
+              gap: '0.35rem',
             }}
           >
-            <span>▶</span>
-            <span>MULAI PERTANDINGAN (BABAK 2)</span>
-          </button>
-        )}
-
-        {/* 1. BUTTON TUKAR POSISI (FOUL) */}
-        <button
-          type="button"
-          onClick={handleToggleAttacker}
-          disabled={isFinished}
-          className="touch-manipulation"
-          style={{
-            width: '100%',
-            height: '44px',
-            borderRadius: '10px',
-            border: isFinished ? '1px solid var(--border-color)' : '2px solid var(--primary)',
-            backgroundColor: isFinished ? 'var(--surface-subtle)' : 'var(--primary-subtle)',
-            color: isFinished ? 'var(--text-muted)' : 'var(--primary)',
-            fontWeight: 800,
-            fontSize: '0.875rem',
-            cursor: isFinished ? 'not-allowed' : 'pointer',
-            opacity: isFinished ? 0.4 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.45rem',
-            boxShadow: isFinished ? 'none' : '0 2px 6px rgba(37, 99, 235, 0.15)',
-            transition: 'all 0.12s ease',
-          }}
-        >
-          <span style={{ fontSize: '1.1rem' }}>⇄</span>
-          <span>TUKAR POSISI (FOUL)</span>
-        </button>
-
-        {/* 2. BUTTON TUKAR BABAK (Hanya tampil di Babak 1, dengan warna Amber khusus agar tidak tertukar dengan Foul) */}
-        {!isFinished && !isBabak2 && (
-          <button
-            type="button"
-            onClick={handleTukarBabak}
-            disabled={isPending}
-            className="touch-manipulation"
+            <span>🔒</span>
+            <span>Input skor ditutup — Status pertandingan terkunci</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Primary Action: +1 POIN HADANG */}
+          <div
             style={{
-              width: '100%',
-              height: '42px',
-              borderRadius: '10px',
-              border: '2px dashed #D97706',
-              backgroundColor: 'rgba(217, 119, 6, 0.08)',
-              color: '#D97706',
-              fontWeight: 800,
-              fontSize: '0.85rem',
-              cursor: isPending ? 'not-allowed' : 'pointer',
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: 'column',
+              flex: 1,
               justifyContent: 'center',
-              gap: '0.45rem',
-              boxShadow: '0 2px 6px rgba(217, 119, 6, 0.15)',
-              transition: 'all 0.12s ease',
+              minHeight: '120px',
             }}
-            title="Tukar ke Babak 2 saat waktu Babak 1 telah habis"
           >
-            <span>🔄</span>
-            <span>TUKAR KE BABAK 2 (JEDA BABAK 1)</span>
-          </button>
-        )}
+            <button
+              type="button"
+              onClick={handleScoreClick}
+              disabled={!isLive}
+              className="touch-manipulation"
+              style={{
+                height: '100%',
+                width: '100%',
+                backgroundColor: !isLive
+                  ? 'var(--surface-hover)'
+                  : isButtonActive
+                  ? '#15803D'
+                  : 'var(--success)',
+                color: !isLive ? 'var(--text-muted)' : 'white',
+                borderRadius: '16px',
+                border: !isLive ? '2px solid var(--border-color)' : '3px solid #16A34A',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.35rem',
+                cursor: !isLive ? 'not-allowed' : 'pointer',
+                boxShadow: isLive ? '0 8px 24px rgba(22, 163, 74, 0.45)' : 'none',
+                transform: isButtonActive && isLive ? 'scale(0.95)' : 'scale(1)',
+                transition: 'transform 0.08s ease, background-color 0.12s ease',
+                padding: '1rem',
+              }}
+            >
+              <span style={{ fontSize: 'clamp(2.6rem, 10vw, 3.5rem)', fontWeight: 900, lineHeight: 1 }}>
+                +1 POIN
+              </span>
+              <span style={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '0.06em', opacity: 0.95 }}>
+                HADANG
+              </span>
+              <div
+                style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  backgroundColor: 'rgba(0,0,0,0.25)',
+                  padding: '0.25rem 0.85rem',
+                  borderRadius: '9999px',
+                  marginTop: '0.25rem',
+                  maxWidth: '90%',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Masuk ke: {attackingTeamName}
+              </div>
+            </button>
+          </div>
 
-        {/* 3. BUTTON BATALKAN POIN TERAKHIR (UNDO) */}
-        <button
-          type="button"
-          onClick={handleUndoClick}
-          disabled={isFinished || !canUndo}
-          className="touch-manipulation"
-          style={{
-            width: '100%',
-            height: '44px',
-            borderRadius: '10px',
-            border: !isFinished && canUndo ? '2px solid var(--danger)' : '1px solid var(--border-color)',
-            backgroundColor: !isFinished && canUndo ? 'var(--danger-subtle)' : 'var(--surface-subtle)',
-            color: !isFinished && canUndo ? 'var(--danger)' : 'var(--text-muted)',
-            fontWeight: 800,
-            fontSize: '0.875rem',
-            cursor: isFinished || !canUndo ? 'not-allowed' : 'pointer',
-            opacity: !isFinished && canUndo ? 1 : 0.4,
-            boxShadow: !isFinished && canUndo ? '0 2px 8px rgba(220, 38, 38, 0.2)' : 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.4rem',
-            transition: 'all 0.12s ease',
-          }}
-        >
-          <span>↩</span>
-          <span>BATALKAN POIN TERAKHIR (UNDO)</span>
-        </button>
-      </div>
+          {/* Actions Section: Tukar Posisi, Tukar Babak, Undo */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', flexShrink: 0 }}>
+            {/* Tombol Mulai Babak 2 saat Babak 2 Siap (PAUSED) */}
+            {isBabak2Pending && match.status === 'PAUSED' && (
+              <button
+                type="button"
+                onClick={handleStartBabak2}
+                disabled={isPending}
+                className="touch-manipulation"
+                style={{
+                  width: '100%',
+                  height: '46px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  backgroundColor: 'var(--success)',
+                  color: 'white',
+                  fontWeight: 800,
+                  fontSize: '0.925rem',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.45rem',
+                  boxShadow: '0 4px 12px rgba(34, 197, 94, 0.35)',
+                  transition: 'all 0.12s ease',
+                }}
+              >
+                <span>▶</span>
+                <span>MULAI PERTANDINGAN (BABAK 2)</span>
+              </button>
+            )}
 
-      {/* When NOT finished: Keep Count Cards at the BOTTOM */}
-      {!isFinished && renderJuryCountCards(false)}
+            {/* 1. BUTTON TUKAR POSISI (FOUL) */}
+            <button
+              type="button"
+              onClick={handleToggleAttacker}
+              className="touch-manipulation"
+              style={{
+                width: '100%',
+                height: '44px',
+                borderRadius: '10px',
+                border: '2px solid var(--primary)',
+                backgroundColor: 'var(--primary-subtle)',
+                color: 'var(--primary)',
+                fontWeight: 800,
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.45rem',
+                boxShadow: '0 2px 6px rgba(37, 99, 235, 0.15)',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              <span style={{ fontSize: '1.1rem' }}>⇄</span>
+              <span>TUKAR POSISI (FOUL)</span>
+            </button>
+
+            {/* 2. BUTTON TUKAR BABAK */}
+            {!isBabak2 && (
+              <button
+                type="button"
+                onClick={handleTukarBabak}
+                disabled={isPending}
+                className="touch-manipulation"
+                style={{
+                  width: '100%',
+                  height: '42px',
+                  borderRadius: '10px',
+                  border: '2px dashed #D97706',
+                  backgroundColor: 'rgba(217, 119, 6, 0.08)',
+                  color: '#D97706',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.45rem',
+                  boxShadow: '0 2px 6px rgba(217, 119, 6, 0.15)',
+                  transition: 'all 0.12s ease',
+                }}
+                title="Tukar ke Babak 2 saat waktu Babak 1 telah habis"
+              >
+                <span>🔄</span>
+                <span>TUKAR KE BABAK 2 (JEDA BABAK 1)</span>
+              </button>
+            )}
+
+            {/* 3. BUTTON BATALKAN POIN TERAKHIR (UNDO) */}
+            <button
+              type="button"
+              onClick={handleUndoClick}
+              disabled={!canUndo}
+              className="touch-manipulation"
+              style={{
+                width: '100%',
+                height: '44px',
+                borderRadius: '10px',
+                border: canUndo ? '2px solid var(--danger)' : '1px solid var(--border-color)',
+                backgroundColor: canUndo ? 'var(--danger-subtle)' : 'var(--surface-subtle)',
+                color: canUndo ? 'var(--danger)' : 'var(--text-muted)',
+                fontWeight: 800,
+                fontSize: '0.875rem',
+                cursor: !canUndo ? 'not-allowed' : 'pointer',
+                opacity: canUndo ? 1 : 0.4,
+                boxShadow: canUndo ? '0 2px 8px rgba(220, 38, 38, 0.2)' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              <span>↩</span>
+              <span>BATALKAN POIN TERAKHIR (UNDO)</span>
+            </button>
+          </div>
+
+          {/* When NOT finished: Keep Count Cards at the BOTTOM */}
+          {renderJuryCountCards(false)}
+        </>
+      )}
 
       {/* Micro Status Bar for Realtime */}
       <div

@@ -43,6 +43,7 @@ interface BracketViewProps {
   initialCategoryTeams: TeamOption[]
   initialJuries?: JuryOption[]
   isPublic?: boolean
+  isJury?: boolean
 }
 
 export default function BracketView({
@@ -51,6 +52,7 @@ export default function BracketView({
   initialCategoryTeams,
   initialJuries = [],
   isPublic = false,
+  isJury = false,
 }: BracketViewProps) {
   const [category, setCategory] = useState<BracketCategory>(initialCategory)
   const [bracket, setBracket] = useState<BracketData | null>(() =>
@@ -1504,6 +1506,10 @@ export default function BracketView({
         flexDirection: 'column',
         gap: '1.25rem',
         minHeight: '80vh',
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box',
       }}
     >
       {/* FLOATING TOAST NOTIFICATION */}
@@ -1528,22 +1534,20 @@ export default function BracketView({
         </div>
       )}
 
-      {/* MOBILE LANDSCAPE ADVICE BANNER */}
-      <div className="bracket-mobile-notice">
-        <span>💡</span>
-        <span>
-          <strong>Tips Tampilan HP:</strong> Miringkan ponsel Anda ke mode <em>Landscape</em> atau gunakan tombol <strong>Layar Penuh</strong> untuk melihat bagan secara utuh.
-        </span>
-      </div>
+      {/* MOBILE LANDSCAPE ADVICE BANNER (Hanya untuk publik jika belum full screen) */}
+      {isPublic && (
+        <div className="bracket-mobile-notice">
+          <span>💡</span>
+          <span>
+            <strong>Tips Tampilan HP:</strong> Miringkan ponsel Anda ke mode <em>Landscape</em> atau gunakan tombol <strong>Layar Penuh</strong> untuk melihat bagan secara utuh.
+          </span>
+        </div>
+      )}
 
-      {/* TOP HEADER: 1 BARIS KANAN & KIRI */}
+      {/* TOOLBAR UTAMA ATAS */}
       <div
+        className="bracket-toolbar-main"
         style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '0.85rem',
           backgroundColor: 'var(--surface-color)',
           border: '1px solid var(--border-color)',
           borderRadius: '12px',
@@ -1552,64 +1556,93 @@ export default function BracketView({
         }}
       >
         {/* KIRI: BACK BUTTON + TOGGLE KATEGORI PUTRA & PUTRI */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
-          {isPublic ? (
-            <Link
-              href="/"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.45rem 0.75rem',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--surface-subtle)',
-                color: 'var(--text-secondary)',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                textDecoration: 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>←</span>
-              <span>Beranda</span>
-            </Link>
-          ) : (
-            <Link
-              href="/admin"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                padding: '0.45rem 0.75rem',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--surface-subtle)',
-                color: 'var(--text-secondary)',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                textDecoration: 'none',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <span>←</span>
-              <span>Dashboard Admin</span>
-            </Link>
-          )}
+        <div className="bracket-nav-group">
+          <div className="bracket-top-meta-row">
+            {isPublic ? (
+              <Link
+                href="/"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.45rem 0.75rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--surface-subtle)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>←</span>
+                <span>Beranda</span>
+              </Link>
+            ) : isJury ? (
+              <Link
+                href="/jury"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.45rem 0.75rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--surface-subtle)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>←</span>
+                <span>Daftar Scoring</span>
+              </Link>
+            ) : (
+              <Link
+                href="/admin"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.45rem 0.75rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--surface-subtle)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <span>←</span>
+                <span>Dashboard Admin</span>
+              </Link>
+            )}
 
-          <div
-            style={{
-              display: 'flex',
-              backgroundColor: 'var(--surface-subtle)',
-              padding: '0.25rem',
-              borderRadius: '10px',
-              border: '1px solid var(--border-color)',
-              gap: '0.25rem',
-            }}
-          >
+            <span
+              style={{
+                fontSize: '0.75rem',
+                color: 'var(--text-muted)',
+                fontWeight: 700,
+                backgroundColor: 'var(--surface-subtle)',
+                padding: '0.3rem 0.6rem',
+                borderRadius: '6px',
+                border: '1px solid var(--border-color)',
+              }}
+            >
+              {teams.length} Tim Terdaftar
+            </span>
+          </div>
+
+          <div className="bracket-category-tabs">
             {/* Tab Putra */}
             <button
               type="button"
+              className="bracket-category-tab"
               onClick={() => handleCategorySwitch('PUTRA')}
               disabled={isPending}
               style={{
@@ -1635,6 +1668,7 @@ export default function BracketView({
             {/* Tab Putri */}
             <button
               type="button"
+              className="bracket-category-tab"
               onClick={() => handleCategorySwitch('PUTRI')}
               disabled={isPending}
               style={{
@@ -1657,27 +1691,17 @@ export default function BracketView({
               <span>Bagan Putri</span>
             </button>
           </div>
-
-          <span
-            style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-muted)',
-              fontWeight: 700,
-              marginLeft: '0.25rem',
-            }}
-          >
-            {teams.length} Tim Terdaftar
-          </span>
         </div>
 
         {/* KANAN: TOMBOL KONTROL & AKSI */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div className="bracket-actions-group">
           {/* Lock / Edit Mode Toggle Button (Admin Only) */}
-          {!isPublic && bracket && (
+          {!isPublic && !isJury && bracket && (
             <button
               type="button"
               onClick={handleToggleLock}
               disabled={isPending}
+              className="bracket-action-sub-btn"
               style={{
                 padding: '0.5rem 0.85rem',
                 borderRadius: '8px',
@@ -1694,7 +1718,8 @@ export default function BracketView({
               }}
               title={isLocked ? 'Klik untuk membuka Mode Edit' : 'Klik untuk mengunci bagan'}
             >
-              <span>{isLocked ? '🔒 Terkunci (Locked)' : '✏️ Mode Edit'}</span>
+              <span>{isLocked ? '🔒' : '✏️'}</span>
+              <span>{isLocked ? 'Terkunci' : 'Mode Edit'}</span>
             </button>
           )}
 
@@ -1704,6 +1729,7 @@ export default function BracketView({
               type="button"
               onClick={handleRefresh}
               disabled={isPending}
+              className="bracket-action-sub-btn"
               style={{
                 padding: '0.5rem 0.75rem',
                 borderRadius: '8px',
@@ -1720,7 +1746,7 @@ export default function BracketView({
               title="Perbarui skor dan status dari database"
             >
               <span>🔄</span>
-              <span className="bracket-btn-text">Sinkron</span>
+              <span>Sinkron</span>
             </button>
           )}
 
@@ -1728,6 +1754,7 @@ export default function BracketView({
           <button
             type="button"
             onClick={() => toggleFullScreen()}
+            className="bracket-action-sub-btn"
             style={{
               padding: '0.5rem 0.75rem',
               borderRadius: '8px',
@@ -1744,15 +1771,16 @@ export default function BracketView({
             title={isFullScreen ? 'Keluar dari mode layar penuh' : 'Tampilkan bagan dalam mode layar penuh (Full Screen)'}
           >
             <span>{isFullScreen ? '🗗' : '⛶'}</span>
-            <span className="bracket-btn-text">{isFullScreen ? 'Tutup' : 'Layar Penuh'}</span>
+            <span>{isFullScreen ? 'Tutup' : 'Layar Penuh'}</span>
           </button>
 
           {/* Buat / Acak Bagan Baru (Admin Only) */}
-          {!isPublic && (
+          {!isPublic && !isJury && (
             <button
               type="button"
               onClick={handleOpenCreateModal}
               disabled={isPending}
+              className="bracket-btn-create-primary"
               style={{
                 padding: '0.5rem 1rem',
                 borderRadius: '8px',
@@ -1779,52 +1807,36 @@ export default function BracketView({
       {/* SECONDARY TOOLBAR: PILIHAN MODE BAGAN & PILIHAN JUARA */}
       {bracket && (
         <div
+          className="bracket-toolbar-secondary"
           style={{
             backgroundColor: 'var(--surface-color)',
             border: '1px solid var(--border-color)',
             borderRadius: '12px',
             padding: '0.65rem 1rem',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '0.75rem',
+            boxShadow: 'var(--card-shadow)',
           }}
         >
           {/* KIRI: 2 MODE TABEL & PILIHAN JUARA */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div className="bracket-options-group">
             {/* Opsi 1: Mode Alur Tabel */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <div className="bracket-option-item">
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
                 Alur Bagan:
               </span>
-              <div
-                style={{
-                  display: 'flex',
-                  backgroundColor: 'var(--surface-subtle)',
-                  padding: '0.2rem',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  gap: '0.2rem',
-                }}
-              >
+              <div className="bracket-segmented-pills">
                 <button
                   type="button"
+                  className="bracket-pill-btn"
                   onClick={() => handleSwitchLayout('LEFT_TO_RIGHT')}
                   disabled={isPending}
                   style={{
-                    padding: '0.35rem 0.65rem',
+                    padding: '0.4rem 0.65rem',
                     borderRadius: '6px',
                     border: 'none',
                     backgroundColor: layoutMode === 'LEFT_TO_RIGHT' ? primaryColor : 'transparent',
                     color: layoutMode === 'LEFT_TO_RIGHT' ? 'white' : 'var(--text-primary)',
                     fontWeight: layoutMode === 'LEFT_TO_RIGHT' ? 800 : 600,
                     fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    transition: 'all 0.15s ease',
                   }}
                   title="Membaca lurus dari kiri ke kanan dari banyak tim hingga final"
                 >
@@ -1834,21 +1846,17 @@ export default function BracketView({
 
                 <button
                   type="button"
+                  className="bracket-pill-btn"
                   onClick={() => handleSwitchLayout('CENTER_SPLIT')}
                   disabled={isPending}
                   style={{
-                    padding: '0.35rem 0.65rem',
+                    padding: '0.4rem 0.65rem',
                     borderRadius: '6px',
                     border: 'none',
                     backgroundColor: layoutMode === 'CENTER_SPLIT' ? primaryColor : 'transparent',
                     color: layoutMode === 'CENTER_SPLIT' ? 'white' : 'var(--text-primary)',
                     fontWeight: layoutMode === 'CENTER_SPLIT' ? 800 : 600,
                     fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    transition: 'all 0.15s ease',
                   }}
                   title="Pembacaan dari kiri ke tengah dan kanan ke tengah (Pohon Kejuaraan)"
                 >
@@ -1859,38 +1867,25 @@ export default function BracketView({
             </div>
 
             {/* Opsi 2: Pilihan Juara 1-2 Saja atau Sampai 3 (Admin Only) */}
-            {!isPublic && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            {!isPublic && !isJury && (
+              <div className="bracket-option-item">
                 <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)' }}>
                   Format Juara:
                 </span>
-                <div
-                  style={{
-                    display: 'flex',
-                    backgroundColor: 'var(--surface-subtle)',
-                    padding: '0.2rem',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    gap: '0.2rem',
-                  }}
-                >
+                <div className="bracket-segmented-pills">
                   <button
                     type="button"
+                    className="bracket-pill-btn"
                     onClick={() => handleSwitchThirdPlace(false)}
                     disabled={isPending}
                     style={{
-                      padding: '0.35rem 0.65rem',
+                      padding: '0.4rem 0.65rem',
                       borderRadius: '6px',
                       border: 'none',
                       backgroundColor: !includeThirdPlace ? 'var(--primary)' : 'transparent',
                       color: !includeThirdPlace ? 'white' : 'var(--text-primary)',
                       fontWeight: !includeThirdPlace ? 800 : 600,
                       fontSize: '0.75rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      transition: 'all 0.15s ease',
                     }}
                     title="Hanya Juara 1 & 2 (Tanpa perebutan juara 3)"
                   >
@@ -1900,21 +1895,17 @@ export default function BracketView({
 
                   <button
                     type="button"
+                    className="bracket-pill-btn"
                     onClick={() => handleSwitchThirdPlace(true)}
                     disabled={isPending}
                     style={{
-                      padding: '0.35rem 0.65rem',
+                      padding: '0.4rem 0.65rem',
                       borderRadius: '6px',
                       border: 'none',
                       backgroundColor: includeThirdPlace ? 'var(--primary)' : 'transparent',
                       color: includeThirdPlace ? 'white' : 'var(--text-primary)',
                       fontWeight: includeThirdPlace ? 800 : 600,
                       fontSize: '0.75rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      transition: 'all 0.15s ease',
                     }}
                     title="Sampai Juara 3 (Ada pertandingan perebutan juara 3)"
                   >
@@ -1927,7 +1918,7 @@ export default function BracketView({
           </div>
 
           {/* KANAN: ZOOM CONTROLS */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div className="bracket-zoom-controls">
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>Zoom:</span>
             <button
               type="button"
@@ -2050,6 +2041,23 @@ export default function BracketView({
             >
               ← Kembali ke Beranda
             </Link>
+          ) : isJury ? (
+            <Link
+              href="/jury"
+              style={{
+                backgroundColor: 'var(--surface-subtle)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '10px',
+                fontWeight: 800,
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+                marginTop: '0.5rem',
+              }}
+            >
+              ← Kembali ke Scoring
+            </Link>
           ) : (
             <button
               type="button"
@@ -2089,6 +2097,10 @@ export default function BracketView({
             boxShadow: isFullScreen ? 'none' : 'var(--card-shadow)',
             display: isFullScreen ? 'flex' : 'block',
             flexDirection: isFullScreen ? 'column' : undefined,
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            boxSizing: 'border-box',
           }}
         >
           {/* FLOATING HEADER KHUSUS FULL SCREEN DENGAN TOMBOL KEMBALI & KONTROL ZOOM */}

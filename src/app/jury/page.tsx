@@ -18,6 +18,25 @@ interface MatchItem {
   jury_2: { name: string } | null
 }
 
+function formatRoundLabel(round: string | null | undefined): string | null {
+  if (!round) return null
+  const r = round.trim()
+  if (r.includes('BABAK_2_START')) return '⏱️ Babak 2'
+  if (r.includes('BABAK_2_PENDING')) return '⏸️ Jeda Babak'
+  if (r.includes('::') || /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i.test(r)) {
+    return null
+  }
+  return r
+}
+
+function detectMatchCategory(match: { name?: string | null }): 'PUTRA' | 'PUTRI' {
+  const lower = (match.name || '').toLowerCase()
+  if (lower.includes('(putri)') || lower.includes('[putri]') || lower.includes('putri')) {
+    return 'PUTRI'
+  }
+  return 'PUTRA'
+}
+
 export default async function JuryDashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -112,6 +131,7 @@ export default async function JuryDashboardPage() {
       ) : (
         <div className="jury-matches-grid">
           {sortedMatches.map((m) => {
+            const isMatchPutra = detectMatchCategory(m) === 'PUTRA'
             const isJury1 = m.jury_1_id === user.id
             const isJury2 = m.jury_2_id === user.id
             const juryPosText = isJury1
@@ -123,6 +143,7 @@ export default async function JuryDashboardPage() {
             const isLive = m.status === 'LIVE'
             const isPaused = m.status === 'PAUSED'
             const isFinished = m.status === 'FINISHED'
+            const roundLabel = formatRoundLabel(m.round)
 
             return (
               <div
@@ -144,66 +165,135 @@ export default async function JuryDashboardPage() {
                   opacity: isFinished ? 0.75 : 1,
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {/* Header: Badges row (Category, Status, Round) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    {/* Category Badge */}
+                    <span
+                      style={{
+                        backgroundColor: isMatchPutra ? 'rgba(37, 99, 235, 0.12)' : 'rgba(225, 29, 72, 0.12)',
+                        color: isMatchPutra ? '#2563EB' : '#E11D48',
+                        border: isMatchPutra ? '1px solid rgba(37, 99, 235, 0.3)' : '1px solid rgba(225, 29, 72, 0.3)',
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.68rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.04em',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.2rem',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {isMatchPutra ? '🚹 PUTRA' : '🚺 PUTRI'}
+                    </span>
+
+                    {/* Status Badge */}
                     <span
                       style={{
                         backgroundColor: isLive
                           ? 'var(--success-subtle)'
                           : isPaused
                           ? 'var(--warning-subtle)'
-                          : 'var(--badge-neutral-bg)',
-                        color: isLive ? 'var(--success)' : isPaused ? 'var(--warning)' : 'var(--badge-neutral-text)',
+                          : isFinished
+                          ? 'var(--badge-neutral-bg)'
+                          : 'var(--primary-subtle)',
+                        color: isLive ? 'var(--success)' : isPaused ? 'var(--warning)' : isFinished ? 'var(--badge-neutral-text)' : 'var(--primary)',
                         border: isLive
                           ? '1px solid var(--success)'
                           : isPaused
                           ? '1px solid var(--warning)'
                           : '1px solid var(--border-color)',
-                        fontSize: '0.75rem',
+                        fontSize: '0.68rem',
                         fontWeight: 800,
-                        padding: '0.2rem 0.6rem',
+                        padding: '0.15rem 0.5rem',
                         borderRadius: '9999px',
-                        letterSpacing: '0.05em',
+                        letterSpacing: '0.04em',
+                        flexShrink: 0,
                       }}
                     >
                       {isLive ? '● LIVE' : m.status}
                     </span>
-                    <span style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--text-primary)' }}>{m.name}</span>
+
+                    {/* Sanitized Round Label (if any) */}
+                    {roundLabel && (
+                      <span
+                        style={{
+                          backgroundColor: 'var(--badge-neutral-bg)',
+                          border: '1px solid var(--border-color)',
+                          padding: '0.15rem 0.45rem',
+                          borderRadius: '4px',
+                          fontSize: '0.7rem',
+                          color: 'var(--badge-neutral-text)',
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {roundLabel}
+                      </span>
+                    )}
                   </div>
-                  {m.round && (
-                    <span style={{ backgroundColor: 'var(--badge-neutral-bg)', border: '1px solid var(--border-color)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.75rem', color: 'var(--badge-neutral-text)', fontWeight: 600 }}>
-                      {m.round}
-                    </span>
-                  )}
+
+                  {/* Match Name: Full width, wraps cleanly, never squeezed into vertical lines */}
+                  <h3
+                    style={{
+                      fontSize: '1.1rem',
+                      fontWeight: 800,
+                      color: 'var(--text-primary)',
+                      margin: 0,
+                      lineHeight: 1.35,
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {m.name}
+                  </h3>
                 </div>
 
+                {/* Team VS Box */}
                 <div
                   style={{
                     backgroundColor: 'var(--card-inner-bg)',
                     border: '1px solid var(--border-color)',
-                    padding: '0.875rem 1rem',
-                    borderRadius: '6px',
+                    padding: '0.85rem 1rem',
+                    borderRadius: '8px',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    fontSize: '0.9375rem',
+                    gap: '0.75rem',
                   }}
                 >
-                  <div>
-                    <span style={{ color: 'var(--success)', fontWeight: 800, fontSize: '0.75rem', display: 'block' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ color: 'var(--success)', fontWeight: 800, fontSize: '0.7rem', display: 'block', letterSpacing: '0.04em' }}>
                       SERANG (ATTACK)
                     </span>
-                    <strong style={{ color: 'var(--text-primary)' }}>{m.team_attack?.name || '-'}</strong>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem', display: 'block', wordBreak: 'break-word', lineHeight: 1.25 }}>
+                      {m.team_attack?.name || '-'}
+                    </strong>
                   </div>
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 800 }}>VS</span>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ color: 'var(--danger)', fontWeight: 800, fontSize: '0.75rem', display: 'block' }}>
+
+                  <div
+                    style={{
+                      padding: '0.2rem 0.55rem',
+                      backgroundColor: 'var(--surface-subtle)',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 900, fontSize: '0.75rem' }}>VS</span>
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+                    <span style={{ color: 'var(--danger)', fontWeight: 800, fontSize: '0.7rem', display: 'block', letterSpacing: '0.04em' }}>
                       BERTAHAN (DEFENSE)
                     </span>
-                    <strong style={{ color: 'var(--text-primary)' }}>{m.team_defense?.name || '-'}</strong>
+                    <strong style={{ color: 'var(--text-primary)', fontSize: '0.95rem', display: 'block', wordBreak: 'break-word', lineHeight: 1.25 }}>
+                      {m.team_defense?.name || '-'}
+                    </strong>
                   </div>
                 </div>
 
+                {/* Footer: Role & Action Button */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                     Tugas Anda: <strong style={{ color: 'var(--text-primary)' }}>{juryPosText}</strong>
@@ -220,7 +310,7 @@ export default async function JuryDashboardPage() {
                         : 'var(--primary)',
                       color: isFinished ? 'var(--text-secondary)' : 'white',
                       border: isFinished ? '1px solid var(--border-color)' : 'none',
-                      padding: '0.875rem 1.25rem',
+                      padding: '0.85rem 1rem',
                       borderRadius: '8px',
                       fontWeight: 800,
                       fontSize: '0.95rem',
@@ -232,9 +322,11 @@ export default async function JuryDashboardPage() {
                       boxShadow: isLive ? '0 4px 14px rgba(22, 163, 74, 0.4)' : isFinished ? 'none' : '0 4px 14px rgba(37, 99, 235, 0.35)',
                       transition: 'transform 0.1s ease',
                       textAlign: 'center',
+                      width: '100%',
+                      boxSizing: 'border-box',
                     }}
                   >
-                    {isFinished ? 'Lihat Rekap Hasil Pertandingan ➔' : 'Buka Meja Scoring Lapangan ➔'}
+                    <span>{isFinished ? 'Lihat Rekap Hasil Pertandingan ➔' : 'Buka Meja Scoring Lapangan ➔'}</span>
                   </Link>
                 </div>
               </div>

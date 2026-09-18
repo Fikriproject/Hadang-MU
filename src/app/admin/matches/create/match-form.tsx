@@ -94,12 +94,24 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
 
       {/* 1. KATEGORI PERTANDINGAN: PUTRA VS PUTRI SELECTOR */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <label className="metadata-text" style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
-            Kategori Pertandingan <span style={{ color: 'var(--danger)' }}>*</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.35rem' }}>
+          <label className="metadata-text" style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+            <span>Kategori Pertandingan</span>
+            <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: activeColor }}>
-            Tersedia: {activeTeams.length} Tim {isPutra ? 'Putra' : 'Putri'}
+          <span
+            style={{
+              fontSize: '0.725rem',
+              fontWeight: 700,
+              color: activeColor,
+              backgroundColor: activeBgSubtle,
+              border: `1px solid ${activeBorder}`,
+              padding: '0.15rem 0.55rem',
+              borderRadius: '9999px',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {activeTeams.length} Tim {isPutra ? 'Putra' : 'Putri'}
           </span>
         </div>
 
@@ -109,7 +121,7 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
             type="button"
             onClick={() => handleCategoryChange('PUTRA')}
             style={{
-              padding: '0.85rem 1rem',
+              padding: '0.85rem 0.75rem',
               borderRadius: '10px',
               border: isPutra ? '2px solid #2563EB' : '1px solid var(--border-color)',
               backgroundColor: isPutra ? 'rgba(37, 99, 235, 0.12)' : 'var(--surface-subtle)',
@@ -120,7 +132,7 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
               alignItems: 'center',
               gap: '0.35rem',
               fontWeight: 800,
-              fontSize: '0.95rem',
+              fontSize: '0.925rem',
               boxShadow: isPutra ? '0 4px 14px rgba(37, 99, 235, 0.2)' : 'none',
               transition: 'all 0.15s ease',
             }}
@@ -131,7 +143,7 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
             </div>
             <span
               style={{
-                fontSize: '0.75rem',
+                fontSize: '0.725rem',
                 fontWeight: 700,
                 backgroundColor: isPutra ? '#2563EB' : 'var(--border-color)',
                 color: isPutra ? 'white' : 'var(--text-muted)',
@@ -148,7 +160,7 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
             type="button"
             onClick={() => handleCategoryChange('PUTRI')}
             style={{
-              padding: '0.85rem 1rem',
+              padding: '0.85rem 0.75rem',
               borderRadius: '10px',
               border: !isPutra ? '2px solid #E11D48' : '1px solid var(--border-color)',
               backgroundColor: !isPutra ? 'rgba(225, 29, 72, 0.12)' : 'var(--surface-subtle)',
@@ -159,7 +171,7 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
               alignItems: 'center',
               gap: '0.35rem',
               fontWeight: 800,
-              fontSize: '0.95rem',
+              fontSize: '0.925rem',
               boxShadow: !isPutra ? '0 4px 14px rgba(225, 29, 72, 0.2)' : 'none',
               transition: 'all 0.15s ease',
             }}
@@ -170,7 +182,7 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
             </div>
             <span
               style={{
-                fontSize: '0.75rem',
+                fontSize: '0.725rem',
                 fontWeight: 700,
                 backgroundColor: !isPutra ? '#E11D48' : 'var(--border-color)',
                 color: !isPutra ? 'white' : 'var(--text-muted)',
@@ -229,26 +241,28 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
 
       {/* 2. NAMA PERTANDINGAN */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <label htmlFor="name" className="metadata-text" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-            Nama Pertandingan <span style={{ color: 'var(--danger)' }}>*</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '0.35rem' }}>
+          <label htmlFor="name" className="metadata-text" style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+            <span>Nama Pertandingan</span>
+            <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
           <span
             style={{
-              fontSize: '0.75rem',
-              fontWeight: 800,
-              backgroundColor: activeBgSubtle,
+              fontSize: '0.725rem',
+              fontWeight: 700,
               color: activeColor,
+              backgroundColor: activeBgSubtle,
               border: `1px solid ${activeBorder}`,
-              padding: '0.2rem 0.6rem',
+              padding: '0.15rem 0.5rem',
               borderRadius: '9999px',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '0.35rem',
+              gap: '0.25rem',
+              whiteSpace: 'nowrap',
             }}
           >
             <span>🔢</span>
-            <span>Urutan Otomatis: Match {currentNextNumber} ({isPutra ? 'Putra' : 'Putri'})</span>
+            <span>Urutan: <strong>Match {currentNextNumber}</strong></span>
           </span>
         </div>
 
@@ -262,41 +276,70 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
           placeholder={`Contoh: Babak Penyisihan ${isPutra ? 'Putra' : 'Putri'} - Match ${currentNextNumber}`}
           style={{
             padding: '0.75rem',
-            borderRadius: '6px',
+            borderRadius: '8px',
             border: `1.5px solid ${activeBorder}`,
             backgroundColor: 'var(--surface-subtle)',
             color: 'var(--text-primary)',
             fontSize: '1rem',
             fontWeight: 600,
+            width: '100%',
+            boxSizing: 'border-box',
           }}
         />
 
         {/* Quick Presets / Template Pilihan Nama */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.2rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.15rem' }}>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-            Pilihan Cepat Format Nama (Klik untuk menerapkan):
+            Pilihan Cepat Format Nama:
           </span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-            {presets.map((preset) => {
-              const isSelected = customName === preset
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0.45rem',
+            }}
+          >
+            {[
+              {
+                label: `Penyisihan Match ${currentNextNumber}`,
+                value: `Babak Penyisihan ${isPutra ? 'Putra' : 'Putri'} - Match ${currentNextNumber}`,
+              },
+              {
+                label: `Pertandingan ${currentNextNumber}`,
+                value: `Babak Penyisihan ${isPutra ? 'Putra' : 'Putri'} - Pertandingan ${currentNextNumber}`,
+              },
+              {
+                label: `Semifinal`,
+                value: `Semifinal ${isPutra ? 'Putra' : 'Putri'}`,
+              },
+              {
+                label: `Final`,
+                value: `Final ${isPutra ? 'Putra' : 'Putri'}`,
+              },
+            ].map((opt) => {
+              const isSelected = customName === opt.value
               return (
                 <button
-                  key={preset}
+                  key={opt.label}
                   type="button"
-                  onClick={() => setCustomName(preset)}
+                  onClick={() => setCustomName(opt.value)}
                   style={{
-                    fontSize: '0.75rem',
-                    padding: '0.25rem 0.6rem',
-                    borderRadius: '6px',
+                    fontSize: '0.8rem',
+                    padding: '0.4rem 0.75rem',
+                    borderRadius: '8px',
                     border: isSelected ? `1.5px solid ${activeColor}` : '1px solid var(--border-color)',
                     backgroundColor: isSelected ? activeBgSubtle : 'var(--surface-color)',
-                    color: isSelected ? activeColor : 'var(--text-secondary)',
+                    color: isSelected ? activeColor : 'var(--text-primary)',
                     fontWeight: isSelected ? 800 : 600,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
                   }}
                 >
-                  {preset}
+                  {isSelected && <span>✓</span>}
+                  <span>{opt.label}</span>
                 </button>
               )
             })}
@@ -306,10 +349,11 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
 
       {/* 2.5 JADWAL PERTANDINGAN */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <label className="metadata-text" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-          Jadwal Pertandingan <span style={{ color: 'var(--danger)' }}>*</span>
+        <label className="metadata-text" style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+          <span>Jadwal Pertandingan</span>
+          <span style={{ color: 'var(--danger)' }}>*</span>
         </label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
             <label htmlFor="scheduled_date" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Tanggal</label>
             <input
@@ -320,11 +364,13 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
               required
               style={{
                 padding: '0.75rem',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 border: '1px solid var(--border-color)',
                 backgroundColor: 'var(--surface-subtle)',
                 color: 'var(--text-primary)',
-                fontSize: '1rem',
+                fontSize: '0.95rem',
+                width: '100%',
+                boxSizing: 'border-box',
               }}
             />
           </div>
@@ -338,11 +384,13 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
               required
               style={{
                 padding: '0.75rem',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 border: '1px solid var(--border-color)',
                 backgroundColor: 'var(--surface-subtle)',
                 color: 'var(--text-primary)',
-                fontSize: '1rem',
+                fontSize: '0.95rem',
+                width: '100%',
+                boxSizing: 'border-box',
               }}
             />
           </div>
@@ -357,24 +405,42 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
           gap: '1rem',
           backgroundColor: activeBgSubtle,
           border: `1.5px solid ${activeBorder}`,
-          borderRadius: '10px',
+          borderRadius: '12px',
           padding: '1.15rem',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: activeColor, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-            ⚔️ Pilih Pasangan Tanding ({isPutra ? 'Putra vs Putra' : 'Putri vs Putri'})
-          </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.4rem' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 800, color: activeColor, textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span>⚔️</span>
+              <span>Pilih Pasangan Tanding</span>
+            </span>
+            <span
+              style={{
+                fontSize: '0.725rem',
+                color: activeColor,
+                fontWeight: 700,
+                backgroundColor: 'var(--surface-color)',
+                padding: '0.2rem 0.55rem',
+                borderRadius: '9999px',
+                border: `1px solid ${activeBorder}`,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {isPutra ? 'Putra vs Putra' : 'Putri vs Putri'}
+            </span>
+          </div>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Hanya menampilkan tim {isPutra ? 'Putra' : 'Putri'}
+            Hanya menampilkan tim {isPutra ? 'Putra' : 'Putri'} yang terdaftar
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem' }}>
           {/* Tim 1 (Kiri) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label htmlFor="team_1_id" className="metadata-text" style={{ color: activeColor, fontWeight: 800 }}>
-              Tim 1 (Sisi Kiri) <span style={{ color: 'var(--danger)' }}>*</span>
+            <label htmlFor="team_1_id" className="metadata-text" style={{ color: activeColor, fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+              <span>Tim 1 (Sisi Kiri)</span>
+              <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
             <select
               id="team_1_id"
@@ -385,12 +451,14 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
               disabled={activeTeams.length === 0}
               style={{
                 padding: '0.75rem',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 border: '1px solid var(--border-color)',
                 backgroundColor: 'var(--surface-color)',
                 color: 'var(--text-primary)',
-                fontSize: '1rem',
+                fontSize: '0.95rem',
                 fontWeight: 600,
+                width: '100%',
+                boxSizing: 'border-box',
               }}
             >
               <option value="">-- Pilih Tim 1 ({isPutra ? 'Putra' : 'Putri'}) --</option>
@@ -404,8 +472,9 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
 
           {/* Tim 2 (Kanan) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <label htmlFor="team_2_id" className="metadata-text" style={{ color: activeColor, fontWeight: 800 }}>
-              Tim 2 (Sisi Kanan) <span style={{ color: 'var(--danger)' }}>*</span>
+            <label htmlFor="team_2_id" className="metadata-text" style={{ color: activeColor, fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+              <span>Tim 2 (Sisi Kanan)</span>
+              <span style={{ color: 'var(--danger)' }}>*</span>
             </label>
             <select
               id="team_2_id"
@@ -416,12 +485,14 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
               disabled={activeTeams.length === 0}
               style={{
                 padding: '0.75rem',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 border: '1px solid var(--border-color)',
                 backgroundColor: 'var(--surface-color)',
                 color: 'var(--text-primary)',
-                fontSize: '1rem',
+                fontSize: '0.95rem',
                 fontWeight: 600,
+                width: '100%',
+                boxSizing: 'border-box',
               }}
             >
               <option value="">-- Pilih Tim 2 ({isPutra ? 'Putra' : 'Putri'}) --</option>
@@ -438,8 +509,9 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
       {/* 4. PENUGASAN PETUGAS SCORING */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label htmlFor="jury_1_id" className="metadata-text" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-            Scoring 1 (Area Depan/Awal) <span style={{ color: 'var(--danger)' }}>*</span>
+          <label htmlFor="jury_1_id" className="metadata-text" style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+            <span>Scoring 1 (Area Depan/Awal)</span>
+            <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
           <select
             id="jury_1_id"
@@ -449,11 +521,13 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
             required
             style={{
               padding: '0.75rem',
-              borderRadius: '6px',
+              borderRadius: '8px',
               border: '1px solid var(--border-color)',
               backgroundColor: 'var(--surface-subtle)',
               color: 'var(--text-primary)',
-              fontSize: '1rem',
+              fontSize: '0.95rem',
+              width: '100%',
+              boxSizing: 'border-box',
             }}
           >
             <option value="">-- Pilih Scoring 1 (Depan) --</option>
@@ -466,8 +540,9 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <label htmlFor="jury_2_id" className="metadata-text" style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-            Scoring 2 (Area Belakang/Akhir) <span style={{ color: 'var(--danger)' }}>*</span>
+          <label htmlFor="jury_2_id" className="metadata-text" style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+            <span>Scoring 2 (Area Belakang/Akhir)</span>
+            <span style={{ color: 'var(--danger)' }}>*</span>
           </label>
           <select
             id="jury_2_id"
@@ -477,11 +552,13 @@ export default function MatchForm({ teams, juries, existingMatches = [] }: Match
             required
             style={{
               padding: '0.75rem',
-              borderRadius: '6px',
+              borderRadius: '8px',
               border: '1px solid var(--border-color)',
               backgroundColor: 'var(--surface-subtle)',
               color: 'var(--text-primary)',
-              fontSize: '1rem',
+              fontSize: '0.95rem',
+              width: '100%',
+              boxSizing: 'border-box',
             }}
           >
             <option value="">-- Pilih Scoring 2 (Belakang) --</option>
