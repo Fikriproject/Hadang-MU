@@ -31,7 +31,8 @@ export function detectMatchCategory(match?: {
 }
 
 export function cleanTeamDisplayName(name: string): string {
-  return name.trim()
+  if (!name) return ''
+  return name.replace(/\s*[\(\[]?(putra|putri)[\)\]]?\s*$/i, '').trim()
 }
 
 export { formatJuryDisplayName } from './formatters'

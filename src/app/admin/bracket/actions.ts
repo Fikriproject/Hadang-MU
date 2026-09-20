@@ -37,15 +37,7 @@ if (!globalThis.__hadang_bracket_creation_locks__) {
 }
 
 async function readBracketsStore(): Promise<Record<string, BracketData | null>> {
-  // 1. Check in-memory store
-  if (
-    globalThis.__hadang_brackets_store__ &&
-    (globalThis.__hadang_brackets_store__.PUTRA !== null || globalThis.__hadang_brackets_store__.PUTRI !== null)
-  ) {
-    return globalThis.__hadang_brackets_store__
-  }
-
-  // 2. Try read primary file
+  // 1. Try read primary file first to always reflect fresh disk data
   try {
     const data = await fs.readFile(BRACKET_FILE, 'utf-8')
     const parsed = JSON.parse(data)
@@ -71,6 +63,14 @@ async function readBracketsStore(): Promise<Record<string, BracketData | null>> 
     } catch {
       // ignore
     }
+  }
+
+  // 2. In-memory fallback
+  if (
+    globalThis.__hadang_brackets_store__ &&
+    (globalThis.__hadang_brackets_store__.PUTRA !== null || globalThis.__hadang_brackets_store__.PUTRI !== null)
+  ) {
+    return globalThis.__hadang_brackets_store__
   }
 
   return globalThis.__hadang_brackets_store__ || { PUTRA: null, PUTRI: null }

@@ -3,7 +3,7 @@
     "category": "PUTRA",
     "teamCount": 12,
     "bracketSize": 16,
-    "layoutMode": "CENTER_SPLIT",
+    "layoutMode": "LEFT_TO_RIGHT",
     "includeThirdPlace": true,
     "isLocked": false,
     "rounds": [
@@ -11,13 +11,39 @@
         "name": "Babak 16 Besar",
         "matches": [
           {
-            "id": "M8",
+            "id": "M1",
+            "matchNumber": 1,
             "roundIndex": 0,
             "matchIndex": 0,
-            "title": "Match 8 • Babak 16 Besar (Kiri)",
+            "title": "Match 1 • Babak 16 Besar 1",
             "team1": {
-              "id": "d2c56206-a4a7-4b71-b472-8ca111053fcd",
-              "name": "TIM GARUDA (Putra)",
+              "id": "66909de3-2f15-4ad2-99b6-fbc22b708a13",
+              "name": "SMK Budi Tresna",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "id": "31adf437-93ea-4ce5-b272-83f82c8fc81c",
+              "name": "SMAN 3 Cikarang Utara",
+              "isPlaceholder": false
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "READY",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M9",
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M2",
+            "matchNumber": 2,
+            "roundIndex": 0,
+            "matchIndex": 1,
+            "title": "Match 2 • Babak 16 Besar 2",
+            "team1": {
+              "id": "2e43d188-6194-4c76-abc0-9853e7bef6ad",
+              "name": "SMAN 4 Cirebon",
               "isPlaceholder": false
             },
             "team2": {
@@ -29,158 +55,160 @@
             "score2": 0,
             "matchId": null,
             "status": "FINISHED",
-            "winnerTeamId": "d2c56206-a4a7-4b71-b472-8ca111053fcd",
-            "loserTeamId": null,
-            "nextMatchId": "M12",
-            "nextSlot": "team1",
-            "matchNumber": 8
-          },
-          {
-            "id": "M6",
-            "roundIndex": 0,
-            "matchIndex": 1,
-            "title": "Match 6 • Babak 16 Besar (Kiri)",
-            "team1": {
-              "id": "b67cf208-43e3-48e4-ad6b-f87147a3063d",
-              "name": "SMAN 1 DUKUPUNTANG (Putra)",
-              "isPlaceholder": false
-            },
-            "team2": {
-              "id": "72d5215a-7f37-43e0-8097-8dfd44016140",
-              "name": "SMAN 1 PLUMBIN (Putra)",
-              "isPlaceholder": false
-            },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "READY",
-            "winnerTeamId": null,
-            "loserTeamId": null,
-            "nextMatchId": "M12",
-            "nextSlot": "team2",
-            "matchNumber": 6
-          },
-          {
-            "id": "M4",
-            "roundIndex": 0,
-            "matchIndex": 2,
-            "title": "Match 4 • Babak 16 Besar (Kiri)",
-            "team1": {
-              "id": "68a0bc0c-abdf-4cd3-8254-04eb7559529b",
-              "name": "TIM UMC (Putra)",
-              "isPlaceholder": false
-            },
-            "team2": {
-              "id": "c3d6a975-64f6-4922-a880-17971b9cd38f",
-              "name": "SMAN 1 Gegesik (Putra)",
-              "isPlaceholder": false
-            },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "READY",
-            "winnerTeamId": null,
-            "loserTeamId": null,
-            "nextMatchId": "M10",
-            "nextSlot": "team1",
-            "matchNumber": 4
-          },
-          {
-            "id": "M2",
-            "roundIndex": 0,
-            "matchIndex": 3,
-            "title": "Match 2 • Babak 16 Besar (Kiri)",
-            "team1": null,
-            "team2": {
-              "name": "BYE (Lolos Otomatis)",
-              "isPlaceholder": true,
-              "isBye": true
-            },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "loserTeamId": null,
-            "nextMatchId": "M10",
-            "nextSlot": "team2",
-            "matchNumber": 2
-          },
-          {
-            "id": "M1",
-            "roundIndex": 0,
-            "matchIndex": 4,
-            "title": "Match 1 • Babak 16 Besar (Kanan)",
-            "team1": null,
-            "team2": {
-              "name": "BYE (Lolos Otomatis)",
-              "isPlaceholder": true,
-              "isBye": true
-            },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
+            "winnerTeamId": "2e43d188-6194-4c76-abc0-9853e7bef6ad",
             "loserTeamId": null,
             "nextMatchId": "M9",
-            "nextSlot": "team1",
-            "matchNumber": 1
+            "nextSlot": "team2"
           },
           {
             "id": "M3",
+            "matchNumber": 3,
             "roundIndex": 0,
-            "matchIndex": 5,
-            "title": "Match 3 • Babak 16 Besar (Kanan)",
-            "team1": null,
-            "team2": null,
+            "matchIndex": 2,
+            "title": "Match 3 • Babak 16 Besar 3",
+            "team1": {
+              "id": "683e55b4-98a3-423a-8421-9ae9b10a94f4",
+              "name": "SMK MU Ciledug",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "id": "757e1c0b-6ae7-45f3-bc3b-4a80aa277d6b",
+              "name": "SMAN 1 Jamblang",
+              "isPlaceholder": false
+            },
             "score1": null,
             "score2": null,
             "matchId": null,
-            "status": "WAITING",
+            "status": "READY",
             "winnerTeamId": null,
             "loserTeamId": null,
-            "nextMatchId": "M9",
-            "nextSlot": "team2",
-            "matchNumber": 3
+            "nextMatchId": "M10",
+            "nextSlot": "team1"
           },
           {
-            "id": "M5",
+            "id": "M4",
+            "matchNumber": 4,
             "roundIndex": 0,
-            "matchIndex": 6,
-            "title": "Match 5 • Babak 16 Besar (Kanan)",
-            "team1": null,
-            "team2": null,
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "loserTeamId": null,
-            "nextMatchId": "M11",
-            "nextSlot": "team1",
-            "matchNumber": 5
-          },
-          {
-            "id": "M7",
-            "roundIndex": 0,
-            "matchIndex": 7,
-            "title": "Match 7 • Babak 16 Besar (Kanan)",
-            "team1": null,
+            "matchIndex": 3,
+            "title": "Match 4 • Babak 16 Besar 4",
+            "team1": {
+              "id": "e94f421c-200a-4e94-a42e-5438a77f576a",
+              "name": "SMKF MU Cirebon",
+              "isPlaceholder": false
+            },
             "team2": {
               "name": "BYE (Lolos Otomatis)",
               "isPlaceholder": true,
               "isBye": true
             },
+            "score1": 1,
+            "score2": 0,
+            "matchId": null,
+            "status": "FINISHED",
+            "winnerTeamId": "e94f421c-200a-4e94-a42e-5438a77f576a",
+            "loserTeamId": null,
+            "nextMatchId": "M10",
+            "nextSlot": "team2"
+          },
+          {
+            "id": "M5",
+            "matchNumber": 5,
+            "roundIndex": 0,
+            "matchIndex": 4,
+            "title": "Match 5 • Babak 16 Besar 5",
+            "team1": {
+              "id": "e9cb68d2-c7bb-4513-8290-114fb3bf155c",
+              "name": "SMAN 1 Dukupuntang",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "id": "cbfa2bda-d2e1-4970-97af-1abe04104f6e",
+              "name": "SMAN 1 Mandirancan",
+              "isPlaceholder": false
+            },
             "score1": null,
             "score2": null,
             "matchId": null,
-            "status": "WAITING",
+            "status": "READY",
             "winnerTeamId": null,
             "loserTeamId": null,
             "nextMatchId": "M11",
-            "nextSlot": "team2",
-            "matchNumber": 7
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M6",
+            "matchNumber": 6,
+            "roundIndex": 0,
+            "matchIndex": 5,
+            "title": "Match 6 • Babak 16 Besar 6",
+            "team1": {
+              "id": "57fd179b-5498-4f89-b258-0a72faca8ae2",
+              "name": "MAN 1 Kota Cirebon",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "name": "BYE (Lolos Otomatis)",
+              "isPlaceholder": true,
+              "isBye": true
+            },
+            "score1": 1,
+            "score2": 0,
+            "matchId": null,
+            "status": "FINISHED",
+            "winnerTeamId": "57fd179b-5498-4f89-b258-0a72faca8ae2",
+            "loserTeamId": null,
+            "nextMatchId": "M11",
+            "nextSlot": "team2"
+          },
+          {
+            "id": "M7",
+            "matchNumber": 7,
+            "roundIndex": 0,
+            "matchIndex": 6,
+            "title": "Match 7 • Babak 16 Besar 7",
+            "team1": {
+              "id": "cdcc434c-2d47-4024-9700-e0a41c2c9a04",
+              "name": "SMAN 5 Kota Cirebon",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "id": "a7dbca44-e1dc-4790-a49c-acf54996e276",
+              "name": "DISBUDPORA Kab. Bekasi",
+              "isPlaceholder": false
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "READY",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M12",
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M8",
+            "matchNumber": 8,
+            "roundIndex": 0,
+            "matchIndex": 7,
+            "title": "Match 8 • Babak 16 Besar 8",
+            "team1": {
+              "id": "3077f26b-42b2-4848-827f-b7d2798f9b30",
+              "name": "SMA Telkom Sekar Kemuning",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "name": "BYE (Lolos Otomatis)",
+              "isPlaceholder": true,
+              "isBye": true
+            },
+            "score1": 1,
+            "score2": 0,
+            "matchId": null,
+            "status": "FINISHED",
+            "winnerTeamId": "3077f26b-42b2-4848-827f-b7d2798f9b30",
+            "loserTeamId": null,
+            "nextMatchId": "M12",
+            "nextSlot": "team2"
           }
         ]
       },
@@ -188,64 +216,19 @@
         "name": "Perempat Final",
         "matches": [
           {
-            "id": "M12",
+            "id": "M9",
+            "matchNumber": 9,
             "roundIndex": 1,
             "matchIndex": 0,
-            "title": "Match 12 • Perempat Final (Kiri)",
-            "team1": {
-              "id": "d2c56206-a4a7-4b71-b472-8ca111053fcd",
-              "name": "TIM GARUDA (Putra)",
-              "isPlaceholder": false
-            },
-            "team2": {
-              "name": "Pemenang Match 6",
-              "isPlaceholder": true
-            },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "loserTeamId": null,
-            "nextMatchId": "M14",
-            "nextSlot": "team1",
-            "matchNumber": 12
-          },
-          {
-            "id": "M10",
-            "roundIndex": 1,
-            "matchIndex": 1,
-            "title": "Match 10 • Perempat Final (Kiri)",
-            "team1": {
-              "name": "Pemenang Match 4",
-              "isPlaceholder": true
-            },
-            "team2": {
-              "name": "Pemenang Match 2",
-              "isPlaceholder": true
-            },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "loserTeamId": null,
-            "nextMatchId": "M14",
-            "nextSlot": "team2",
-            "matchNumber": 10
-          },
-          {
-            "id": "M9",
-            "roundIndex": 1,
-            "matchIndex": 2,
-            "title": "Match 9 • Perempat Final (Kanan)",
+            "title": "Match 9 • Perempat Final 1",
             "team1": {
               "name": "Pemenang Match 1",
               "isPlaceholder": true
             },
             "team2": {
-              "name": "Pemenang Match 3",
-              "isPlaceholder": true
+              "id": "2e43d188-6194-4c76-abc0-9853e7bef6ad",
+              "name": "SMAN 4 Cirebon",
+              "isPlaceholder": false
             },
             "score1": null,
             "score2": null,
@@ -254,21 +237,46 @@
             "winnerTeamId": null,
             "loserTeamId": null,
             "nextMatchId": "M13",
-            "nextSlot": "team1",
-            "matchNumber": 9
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M10",
+            "matchNumber": 10,
+            "roundIndex": 1,
+            "matchIndex": 1,
+            "title": "Match 10 • Perempat Final 2",
+            "team1": {
+              "name": "Pemenang Match 3",
+              "isPlaceholder": true
+            },
+            "team2": {
+              "id": "e94f421c-200a-4e94-a42e-5438a77f576a",
+              "name": "SMKF MU Cirebon",
+              "isPlaceholder": false
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M13",
+            "nextSlot": "team2"
           },
           {
             "id": "M11",
+            "matchNumber": 11,
             "roundIndex": 1,
-            "matchIndex": 3,
-            "title": "Match 11 • Perempat Final (Kanan)",
+            "matchIndex": 2,
+            "title": "Match 11 • Perempat Final 3",
             "team1": {
               "name": "Pemenang Match 5",
               "isPlaceholder": true
             },
             "team2": {
-              "name": "Pemenang Match 7",
-              "isPlaceholder": true
+              "id": "57fd179b-5498-4f89-b258-0a72faca8ae2",
+              "name": "MAN 1 Kota Cirebon",
+              "isPlaceholder": false
             },
             "score1": null,
             "score2": null,
@@ -276,9 +284,32 @@
             "status": "WAITING",
             "winnerTeamId": null,
             "loserTeamId": null,
-            "nextMatchId": "M13",
-            "nextSlot": "team2",
-            "matchNumber": 11
+            "nextMatchId": "M14",
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M12",
+            "matchNumber": 12,
+            "roundIndex": 1,
+            "matchIndex": 3,
+            "title": "Match 12 • Perempat Final 4",
+            "team1": {
+              "name": "Pemenang Match 7",
+              "isPlaceholder": true
+            },
+            "team2": {
+              "id": "3077f26b-42b2-4848-827f-b7d2798f9b30",
+              "name": "SMA Telkom Sekar Kemuning",
+              "isPlaceholder": false
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M14",
+            "nextSlot": "team2"
           }
         ]
       },
@@ -286,12 +317,13 @@
         "name": "Semifinal",
         "matches": [
           {
-            "id": "M14",
+            "id": "M13",
+            "matchNumber": 13,
             "roundIndex": 2,
             "matchIndex": 0,
-            "title": "Match 14 • Semifinal 1 (Kiri)",
+            "title": "Match 13 • Semifinal 1",
             "team1": {
-              "name": "Pemenang Match 12",
+              "name": "Pemenang Match 9",
               "isPlaceholder": true
             },
             "team2": {
@@ -305,20 +337,20 @@
             "winnerTeamId": null,
             "loserTeamId": null,
             "nextMatchId": "M16",
-            "nextSlot": "team1",
-            "matchNumber": 14
+            "nextSlot": "team1"
           },
           {
-            "id": "M13",
+            "id": "M14",
+            "matchNumber": 14,
             "roundIndex": 2,
             "matchIndex": 1,
-            "title": "Match 13 • Semifinal 2 (Kanan)",
+            "title": "Match 14 • Semifinal 2",
             "team1": {
-              "name": "Pemenang Match 9",
+              "name": "Pemenang Match 11",
               "isPlaceholder": true
             },
             "team2": {
-              "name": "Pemenang Match 11",
+              "name": "Pemenang Match 12",
               "isPlaceholder": true
             },
             "score1": null,
@@ -328,8 +360,7 @@
             "winnerTeamId": null,
             "loserTeamId": null,
             "nextMatchId": "M16",
-            "nextSlot": "team2",
-            "matchNumber": 13
+            "nextSlot": "team2"
           }
         ]
       },
@@ -338,15 +369,16 @@
         "matches": [
           {
             "id": "M16",
+            "matchNumber": 16,
             "roundIndex": 3,
             "matchIndex": 0,
             "title": "Match 16 • FINAL",
             "team1": {
-              "name": "Pemenang Match 14",
+              "name": "Pemenang Match 13",
               "isPlaceholder": true
             },
             "team2": {
-              "name": "Pemenang Match 13",
+              "name": "Pemenang Match 14",
               "isPlaceholder": true
             },
             "score1": null,
@@ -355,23 +387,23 @@
             "status": "WAITING",
             "winnerTeamId": null,
             "loserTeamId": null,
-            "nextMatchId": null,
-            "matchNumber": 16
+            "nextMatchId": null
           }
         ]
       }
     ],
     "thirdPlaceMatch": {
       "id": "M15",
+      "matchNumber": 15,
       "roundIndex": 3,
       "matchIndex": 1,
       "title": "Match 15 • Perebutan Juara 3",
       "team1": {
-        "name": "Kalah Match 14",
+        "name": "Kalah Match 13",
         "isPlaceholder": true
       },
       "team2": {
-        "name": "Kalah Match 13",
+        "name": "Kalah Match 14",
         "isPlaceholder": true
       },
       "score1": null,
@@ -380,13 +412,433 @@
       "status": "WAITING",
       "winnerTeamId": null,
       "loserTeamId": null,
-      "nextMatchId": null,
-      "matchNumber": 15
+      "nextMatchId": null
     },
     "champion": null,
     "runnerUp": null,
     "thirdPlaceWinner": null,
-    "updatedAt": "2026-09-18T13:54:05.815Z"
+    "updatedAt": "2026-09-20T14:10:40.228Z"
   },
-  "PUTRI": null
+  "PUTRI": {
+    "category": "PUTRI",
+    "teamCount": 10,
+    "bracketSize": 16,
+    "layoutMode": "LEFT_TO_RIGHT",
+    "includeThirdPlace": true,
+    "isLocked": false,
+    "rounds": [
+      {
+        "name": "Babak 16 Besar",
+        "matches": [
+          {
+            "id": "M1",
+            "matchNumber": 1,
+            "roundIndex": 0,
+            "matchIndex": 0,
+            "title": "Match 1 • Babak 16 Besar 1",
+            "team1": {
+              "id": "88e7be82-f0cd-4c3b-a161-01f234731245",
+              "name": "DISBUDPORA Kab. Bekasi",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "id": "4baeff89-5a9a-43be-ba58-9da01ab802d9",
+              "name": "SMAN 1 Pabedilan",
+              "isPlaceholder": false
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "READY",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M9",
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M2",
+            "matchNumber": 2,
+            "roundIndex": 0,
+            "matchIndex": 1,
+            "title": "Match 2 • Babak 16 Besar 2",
+            "team1": {
+              "id": "98db0d2f-0b17-4b96-ae08-ac718e188c79",
+              "name": "SMAN 4 Cirebon",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "name": "BYE (Lolos Otomatis)",
+              "isPlaceholder": true,
+              "isBye": true
+            },
+            "score1": 1,
+            "score2": 0,
+            "matchId": null,
+            "status": "FINISHED",
+            "winnerTeamId": "98db0d2f-0b17-4b96-ae08-ac718e188c79",
+            "loserTeamId": null,
+            "nextMatchId": "M9",
+            "nextSlot": "team2"
+          },
+          {
+            "id": "M3",
+            "matchNumber": 3,
+            "roundIndex": 0,
+            "matchIndex": 2,
+            "title": "Match 3 • Babak 16 Besar 3",
+            "team1": {
+              "id": "0adbb30f-b053-44b9-ab9a-b3cbcfbd9267",
+              "name": "SMAN 1 Mandirancan",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "name": "BYE (Lolos Otomatis)",
+              "isPlaceholder": true,
+              "isBye": true
+            },
+            "score1": 1,
+            "score2": 0,
+            "matchId": null,
+            "status": "FINISHED",
+            "winnerTeamId": "0adbb30f-b053-44b9-ab9a-b3cbcfbd9267",
+            "loserTeamId": null,
+            "nextMatchId": "M10",
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M4",
+            "matchNumber": 4,
+            "roundIndex": 0,
+            "matchIndex": 3,
+            "title": "Match 4 • Babak 16 Besar 4",
+            "team1": {
+              "id": "9568f711-dede-4744-bfa6-a340ffe061f2",
+              "name": "SMAN 1 Gegesik",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "name": "BYE (Lolos Otomatis)",
+              "isPlaceholder": true,
+              "isBye": true
+            },
+            "score1": 1,
+            "score2": 0,
+            "matchId": null,
+            "status": "FINISHED",
+            "winnerTeamId": "9568f711-dede-4744-bfa6-a340ffe061f2",
+            "loserTeamId": null,
+            "nextMatchId": "M10",
+            "nextSlot": "team2"
+          },
+          {
+            "id": "M5",
+            "matchNumber": 5,
+            "roundIndex": 0,
+            "matchIndex": 4,
+            "title": "Match 5 • Babak 16 Besar 5",
+            "team1": {
+              "id": "b4e41bac-ce87-493b-b0de-38fbddd8d80c",
+              "name": "SMAN 1 Dukupuntang",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "name": "BYE (Lolos Otomatis)",
+              "isPlaceholder": true,
+              "isBye": true
+            },
+            "score1": 1,
+            "score2": 0,
+            "matchId": null,
+            "status": "FINISHED",
+            "winnerTeamId": "b4e41bac-ce87-493b-b0de-38fbddd8d80c",
+            "loserTeamId": null,
+            "nextMatchId": "M11",
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M6",
+            "matchNumber": 6,
+            "roundIndex": 0,
+            "matchIndex": 5,
+            "title": "Match 6 • Babak 16 Besar 6",
+            "team1": {
+              "id": "bcce9e4b-7ffe-4914-a16c-198dd2fbdab9",
+              "name": "SMAN 1 Jamblang",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "name": "BYE (Lolos Otomatis)",
+              "isPlaceholder": true,
+              "isBye": true
+            },
+            "score1": 1,
+            "score2": 0,
+            "matchId": null,
+            "status": "FINISHED",
+            "winnerTeamId": "bcce9e4b-7ffe-4914-a16c-198dd2fbdab9",
+            "loserTeamId": null,
+            "nextMatchId": "M11",
+            "nextSlot": "team2"
+          },
+          {
+            "id": "M7",
+            "matchNumber": 7,
+            "roundIndex": 0,
+            "matchIndex": 6,
+            "title": "Match 7 • Babak 16 Besar 7",
+            "team1": {
+              "id": "82e7f907-c0c5-42fa-95ba-67aff9939fa7",
+              "name": "SMKF MU 2 Kedawung",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "id": "eb510407-27ec-439c-a29d-bb3af14de6c9",
+              "name": "SMAN 5 Kota Cirebon",
+              "isPlaceholder": false
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "READY",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M12",
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M8",
+            "matchNumber": 8,
+            "roundIndex": 0,
+            "matchIndex": 7,
+            "title": "Match 8 • Babak 16 Besar 8",
+            "team1": {
+              "id": "468dd409-b3b2-434a-b1e1-53408b9b0936",
+              "name": "SMA Telkom Sekar Kemuning",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "name": "BYE (Lolos Otomatis)",
+              "isPlaceholder": true,
+              "isBye": true
+            },
+            "score1": 1,
+            "score2": 0,
+            "matchId": null,
+            "status": "FINISHED",
+            "winnerTeamId": "468dd409-b3b2-434a-b1e1-53408b9b0936",
+            "loserTeamId": null,
+            "nextMatchId": "M12",
+            "nextSlot": "team2"
+          }
+        ]
+      },
+      {
+        "name": "Perempat Final",
+        "matches": [
+          {
+            "id": "M9",
+            "matchNumber": 9,
+            "roundIndex": 1,
+            "matchIndex": 0,
+            "title": "Match 9 • Perempat Final 1",
+            "team1": {
+              "name": "Pemenang Match 1",
+              "isPlaceholder": true
+            },
+            "team2": {
+              "id": "98db0d2f-0b17-4b96-ae08-ac718e188c79",
+              "name": "SMAN 4 Cirebon",
+              "isPlaceholder": false
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M13",
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M10",
+            "matchNumber": 10,
+            "roundIndex": 1,
+            "matchIndex": 1,
+            "title": "Match 10 • Perempat Final 2",
+            "team1": {
+              "id": "0adbb30f-b053-44b9-ab9a-b3cbcfbd9267",
+              "name": "SMAN 1 Mandirancan",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "id": "9568f711-dede-4744-bfa6-a340ffe061f2",
+              "name": "SMAN 1 Gegesik",
+              "isPlaceholder": false
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "READY",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M13",
+            "nextSlot": "team2"
+          },
+          {
+            "id": "M11",
+            "matchNumber": 11,
+            "roundIndex": 1,
+            "matchIndex": 2,
+            "title": "Match 11 • Perempat Final 3",
+            "team1": {
+              "id": "b4e41bac-ce87-493b-b0de-38fbddd8d80c",
+              "name": "SMAN 1 Dukupuntang",
+              "isPlaceholder": false
+            },
+            "team2": {
+              "id": "bcce9e4b-7ffe-4914-a16c-198dd2fbdab9",
+              "name": "SMAN 1 Jamblang",
+              "isPlaceholder": false
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "READY",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M14",
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M12",
+            "matchNumber": 12,
+            "roundIndex": 1,
+            "matchIndex": 3,
+            "title": "Match 12 • Perempat Final 4",
+            "team1": {
+              "name": "Pemenang Match 7",
+              "isPlaceholder": true
+            },
+            "team2": {
+              "id": "468dd409-b3b2-434a-b1e1-53408b9b0936",
+              "name": "SMA Telkom Sekar Kemuning",
+              "isPlaceholder": false
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M14",
+            "nextSlot": "team2"
+          }
+        ]
+      },
+      {
+        "name": "Semifinal",
+        "matches": [
+          {
+            "id": "M13",
+            "matchNumber": 13,
+            "roundIndex": 2,
+            "matchIndex": 0,
+            "title": "Match 13 • Semifinal 1",
+            "team1": {
+              "name": "Pemenang Match 9",
+              "isPlaceholder": true
+            },
+            "team2": {
+              "name": "Pemenang Match 10",
+              "isPlaceholder": true
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M16",
+            "nextSlot": "team1"
+          },
+          {
+            "id": "M14",
+            "matchNumber": 14,
+            "roundIndex": 2,
+            "matchIndex": 1,
+            "title": "Match 14 • Semifinal 2",
+            "team1": {
+              "name": "Pemenang Match 11",
+              "isPlaceholder": true
+            },
+            "team2": {
+              "name": "Pemenang Match 12",
+              "isPlaceholder": true
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": "M16",
+            "nextSlot": "team2"
+          }
+        ]
+      },
+      {
+        "name": "Final",
+        "matches": [
+          {
+            "id": "M16",
+            "matchNumber": 16,
+            "roundIndex": 3,
+            "matchIndex": 0,
+            "title": "Match 16 • FINAL",
+            "team1": {
+              "name": "Pemenang Match 13",
+              "isPlaceholder": true
+            },
+            "team2": {
+              "name": "Pemenang Match 14",
+              "isPlaceholder": true
+            },
+            "score1": null,
+            "score2": null,
+            "matchId": null,
+            "status": "WAITING",
+            "winnerTeamId": null,
+            "loserTeamId": null,
+            "nextMatchId": null
+          }
+        ]
+      }
+    ],
+    "thirdPlaceMatch": {
+      "id": "M15",
+      "matchNumber": 15,
+      "roundIndex": 3,
+      "matchIndex": 1,
+      "title": "Match 15 • Perebutan Juara 3",
+      "team1": {
+        "name": "Kalah Match 13",
+        "isPlaceholder": true
+      },
+      "team2": {
+        "name": "Kalah Match 14",
+        "isPlaceholder": true
+      },
+      "score1": null,
+      "score2": null,
+      "matchId": null,
+      "status": "WAITING",
+      "winnerTeamId": null,
+      "loserTeamId": null,
+      "nextMatchId": null
+    },
+    "champion": null,
+    "runnerUp": null,
+    "thirdPlaceWinner": null,
+    "updatedAt": "2026-09-20T14:10:40.231Z"
+  }
 }
