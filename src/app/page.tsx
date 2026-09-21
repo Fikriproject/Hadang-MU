@@ -1,18 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import ThemeToggle from '@/components/theme-toggle'
-
-interface MatchWithRelations {
-  id: string
-  name: string
-  round: string | null
-  scheduled_at: string | null
-  status: 'DRAFT' | 'READY' | 'LIVE' | 'PAUSED' | 'FINISHED'
-  created_at: string
-  team_attack: { id: string; name: string } | null
-  team_defense: { id: string; name: string } | null
-  score_events: { id: string; team_id: string; points: number; status: string }[]
-}
+import PublicMatchesView, { type MatchWithRelations } from './public-matches-view'
 
 export default async function HomePage() {
   const supabase = await createClient()
@@ -44,10 +33,6 @@ export default async function HomePage() {
     .order('created_at', { ascending: false })
 
   const matches = (rawMatches || []) as unknown as MatchWithRelations[]
-
-  const liveMatches = matches.filter((m) => m.status === 'LIVE' || m.status === 'PAUSED')
-  const upcomingMatches = matches.filter((m) => m.status === 'READY')
-  const finishedMatches = matches.filter((m) => m.status === 'FINISHED')
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--background)', color: 'var(--text-primary)' }}>
@@ -319,365 +304,71 @@ export default async function HomePage() {
 
       {/* Main Content Area */}
       <div className="container" style={{ padding: '3rem 1rem', display: 'flex', flexDirection: 'column', gap: '3rem' }}>
-        {/* LIVE MATCHES SECTION */}
-        <section id="live-matches">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-            <span
-              style={{
-                display: 'inline-block',
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                backgroundColor: '#22c55e',
-                boxShadow: '0 0 10px #22c55e',
-              }}
-            />
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Pertandingan Berjalan (Live)</h2>
-          </div>
-
-          {liveMatches.length === 0 ? (
-            <div
-              style={{
-                backgroundColor: 'var(--surface-color)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '10px',
-                padding: '2.5rem',
-                textAlign: 'center',
-              }}
-            >
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>⏳</div>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.25rem' }}>
-                Belum Ada Pertandingan yang Sedang Berlangsung
+        {/* LIVE & SCHEDULED & FINISHED MATCHES (Realtime Client Component) */}
+        <PublicMatchesView initialMatches={matches}>
+          {/* TOURNAMENT BRACKET PROMO BANNER */}
+          <section
+            style={{
+              backgroundColor: 'var(--surface-color)',
+              border: '1.5px solid rgba(234, 179, 8, 0.4)',
+              borderRadius: '12px',
+              padding: '1.75rem',
+              background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(37, 99, 235, 0.05) 100%)',
+              boxShadow: 'var(--card-shadow)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1.25rem',
+            }}
+          >
+            <div style={{ maxWidth: '600px' }}>
+              <span
+                style={{
+                  fontSize: '0.725rem',
+                  fontWeight: 800,
+                  color: '#CA8A04',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                  padding: '0.2rem 0.55rem',
+                  borderRadius: '9999px',
+                  display: 'inline-block',
+                  marginBottom: '0.5rem',
+                }}
+              >
+                🏆 SISTEM GUGUR TURNAMEN
+              </span>
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 900, margin: '0 0 0.35rem', color: 'var(--text-primary)' }}>
+                Bagan Pertandingan Kategori Putra & Putri
               </h3>
-              <p className="metadata-text">
-                Pertandingan yang dimulai akan otomatis tampil di sini dengan pembaruan skor langsung.
+              <p className="metadata-text" style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.5 }}>
+                Pantau seluruh bagan turnamen secara transparan: susunan tim, babak penyisihan, semifinal, perebutan juara 3, hingga partai final penentuan juara!
               </p>
             </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-              {liveMatches.map((m) => {
-                const activeEvents = m.score_events?.filter((e) => e.status === 'ACTIVE') || []
-                const tA = m.team_attack || { id: 'team-a', name: 'Tim 1' }
-                const tB = m.team_defense || { id: 'team-b', name: 'Tim 2' }
-                const [teamLeft, teamRight] = (m.round === tA.id || (m.round !== tB.id && tA.id < tB.id)) ? [tA, tB] : [tB, tA]
-                const isLeftAttacking = m.team_attack?.id === teamLeft.id
-                const scoreLeft = activeEvents.filter((e) => e.team_id === teamLeft.id).reduce((sum, e) => sum + e.points, 0)
-                const scoreRight = activeEvents.filter((e) => e.team_id === teamRight.id).reduce((sum, e) => sum + e.points, 0)
 
-                return (
-                  <div
-                    key={m.id}
-                    style={{
-                      backgroundColor: 'var(--surface-color)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '10px',
-                      padding: '1.5rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '1rem',
-                      boxShadow: 'var(--card-shadow)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span
-                        style={{
-                          backgroundColor: 'var(--success-subtle)',
-                          color: 'var(--success)',
-                          border: '1px solid var(--success)',
-                          padding: '0.25rem 0.65rem',
-                          borderRadius: '9999px',
-                          fontSize: '0.75rem',
-                          fontWeight: 800,
-                          letterSpacing: '0.05em',
-                        }}
-                      >
-                        {m.status === 'LIVE' ? '● LIVE' : 'PAUSED'}
-                      </span>
-                    </div>
-
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>{m.name}</h3>
-
-                    {/* Score preview with static Left & Right */}
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr auto 1fr',
-                        alignItems: 'center',
-                        backgroundColor: 'var(--card-inner-bg)',
-                        border: '1px solid var(--border-color)',
-                        padding: '1rem',
-                        borderRadius: '8px',
-                        gap: '0.5rem',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <div>
-                        {isLeftAttacking ? (
-                          <span style={{ fontSize: '0.65rem', color: 'var(--success)', fontWeight: 800, backgroundColor: 'var(--success-subtle)', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
-                            ⚡ SERANG
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                            BERTAHAN
-                          </span>
-                        )}
-                        <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.3rem', color: 'var(--text-primary)' }}>
-                          {teamLeft.name}
-                        </div>
-                        <div style={{ fontSize: '2rem', fontWeight: 900, color: isLeftAttacking ? 'var(--success)' : 'var(--text-primary)' }}>
-                          {scoreLeft}
-                        </div>
-                      </div>
-
-                      <div style={{ fontWeight: 800, color: 'var(--text-muted)', fontSize: '1.25rem' }}>VS</div>
-
-                      <div>
-                        {!isLeftAttacking ? (
-                          <span style={{ fontSize: '0.65rem', color: 'var(--success)', fontWeight: 800, backgroundColor: 'var(--success-subtle)', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
-                            ⚡ SERANG
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                            BERTAHAN
-                          </span>
-                        )}
-                        <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.3rem', color: 'var(--text-primary)' }}>
-                          {teamRight.name}
-                        </div>
-                        <div style={{ fontSize: '2rem', fontWeight: 900, color: !isLeftAttacking ? 'var(--success)' : 'var(--text-primary)' }}>
-                          {scoreRight}
-                        </div>
-                      </div>
-                    </div>
-
-                    <Link
-                      href={`/tv/${m.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        backgroundColor: 'var(--primary)',
-                        color: 'white',
-                        padding: '0.75rem',
-                        borderRadius: '6px',
-                        textAlign: 'center',
-                        fontWeight: 700,
-                        fontSize: '0.9375rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.5rem',
-                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
-                      }}
-                    >
-                      📺 Buka Papan Skor TV (Fullscreen) →
-                    </Link>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* TOURNAMENT BRACKET PROMO BANNER */}
-        <section
-          style={{
-            backgroundColor: 'var(--surface-color)',
-            border: '1.5px solid rgba(234, 179, 8, 0.4)',
-            borderRadius: '12px',
-            padding: '1.75rem',
-            background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(37, 99, 235, 0.05) 100%)',
-            boxShadow: 'var(--card-shadow)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '1.25rem',
-          }}
-        >
-          <div style={{ maxWidth: '600px' }}>
-            <span
+            <Link
+              href="/bracket"
               style={{
-                fontSize: '0.725rem',
+                backgroundColor: '#EAB308',
+                color: '#000',
+                padding: '0.85rem 1.35rem',
+                borderRadius: '8px',
                 fontWeight: 800,
-                color: '#CA8A04',
-                letterSpacing: '0.05em',
-                textTransform: 'uppercase',
-                backgroundColor: 'rgba(234, 179, 8, 0.15)',
-                padding: '0.2rem 0.55rem',
-                borderRadius: '9999px',
-                display: 'inline-block',
-                marginBottom: '0.5rem',
+                fontSize: '0.95rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                textDecoration: 'none',
+                boxShadow: '0 4px 14px rgba(234, 179, 8, 0.35)',
+                flexShrink: 0,
               }}
             >
-              🏆 SISTEM GUGUR TURNAMEN
-            </span>
-            <h3 style={{ fontSize: '1.35rem', fontWeight: 900, margin: '0 0 0.35rem', color: 'var(--text-primary)' }}>
-              Bagan Pertandingan Kategori Putra & Putri
-            </h3>
-            <p className="metadata-text" style={{ margin: 0, fontSize: '0.875rem', lineHeight: 1.5 }}>
-              Pantau seluruh bagan turnamen secara transparan: susunan tim, babak penyisihan, semifinal, perebutan juara 3, hingga partai final penentuan juara!
-            </p>
-          </div>
-
-          <Link
-            href="/bracket"
-            style={{
-              backgroundColor: '#EAB308',
-              color: '#000',
-              padding: '0.85rem 1.35rem',
-              borderRadius: '8px',
-              fontWeight: 800,
-              fontSize: '0.95rem',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              textDecoration: 'none',
-              boxShadow: '0 4px 14px rgba(234, 179, 8, 0.35)',
-              flexShrink: 0,
-            }}
-          >
-            <span>Buka Bagan Turnamen</span>
-            <span>→</span>
-          </Link>
-        </section>
-
-        {/* UPCOMING & PAST MATCHES */}
-        <section id="jadwal-hasil" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-          {/* Upcoming */}
-          <div
-            style={{
-              backgroundColor: 'var(--surface-color)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '10px',
-              padding: '1.5rem',
-            }}
-          >
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 800, marginBottom: '1rem' }}>
-              Jadwal Siap Tanding ({upcomingMatches.length})
-            </h3>
-            {upcomingMatches.length === 0 ? (
-              <p className="metadata-text">Tidak ada jadwal tanding yang menunggu.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {upcomingMatches.map((m) => (
-                  <div
-                    key={m.id}
-                    style={{
-                      backgroundColor: 'var(--surface-subtle)',
-                      border: '1px solid var(--border-color)',
-                      padding: '0.875rem',
-                      borderRadius: '6px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.9375rem' }}>{m.name}</div>
-                      <div className="metadata-text" style={{ fontSize: '0.8125rem' }}>
-                        {m.team_attack?.name} vs {m.team_defense?.name}
-                      </div>
-                      {m.scheduled_at && (
-                        <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, marginTop: '0.2rem' }}>
-                          📅 {new Intl.DateTimeFormat('id-ID', {
-                            weekday: 'long',
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          }).format(new Date(m.scheduled_at)).replace(/\./g, ':')} WIB
-                        </div>
-                      )}
-                    </div>
-                    <span
-                      style={{
-                        backgroundColor: 'rgba(37, 99, 235, 0.15)',
-                        color: '#60a5fa',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        padding: '0.2rem 0.5rem',
-                        borderRadius: '4px',
-                      }}
-                    >
-                      READY
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Finished Results */}
-          <div
-            style={{
-              backgroundColor: 'var(--surface-color)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '10px',
-              padding: '1.5rem',
-              boxShadow: 'var(--card-shadow)',
-            }}
-          >
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-primary)' }}>
-              Hasil Pertandingan Selesai ({finishedMatches.length})
-            </h3>
-            {finishedMatches.length === 0 ? (
-              <p className="metadata-text">Belum ada pertandingan yang selesai.</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {finishedMatches.map((m) => {
-                  const activeEvents = m.score_events?.filter((e) => e.status === 'ACTIVE') || []
-                  const attackScore = activeEvents
-                    .filter((e) => e.team_id === m.team_attack?.id)
-                    .reduce((sum, e) => sum + e.points, 0)
-                  const defenseScore = activeEvents
-                    .filter((e) => e.team_id === m.team_defense?.id)
-                    .reduce((sum, e) => sum + e.points, 0)
-
-                  return (
-                    <div
-                      key={m.id}
-                      style={{
-                        backgroundColor: 'var(--card-inner-bg)',
-                        border: '1px solid var(--border-color)',
-                        padding: '0.875rem',
-                        borderRadius: '6px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>{m.name}</div>
-                        <div className="metadata-text" style={{ fontSize: '0.8125rem' }}>
-                          {m.team_attack?.name} vs {m.team_defense?.name}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontWeight: 800, fontSize: '1.125rem', color: 'var(--text-primary)' }}>
-                          {attackScore} - {defenseScore}
-                        </span>
-                        <span
-                          style={{
-                            backgroundColor: 'var(--badge-neutral-bg)',
-                            color: 'var(--badge-neutral-text)',
-                            border: '1px solid var(--border-color)',
-                            fontSize: '0.7rem',
-                            fontWeight: 700,
-                            padding: '0.2rem 0.4rem',
-                            borderRadius: '4px',
-                          }}
-                        >
-                          FINAL
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </section>
+              <span>Buka Bagan Turnamen</span>
+              <span>→</span>
+            </Link>
+          </section>
+        </PublicMatchesView>
 
         {/* Rules & Guide Section */}
         <section
