@@ -278,9 +278,16 @@ export async function cancelScoreEvent(eventId: string, matchId: string, reason?
   return { success: true }
 }
 
-export async function manualAddScore(matchId: string, teamId: string, points: number = 1) {
+export async function manualAddScore(
+  matchId: string,
+  teamId: string,
+  points: number = 1,
+  clientEventId?: string
+) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   if (!user) {
     return { error: 'Sesi login tidak valid.' }
@@ -297,23 +304,28 @@ export async function manualAddScore(matchId: string, teamId: string, points: nu
 
   const isAttacking = match?.team_attack_id === teamId
 
-  const { error } = await adminClient.from('score_events').insert({
+  const insertData: Record<string, any> = {
     match_id: matchId,
     team_id: teamId,
     jury_id: user.id,
     event_type: isAttacking ? 'MANUAL_ATTACK_POINT' : 'MANUAL_DEFENSE_POINT',
     points: points,
     status: 'ACTIVE',
-  })
+  }
+
+  if (clientEventId) {
+    insertData.id = clientEventId
+  }
+
+  const { data: newEvent, error } = await adminClient
+    .from('score_events')
+    .insert(insertData)
+    .select('id')
+    .single()
 
   if (error) {
     return { error: error.message }
   }
 
-  revalidatePath('/admin')
-  revalidatePath(`/admin/matches/${matchId}`)
-  revalidatePath('/jury')
-  revalidatePath(`/jury/matches/${matchId}`)
-  revalidatePath(`/tv/${matchId}`)
-  return { success: true }
+  return { success: true, eventId: newEvent?.id }
 }

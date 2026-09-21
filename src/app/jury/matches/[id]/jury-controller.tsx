@@ -74,9 +74,21 @@ export default function JuryController({
   const [isButtonActive, setIsButtonActive] = useState(false)
 
   // Resilient synchronization refs to prevent UI flicker ("ejlek") & double counting
-  const pendingOptimisticIds = useRef<Set<string>>(new Set())
+  const inFlightUuids = useRef<Set<string>>(new Set())
   const lastAttackerToggleTimeRef = useRef<number>(0)
   const targetAttackerIdRef = useRef<string | null>(null)
+
+  // Safe client UUID generator for zero-latency concurrent scores
+  const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID()
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0
+      const v = c === 'x' ? r : (r & 0x3) | 0x8
+      return v.toString(16)
+    })
+  }
 
   // Deterministic Left & Right teams: positions NEVER swap on screen
   const { teamLeft, teamRight } = useMemo(() => {
@@ -153,23 +165,8 @@ export default function JuryController({
           if (payload.eventType === 'INSERT') {
             const newEvent = payload.new as ScoreEvent
             setScoreEvents((prev) => {
-              // Deduplication check: if real ID already present, do nothing
+              // Deduplication check: if real ID already present (e.g. from local optimistic tap), do nothing
               if (prev.some((e) => e.id === newEvent.id)) return prev
-
-              // If this score event was made by current jury, reconcile with pending optimistic item
-              if (newEvent.jury_id === currentUserId) {
-                const optIndex = prev.findIndex(
-                  (e) => e.id.startsWith('opt-') && e.team_id === newEvent.team_id
-                )
-                if (optIndex !== -1) {
-                  const next = [...prev]
-                  const optId = next[optIndex].id
-                  pendingOptimisticIds.current.delete(optId)
-                  next[optIndex] = newEvent
-                  return next
-                }
-              }
-
               return [newEvent, ...prev]
             })
           } else if (payload.eventType === 'UPDATE') {
@@ -195,34 +192,21 @@ export default function JuryController({
           .eq('match_id', matchId)
           .order('created_at', { ascending: false })
 
-        if (latestEvents && latestEvents.length > 0) {
+        if (latestEvents) {
           setScoreEvents((prev) => {
-            // Keep pending optimistic events so polling never drops them
-            const pendingLocals = prev.filter((e) => e.id.startsWith('opt-'))
-            if (pendingLocals.length > 0) {
-              const remoteUpdated = latestEvents as ScoreEvent[]
-              return [
-                ...pendingLocals,
-                ...remoteUpdated.filter(
-                  (r) =>
-                    !pendingLocals.some(
-                      (p) =>
-                        p.team_id === r.team_id &&
-                        p.jury_id === r.jury_id &&
-                        Math.abs(new Date(p.created_at).getTime() - new Date(r.created_at).getTime()) < 4000
-                    )
-                ),
-              ]
-            }
+            // Keep any local optimistic event that is currently in-flight and not yet in latestEvents
+            const inFlightEvents = prev.filter(
+              (e) => inFlightUuids.current.has(e.id) && !latestEvents.some((r: any) => r.id === e.id)
+            )
 
-            if (
-              prev.length === latestEvents.length &&
-              prev[0]?.id === latestEvents[0]?.id &&
-              prev[0]?.status === latestEvents[0]?.status
-            ) {
-              return prev
-            }
-            return latestEvents as any
+            const merged = [...inFlightEvents, ...(latestEvents as ScoreEvent[])]
+
+            const isSame =
+              prev.length === merged.length &&
+              merged.every((m, i) => prev[i] && prev[i].id === m.id && prev[i].status === m.status)
+
+            if (isSame) return prev
+            return merged
           })
         }
 
@@ -344,11 +328,13 @@ export default function JuryController({
     const sRight = active
       .filter((e) => e.team_id === teamRight.id)
       .reduce((sum, e) => sum + e.points, 0)
+    const isBelakang = (e: ScoreEvent) => Boolean(match.jury_2_id && e.jury_id === match.jury_2_id)
+    const isDepan = (e: ScoreEvent) => (match.jury_1_id ? e.jury_id === match.jury_1_id : !isBelakang(e))
     const pJ1 = active
-      .filter((e) => e.jury_id === match.jury_1_id)
+      .filter(isDepan)
       .reduce((sum, e) => sum + e.points, 0)
     const pJ2 = active
-      .filter((e) => e.jury_id === match.jury_2_id)
+      .filter(isBelakang)
       .reduce((sum, e) => sum + e.points, 0)
     const myActive = active.filter((e) => e.jury_id === currentUserId)
     return {
@@ -436,13 +422,13 @@ export default function JuryController({
     setIsButtonActive(true)
     setTimeout(() => setIsButtonActive(false), 120)
 
-    const tempId = `opt-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`
+    const eventId = generateUUID()
     const attackingId = match.team_attack_id
 
-    pendingOptimisticIds.current.add(tempId)
+    inFlightUuids.current.add(eventId)
 
     const optimisticEvent: ScoreEvent = {
-      id: tempId,
+      id: eventId,
       match_id: match.id,
       team_id: attackingId,
       jury_id: currentUserId,
@@ -456,22 +442,12 @@ export default function JuryController({
     setScoreEvents((prev) => [optimisticEvent, ...prev])
     setToastMessage({ text: `+1 Poin untuk ${attackingTeamName}!`, type: 'success' })
 
-    // Send explicitly selected attacking team to server to eliminate any race condition
-    addJuryScore(match.id, attackingId).then((res) => {
+    // Send explicitly selected attacking team to server with deterministic UUID
+    addJuryScore(match.id, attackingId, eventId).then((res) => {
+      inFlightUuids.current.delete(eventId)
       if (res?.error) {
-        pendingOptimisticIds.current.delete(tempId)
-        setScoreEvents((prev) => prev.filter((e) => e.id !== tempId))
+        setScoreEvents((prev) => prev.filter((e) => e.id !== eventId))
         setToastMessage({ text: res.error, type: 'error' })
-      } else if (res?.eventId) {
-        pendingOptimisticIds.current.delete(tempId)
-        setScoreEvents((prev) => {
-          // If the real event already arrived via Realtime WebSocket:
-          if (prev.some((e) => e.id === res.eventId)) {
-            return prev.filter((e) => e.id !== tempId)
-          }
-          // Otherwise, seamlessly promote temp ID to server event ID
-          return prev.map((e) => (e.id === tempId ? { ...e, id: res.eventId } : e))
-        })
       }
     })
   }
@@ -497,7 +473,7 @@ export default function JuryController({
     )
     setToastMessage({ text: `Poin berhasil dibatalkan (${reason})`, type: 'success' })
 
-    const res = await cancelRecentScore(match.id, reason)
+    const res = await cancelRecentScore(match.id, reason, targetEvent.id)
     if (res?.error) {
       setScoreEvents((prev) =>
         prev.map((e) => (e.id === targetEvent.id ? { ...e, status: 'ACTIVE' } : e))

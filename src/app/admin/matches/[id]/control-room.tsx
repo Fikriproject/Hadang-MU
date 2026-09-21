@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useTransition, useMemo } from 'react'
+import React, { useState, useEffect, useTransition, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -78,6 +78,21 @@ export default function ControlRoom({
   const [isPending, startTransition] = useTransition()
   const [actionError, setActionError] = useState<string | null>(null)
 
+  const matchRef = useRef<MatchData>(match)
+  matchRef.current = match
+
+  // Safe client UUID generator for instant optimistic scores
+  const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID()
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0
+      const v = c === 'x' ? r : (r & 0x3) | 0x8
+      return v.toString(16)
+    })
+  }
+
   // Deterministic Left & Right teams: positions NEVER swap or flip on screen
   const { teamLeft, teamRight } = useMemo(() => {
     const tA = initialMatch.team_attack || { id: initialMatch.team_attack_id, name: 'Tim 1' }
@@ -130,9 +145,13 @@ export default function ControlRoom({
         (payload: any) => {
           if (payload.eventType === 'INSERT') {
             const newEvent = payload.new as ScoreEvent
+            const currentMatch = matchRef.current
             let juryName: string | undefined
-            if (newEvent.jury_id === initialMatch.jury_1_id) juryName = formatJuryDisplayName(initialMatch.jury_1?.name)
-            else if (newEvent.jury_id === initialMatch.jury_2_id) juryName = formatJuryDisplayName(initialMatch.jury_2?.name)
+            if (newEvent.jury_id === currentMatch.jury_1_id) {
+              juryName = formatJuryDisplayName(currentMatch.jury_1?.name)
+            } else if (newEvent.jury_id === currentMatch.jury_2_id) {
+              juryName = formatJuryDisplayName(currentMatch.jury_2?.name)
+            }
 
             setScoreEvents((prev) => {
               if (prev.some((e) => e.id === newEvent.id)) return prev
@@ -157,15 +176,14 @@ export default function ControlRoom({
       const [resMatch, resEvents] = await Promise.all([
         supabase
           .from('matches')
-          .select('id, status, started_at, finished_at, updated_at, scheduled_at, team_attack_id, team_defense_id, round')
+          .select('id, status, started_at, finished_at, updated_at, scheduled_at, team_attack_id, team_defense_id, round, jury_1_id, jury_2_id, jury_1:jury_1_id(id, name), jury_2:jury_2_id(id, name)')
           .eq('id', matchId)
           .single(),
         supabase
           .from('score_events')
-          .select('id, team_id, event_type, points, status, created_at, cancelled_at, cancel_reason, jury_id')
+          .select('id, team_id, event_type, points, status, created_at, cancelled_at, cancel_reason, jury_id, jury:jury_id(name)')
           .eq('match_id', matchId)
-          .order('created_at', { ascending: false })
-          .limit(50),
+          .order('created_at', { ascending: false }),
       ])
 
       if (resMatch.data) {
@@ -178,6 +196,11 @@ export default function ControlRoom({
           scheduled_at: resMatch.data.scheduled_at,
           team_attack_id: resMatch.data.team_attack_id,
           team_defense_id: resMatch.data.team_defense_id,
+          round: resMatch.data.round,
+          jury_1_id: resMatch.data.jury_1_id || prev.jury_1_id,
+          jury_2_id: resMatch.data.jury_2_id || prev.jury_2_id,
+          jury_1: (resMatch.data as any).jury_1 || prev.jury_1,
+          jury_2: (resMatch.data as any).jury_2 || prev.jury_2,
         }))
       }
 
@@ -190,10 +213,16 @@ export default function ControlRoom({
 
           if (isSame) return prev
 
+          const currentMatch = matchRef.current
           return remoteEvents.map((rem) => {
-            let juryName: string | undefined
-            if (rem.jury_id === initialMatch.jury_1_id) juryName = formatJuryDisplayName(initialMatch.jury_1?.name)
-            else if (rem.jury_id === initialMatch.jury_2_id) juryName = formatJuryDisplayName(initialMatch.jury_2?.name)
+            let juryName = rem.jury?.name
+            if (!juryName) {
+              if (rem.jury_id === currentMatch.jury_1_id) {
+                juryName = formatJuryDisplayName(currentMatch.jury_1?.name)
+              } else if (rem.jury_id === currentMatch.jury_2_id) {
+                juryName = formatJuryDisplayName(currentMatch.jury_2?.name)
+              }
+            }
             return {
               ...rem,
               jury: juryName ? { name: juryName } : null,
@@ -207,7 +236,7 @@ export default function ControlRoom({
       supabase.removeChannel(channel)
       clearInterval(pollInterval)
     }
-  }, [initialMatch.id, initialMatch.jury_1?.name, initialMatch.jury_1_id, initialMatch.jury_2?.name, initialMatch.jury_2_id])
+  }, [initialMatch.id])
 
   // Active attacking team state
   const isLeftAttacking = match.team_attack_id === teamLeft.id
@@ -235,14 +264,14 @@ export default function ControlRoom({
       .filter((e) => e.team_id === teamRight.id)
       .reduce((sum, e) => sum + e.points, 0)
 
-    const isBelakang = (e: ScoreEvent) => e.jury_id === match.jury_2_id
+    const isBelakang = (e: ScoreEvent) => Boolean(match.jury_2_id && e.jury_id === match.jury_2_id)
     const isDepan = (e: ScoreEvent) => (match.jury_1_id ? e.jury_id === match.jury_1_id : !isBelakang(e))
 
     const pJ1 = active
-      .filter((e) => e.jury_id === match.jury_1_id)
+      .filter(isDepan)
       .reduce((sum, e) => sum + e.points, 0)
     const pJ2 = active
-      .filter((e) => e.jury_id === match.jury_2_id)
+      .filter(isBelakang)
       .reduce((sum, e) => sum + e.points, 0)
 
     const j1ScoreLeft = active
@@ -373,14 +402,15 @@ export default function ControlRoom({
 
       // Skor Depan: match.jury_1_id (Scoring 1)
       // Skor Belakang: match.jury_2_id (Scoring 2)
-      const isBelakang = (e: ScoreEvent) => e.jury_id === match.jury_2_id
+      const isBelakang = (e: ScoreEvent) => Boolean(match.jury_2_id && e.jury_id === match.jury_2_id)
+      const isDepan = (e: ScoreEvent) => (match.jury_1_id ? e.jury_id === match.jury_1_id : !isBelakang(e))
 
       const b1Belakang = b1Events.filter(isBelakang).reduce((sum, e) => sum + e.points, 0)
-      const b1Depan = b1Events.filter((e) => !isBelakang(e)).reduce((sum, e) => sum + e.points, 0)
+      const b1Depan = b1Events.filter(isDepan).reduce((sum, e) => sum + e.points, 0)
       const b1Total = b1Depan + b1Belakang
 
       const b2Belakang = b2Events.filter(isBelakang).reduce((sum, e) => sum + e.points, 0)
-      const b2Depan = b2Events.filter((e) => !isBelakang(e)).reduce((sum, e) => sum + e.points, 0)
+      const b2Depan = b2Events.filter(isDepan).reduce((sum, e) => sum + e.points, 0)
       const b2Total = b2Depan + b2Belakang
 
       const totalAkhir = b1Total + b2Total
@@ -527,9 +557,23 @@ export default function ControlRoom({
 
   const handleManualAddScore = (teamId: string) => {
     setActionError(null)
+    const eventId = generateUUID()
+    const isAttacking = match.team_attack_id === teamId
+    const optimisticEvent: ScoreEvent = {
+      id: eventId,
+      team_id: teamId,
+      event_type: isAttacking ? 'MANUAL_ATTACK_POINT' : 'MANUAL_DEFENSE_POINT',
+      points: 1,
+      status: 'ACTIVE',
+      created_at: new Date().toISOString(),
+      jury: { name: 'Admin/Sistem' },
+    }
+    setScoreEvents((prev) => [optimisticEvent, ...prev])
+
     startTransition(async () => {
-      const res = await manualAddScore(match.id, teamId)
+      const res = await manualAddScore(match.id, teamId, 1, eventId)
       if (res?.error) {
+        setScoreEvents((prev) => prev.filter((e) => e.id !== eventId))
         setActionError(res.error)
       }
     })
