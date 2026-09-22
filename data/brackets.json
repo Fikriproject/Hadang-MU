@@ -26,14 +26,15 @@
               "name": "SMAN 3 Cikarang Utara",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "READY",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 7,
+            "score2": 68,
+            "matchId": "8216f42e-f8c3-4faf-8028-94a42755c3dd",
+            "status": "FINISHED",
+            "winnerTeamId": "31adf437-93ea-4ce5-b272-83f82c8fc81c",
+            "loserTeamId": "66909de3-2f15-4ad2-99b6-fbc22b708a13",
             "nextMatchId": "M9",
-            "nextSlot": "team1"
+            "nextSlot": "team1",
+            "isTieBreak": false
           },
           {
             "id": "M2",
@@ -76,14 +77,15 @@
               "name": "SMAN 1 Jamblang",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "READY",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 11,
+            "score2": 56,
+            "matchId": "82f5007c-eb63-4ee7-9e97-092e8c278edf",
+            "status": "FINISHED",
+            "winnerTeamId": "757e1c0b-6ae7-45f3-bc3b-4a80aa277d6b",
+            "loserTeamId": "683e55b4-98a3-423a-8421-9ae9b10a94f4",
             "nextMatchId": "M10",
-            "nextSlot": "team1"
+            "nextSlot": "team1",
+            "isTieBreak": false
           },
           {
             "id": "M4",
@@ -126,14 +128,15 @@
               "name": "SMAN 1 Mandirancan",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "READY",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 9,
+            "score2": 11,
+            "matchId": "ff39a722-37ba-44ee-b4cd-fc20f8dd4687",
+            "status": "FINISHED",
+            "winnerTeamId": "cbfa2bda-d2e1-4970-97af-1abe04104f6e",
+            "loserTeamId": "e9cb68d2-c7bb-4513-8290-114fb3bf155c",
             "nextMatchId": "M11",
-            "nextSlot": "team1"
+            "nextSlot": "team1",
+            "isTieBreak": false
           },
           {
             "id": "M6",
@@ -176,14 +179,15 @@
               "name": "DISBUDPORA Kab. Bekasi",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "READY",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 0,
+            "score2": 59,
+            "matchId": "23a5f7e6-ccb8-4c07-a062-e9e661680395",
+            "status": "FINISHED",
+            "winnerTeamId": "a7dbca44-e1dc-4790-a49c-acf54996e276",
+            "loserTeamId": "cdcc434c-2d47-4024-9700-e0a41c2c9a04",
             "nextMatchId": "M12",
-            "nextSlot": "team1"
+            "nextSlot": "team1",
+            "isTieBreak": false
           },
           {
             "id": "M8",
@@ -222,22 +226,24 @@
             "matchIndex": 0,
             "title": "Match 9 • Perempat Final 1",
             "team1": {
-              "name": "Pemenang Match 1",
-              "isPlaceholder": true
+              "id": "31adf437-93ea-4ce5-b272-83f82c8fc81c",
+              "name": "SMAN 3 Cikarang Utara",
+              "isPlaceholder": false
             },
             "team2": {
               "id": "2e43d188-6194-4c76-abc0-9853e7bef6ad",
               "name": "SMAN 4 Cirebon",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 36,
+            "score2": 15,
+            "matchId": "96bb0140-412b-4385-a07b-8c22b82f0830",
+            "status": "FINISHED",
+            "winnerTeamId": "31adf437-93ea-4ce5-b272-83f82c8fc81c",
+            "loserTeamId": "2e43d188-6194-4c76-abc0-9853e7bef6ad",
             "nextMatchId": "M13",
-            "nextSlot": "team1"
+            "nextSlot": "team1",
+            "isTieBreak": false
           },
           {
             "id": "M10",
@@ -246,22 +252,24 @@
             "matchIndex": 1,
             "title": "Match 10 • Perempat Final 2",
             "team1": {
-              "name": "Pemenang Match 3",
-              "isPlaceholder": true
+              "id": "757e1c0b-6ae7-45f3-bc3b-4a80aa277d6b",
+              "name": "SMAN 1 Jamblang",
+              "isPlaceholder": false
             },
             "team2": {
               "id": "e94f421c-200a-4e94-a42e-5438a77f576a",
               "name": "SMKF MU Cirebon",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 44,
+            "score2": 12,
+            "matchId": "c6edffa6-3f16-4fc3-add5-fff413639745",
+            "status": "FINISHED",
+            "winnerTeamId": "757e1c0b-6ae7-45f3-bc3b-4a80aa277d6b",
+            "loserTeamId": "e94f421c-200a-4e94-a42e-5438a77f576a",
             "nextMatchId": "M13",
-            "nextSlot": "team2"
+            "nextSlot": "team2",
+            "isTieBreak": false
           },
           {
             "id": "M11",
@@ -270,22 +278,24 @@
             "matchIndex": 2,
             "title": "Match 11 • Perempat Final 3",
             "team1": {
-              "name": "Pemenang Match 5",
-              "isPlaceholder": true
+              "id": "cbfa2bda-d2e1-4970-97af-1abe04104f6e",
+              "name": "SMAN 1 Mandirancan",
+              "isPlaceholder": false
             },
             "team2": {
               "id": "57fd179b-5498-4f89-b258-0a72faca8ae2",
               "name": "MAN 1 Kota Cirebon",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 24,
+            "score2": 38,
+            "matchId": "0295233d-9e80-4ef6-9ed8-208b3f876dda",
+            "status": "FINISHED",
+            "winnerTeamId": "57fd179b-5498-4f89-b258-0a72faca8ae2",
+            "loserTeamId": "cbfa2bda-d2e1-4970-97af-1abe04104f6e",
             "nextMatchId": "M14",
-            "nextSlot": "team1"
+            "nextSlot": "team1",
+            "isTieBreak": false
           },
           {
             "id": "M12",
@@ -294,22 +304,24 @@
             "matchIndex": 3,
             "title": "Match 12 • Perempat Final 4",
             "team1": {
-              "name": "Pemenang Match 7",
-              "isPlaceholder": true
+              "id": "a7dbca44-e1dc-4790-a49c-acf54996e276",
+              "name": "DISBUDPORA Kab. Bekasi",
+              "isPlaceholder": false
             },
             "team2": {
               "id": "3077f26b-42b2-4848-827f-b7d2798f9b30",
               "name": "SMA Telkom Sekar Kemuning",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 103,
+            "score2": 7,
+            "matchId": "2e140a00-a426-428a-85f2-71e64480c508",
+            "status": "FINISHED",
+            "winnerTeamId": "a7dbca44-e1dc-4790-a49c-acf54996e276",
+            "loserTeamId": "3077f26b-42b2-4848-827f-b7d2798f9b30",
             "nextMatchId": "M14",
-            "nextSlot": "team2"
+            "nextSlot": "team2",
+            "isTieBreak": false
           }
         ]
       },
@@ -323,17 +335,19 @@
             "matchIndex": 0,
             "title": "Match 13 • Semifinal 1",
             "team1": {
-              "name": "Pemenang Match 9",
-              "isPlaceholder": true
+              "id": "31adf437-93ea-4ce5-b272-83f82c8fc81c",
+              "name": "SMAN 3 Cikarang Utara",
+              "isPlaceholder": false
             },
             "team2": {
-              "name": "Pemenang Match 10",
-              "isPlaceholder": true
+              "id": "757e1c0b-6ae7-45f3-bc3b-4a80aa277d6b",
+              "name": "SMAN 1 Jamblang",
+              "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
+            "score1": 32,
+            "score2": 16,
+            "matchId": "f21b5df4-4ed9-40e9-beb3-a347f657c33a",
+            "status": "PAUSED",
             "winnerTeamId": null,
             "loserTeamId": null,
             "nextMatchId": "M16",
@@ -346,17 +360,19 @@
             "matchIndex": 1,
             "title": "Match 14 • Semifinal 2",
             "team1": {
-              "name": "Pemenang Match 11",
-              "isPlaceholder": true
+              "id": "57fd179b-5498-4f89-b258-0a72faca8ae2",
+              "name": "MAN 1 Kota Cirebon",
+              "isPlaceholder": false
             },
             "team2": {
-              "name": "Pemenang Match 12",
-              "isPlaceholder": true
+              "id": "a7dbca44-e1dc-4790-a49c-acf54996e276",
+              "name": "DISBUDPORA Kab. Bekasi",
+              "isPlaceholder": false
             },
             "score1": null,
             "score2": null,
             "matchId": null,
-            "status": "WAITING",
+            "status": "READY",
             "winnerTeamId": null,
             "loserTeamId": null,
             "nextMatchId": "M16",
@@ -417,7 +433,7 @@
     "champion": null,
     "runnerUp": null,
     "thirdPlaceWinner": null,
-    "updatedAt": "2026-09-20T14:10:40.228Z"
+    "updatedAt": "2026-09-22T01:16:18.506Z"
   },
   "PUTRI": {
     "category": "PUTRI",
@@ -446,14 +462,15 @@
               "name": "SMAN 1 Pabedilan",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "READY",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 16,
+            "score2": 20,
+            "matchId": "1a1c5689-9762-433d-81fb-4e77c267923e",
+            "status": "FINISHED",
+            "winnerTeamId": "4baeff89-5a9a-43be-ba58-9da01ab802d9",
+            "loserTeamId": "88e7be82-f0cd-4c3b-a161-01f234731245",
             "nextMatchId": "M9",
-            "nextSlot": "team1"
+            "nextSlot": "team1",
+            "isTieBreak": false
           },
           {
             "id": "M2",
@@ -596,14 +613,15 @@
               "name": "SMAN 5 Kota Cirebon",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "READY",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 67,
+            "score2": 1,
+            "matchId": "74f73cf5-b993-438b-a198-30eafe162e6d",
+            "status": "FINISHED",
+            "winnerTeamId": "82e7f907-c0c5-42fa-95ba-67aff9939fa7",
+            "loserTeamId": "eb510407-27ec-439c-a29d-bb3af14de6c9",
             "nextMatchId": "M12",
-            "nextSlot": "team1"
+            "nextSlot": "team1",
+            "isTieBreak": false
           },
           {
             "id": "M8",
@@ -642,22 +660,24 @@
             "matchIndex": 0,
             "title": "Match 9 • Perempat Final 1",
             "team1": {
-              "name": "Pemenang Match 1",
-              "isPlaceholder": true
+              "id": "4baeff89-5a9a-43be-ba58-9da01ab802d9",
+              "name": "SMAN 1 Pabedilan",
+              "isPlaceholder": false
             },
             "team2": {
               "id": "98db0d2f-0b17-4b96-ae08-ac718e188c79",
               "name": "SMAN 4 Cirebon",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 20,
+            "score2": 31,
+            "matchId": "5c2597d9-5f00-4af4-86b5-9223752a5097",
+            "status": "FINISHED",
+            "winnerTeamId": "98db0d2f-0b17-4b96-ae08-ac718e188c79",
+            "loserTeamId": "4baeff89-5a9a-43be-ba58-9da01ab802d9",
             "nextMatchId": "M13",
-            "nextSlot": "team1"
+            "nextSlot": "team1",
+            "isTieBreak": false
           },
           {
             "id": "M10",
@@ -675,14 +695,15 @@
               "name": "SMAN 1 Gegesik",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "READY",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 34,
+            "score2": 10,
+            "matchId": "0e2ea63f-ed6d-4ddf-9412-7c25766ad1e7",
+            "status": "FINISHED",
+            "winnerTeamId": "0adbb30f-b053-44b9-ab9a-b3cbcfbd9267",
+            "loserTeamId": "9568f711-dede-4744-bfa6-a340ffe061f2",
             "nextMatchId": "M13",
-            "nextSlot": "team2"
+            "nextSlot": "team2",
+            "isTieBreak": false
           },
           {
             "id": "M11",
@@ -700,14 +721,15 @@
               "name": "SMAN 1 Jamblang",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "READY",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 6,
+            "score2": 23,
+            "matchId": "e6f7a309-c665-468a-ab10-ff60b05a6d16",
+            "status": "FINISHED",
+            "winnerTeamId": "bcce9e4b-7ffe-4914-a16c-198dd2fbdab9",
+            "loserTeamId": "b4e41bac-ce87-493b-b0de-38fbddd8d80c",
             "nextMatchId": "M14",
-            "nextSlot": "team1"
+            "nextSlot": "team1",
+            "isTieBreak": false
           },
           {
             "id": "M12",
@@ -716,22 +738,24 @@
             "matchIndex": 3,
             "title": "Match 12 • Perempat Final 4",
             "team1": {
-              "name": "Pemenang Match 7",
-              "isPlaceholder": true
+              "id": "82e7f907-c0c5-42fa-95ba-67aff9939fa7",
+              "name": "SMKF MU 2 Kedawung",
+              "isPlaceholder": false
             },
             "team2": {
               "id": "468dd409-b3b2-434a-b1e1-53408b9b0936",
               "name": "SMA Telkom Sekar Kemuning",
               "isPlaceholder": false
             },
-            "score1": null,
-            "score2": null,
-            "matchId": null,
-            "status": "WAITING",
-            "winnerTeamId": null,
-            "loserTeamId": null,
+            "score1": 28,
+            "score2": 14,
+            "matchId": "b4348168-90bb-4ae9-b246-3b84a59a88b1",
+            "status": "FINISHED",
+            "winnerTeamId": "82e7f907-c0c5-42fa-95ba-67aff9939fa7",
+            "loserTeamId": "468dd409-b3b2-434a-b1e1-53408b9b0936",
             "nextMatchId": "M14",
-            "nextSlot": "team2"
+            "nextSlot": "team2",
+            "isTieBreak": false
           }
         ]
       },
@@ -745,17 +769,19 @@
             "matchIndex": 0,
             "title": "Match 13 • Semifinal 1",
             "team1": {
-              "name": "Pemenang Match 9",
-              "isPlaceholder": true
+              "id": "98db0d2f-0b17-4b96-ae08-ac718e188c79",
+              "name": "SMAN 4 Cirebon",
+              "isPlaceholder": false
             },
             "team2": {
-              "name": "Pemenang Match 10",
-              "isPlaceholder": true
+              "id": "0adbb30f-b053-44b9-ab9a-b3cbcfbd9267",
+              "name": "SMAN 1 Mandirancan",
+              "isPlaceholder": false
             },
             "score1": null,
             "score2": null,
             "matchId": null,
-            "status": "WAITING",
+            "status": "READY",
             "winnerTeamId": null,
             "loserTeamId": null,
             "nextMatchId": "M16",
@@ -768,17 +794,19 @@
             "matchIndex": 1,
             "title": "Match 14 • Semifinal 2",
             "team1": {
-              "name": "Pemenang Match 11",
-              "isPlaceholder": true
+              "id": "bcce9e4b-7ffe-4914-a16c-198dd2fbdab9",
+              "name": "SMAN 1 Jamblang",
+              "isPlaceholder": false
             },
             "team2": {
-              "name": "Pemenang Match 12",
-              "isPlaceholder": true
+              "id": "82e7f907-c0c5-42fa-95ba-67aff9939fa7",
+              "name": "SMKF MU 2 Kedawung",
+              "isPlaceholder": false
             },
             "score1": null,
             "score2": null,
             "matchId": null,
-            "status": "WAITING",
+            "status": "READY",
             "winnerTeamId": null,
             "loserTeamId": null,
             "nextMatchId": "M16",
@@ -839,6 +867,6 @@
     "champion": null,
     "runnerUp": null,
     "thirdPlaceWinner": null,
-    "updatedAt": "2026-09-20T14:10:40.231Z"
+    "updatedAt": "2026-09-22T01:16:18.519Z"
   }
 }

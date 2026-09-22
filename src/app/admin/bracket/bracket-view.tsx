@@ -312,6 +312,17 @@ export default function BracketView({
           triggerSync()
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'score_events',
+        },
+        () => {
+          triggerSync()
+        }
+      )
       .subscribe()
 
     const syncInterval = setInterval(() => {

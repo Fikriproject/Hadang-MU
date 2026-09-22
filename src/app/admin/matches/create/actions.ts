@@ -102,5 +102,7 @@ export async function createMatch(
   }
 
   revalidatePath('/admin')
+  revalidatePath('/admin/bracket')
+  revalidatePath('/bracket')
   redirect(`/admin/matches/${newMatch.id}`)
 }

@@ -624,7 +624,7 @@ export function reconcileBracketWithDb(
       // Auto-reconnect DB match if bm.matchId is missing but match was created in Supabase
       if (!bm.matchId && bm.team1?.id && bm.team2?.id) {
         const expectedName = `${bm.title} (${bracket.category === 'PUTRA' ? 'Putra' : 'Putri'})`
-        const matchedDb = dbMatches.find((dm) => {
+        let matchedDb = dbMatches.find((dm) => {
           const nameMatches = dm.name && dm.name.trim().toLowerCase() === expectedName.trim().toLowerCase()
           if (nameMatches) {
             const hasTeam1 = dm.team_attack_id === bm.team1!.id || dm.team_defense_id === bm.team1!.id
@@ -633,6 +633,16 @@ export function reconcileBracketWithDb(
           }
           return false
         })
+
+        // Fallback: Cocokkan berdasarkan pertemuan kedua tim di DB (meskipun nama match dibuat manual/berbeda)
+        if (!matchedDb) {
+          matchedDb = dbMatches.find((dm) => {
+            const hasTeam1 = dm.team_attack_id === bm.team1!.id || dm.team_defense_id === bm.team1!.id
+            const hasTeam2 = dm.team_attack_id === bm.team2!.id || dm.team_defense_id === bm.team2!.id
+            return hasTeam1 && hasTeam2
+          })
+        }
+
         if (matchedDb) {
           bm.matchId = matchedDb.id
         }
@@ -770,7 +780,7 @@ export function reconcileBracketWithDb(
       updatedBracket.thirdPlaceMatch.team2?.id
     ) {
       const expectedBronzeName = `${updatedBracket.thirdPlaceMatch.title} (${bracket.category === 'PUTRA' ? 'Putra' : 'Putri'})`
-      const matchedBronzeDb = dbMatches.find((dm) => {
+      let matchedBronzeDb = dbMatches.find((dm) => {
         const nameMatches = dm.name && dm.name.trim().toLowerCase() === expectedBronzeName.trim().toLowerCase()
         if (nameMatches) {
           const hasTeam1 =
@@ -783,6 +793,19 @@ export function reconcileBracketWithDb(
         }
         return false
       })
+
+      if (!matchedBronzeDb) {
+        matchedBronzeDb = dbMatches.find((dm) => {
+          const hasTeam1 =
+            dm.team_attack_id === updatedBracket.thirdPlaceMatch!.team1!.id ||
+            dm.team_defense_id === updatedBracket.thirdPlaceMatch!.team1!.id
+          const hasTeam2 =
+            dm.team_attack_id === updatedBracket.thirdPlaceMatch!.team2!.id ||
+            dm.team_defense_id === updatedBracket.thirdPlaceMatch!.team2!.id
+          return hasTeam1 && hasTeam2
+        })
+      }
+
       if (matchedBronzeDb) {
         updatedBracket.thirdPlaceMatch.matchId = matchedBronzeDb.id
       }
